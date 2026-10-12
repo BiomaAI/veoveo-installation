@@ -1,60 +1,40 @@
-# veoveo-deploy
+# veoveo-template-installation
 
-This repository describes which environments to launch for a Veoveo installation and
-nothing more. Components build, check and verify themselves inside their own
-environments. Upstream infrastructure that runs outside OpenShell is described here as
-Compose services.
+A Veoveo installation is one repository that records what an organization runs: its
+domain, identity providers, tenants, who holds which roles, and which components it
+runs at which revisions. Create yours from this template with **Use this template**,
+named `veoveo-<installation>` in your organization, for example `BiomaAI/veoveo-bioma`.
 
-## First slice
+Components register themselves with the Gateway and declare their own permissions, so
+an installation names no server's internals. It decides only who may do what.
 
-| Environment | Runs as | Sandbox name | Image | Policy |
-|---|---|---|---|---|
-| SurrealDB 3.3.0 | Compose service `surrealdb`, outside OpenShell | — | `surrealdb/surrealdb:v3.3.0`, pinned by digest | — |
-| Core | OpenShell sandbox | `vv-core` | `veoveo-core:dev`, built from [veoveo-core](https://github.com/VeoveoAI/veoveo-core) | `openshell/policy.yaml` in that repository |
-| Time | OpenShell sandbox | `vv-mcp-time` | `veoveo-mcp-time:dev`, built from [veoveo-mcp-time](https://github.com/VeoveoAI/veoveo-mcp-time) | `openshell/policy.yaml` in that repository |
-| Gateway | OpenShell sandbox | `vv-srv-gateway` | `veoveo-service-gateway:dev`, built from [veoveo-service-gateway](https://github.com/VeoveoAI/veoveo-service-gateway) | `openshell/policy.yaml` in that repository |
+The defaults run a local installation on one workstation: SurrealDB in Docker Compose,
+and each component in its own OpenShell environment.
 
-The Gateway's exposure, the bootstrap identities and the namespace bindings are not
-decided yet. MCP servers dial out to the Gateway, so the Time environment needs no
-inbound path.
+## Contents
 
-## Sandbox names
+| Path | Purpose |
+|---|---|
+| `compose.yaml` | SurrealDB 3.3.0, pinned by digest and published on the loopback interface only |
 
-OpenShell limits sandbox names to 19 characters. Sandboxes and other runtime
-identifiers use `vv-` plus a short kind and the component name: `srv` for services,
-`mcp` for MCP servers, `rt` for runtimes, `app`, `sdk`, `tpl` for templates, `demo`
-for showcases and `qual` for qualification suites. Repositories without a kind use
-`vv-<name>`.
+## Local Installation
 
-## SurrealDB
+Requirements: Docker with Compose v2, and OpenShell 0.1.3 with a local gateway started
+with `OPENSHELL_TELEMETRY_ENABLED=false`. On macOS, Docker Desktop 4.94 or newer with
+host networking enabled.
 
-`compose.yaml` runs SurrealDB with RocksDB storage on a named volume. It refuses to
-start until `SURREAL_PASS` holds the root password, and `SURREAL_PORT` selects the host
-port, 8000 by default. Keep both in an uncommitted `.env` file next to `compose.yaml`.
+Keep `VEOVEO_SURREAL_PASSWORD` and, optionally, `VEOVEO_SURREAL_PORT` (8000 by default)
+in an uncommitted `.env` file next to `compose.yaml`, then start the database:
 
 ```sh
 docker compose up -d --wait
 ```
 
-Sandboxes reach the database at `host.openshell.internal` on that port, and each
-environment's policy names that endpoint.
+Sandboxes reach the database at `host.openshell.internal` on that port. Each component
+repository builds its own environment image and documents how to create its sandbox.
 
-## Environments
-
-Each component repository builds its own `dev` image. Clone the repository, build the
-image and create its sandbox, for example for Time:
-
-```sh
-docker build --target dev -t veoveo-mcp-time:dev .
-openshell sandbox create --name vv-mcp-time --from veoveo-mcp-time:dev \
-  --policy openshell/policy.yaml --env HOME=/sandbox --detach -- sleep infinity
-```
-
-## Requirements
-
-Docker with Compose v2, and OpenShell 0.1.3 with a local gateway started with
-`OPENSHELL_TELEMETRY_ENABLED=false`. On macOS, Docker Desktop 4.94 or newer with host
-networking enabled.
+Names follow the Veoveo
+[naming and format conventions](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/CONVENTIONS.md).
 
 ## License
 

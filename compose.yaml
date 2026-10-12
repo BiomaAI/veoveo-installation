@@ -1,23 +1,26 @@
 # Upstream infrastructure that runs outside OpenShell for the first slice.
 # Component environments run as OpenShell sandboxes, described in README.md.
-name: veoveo
+name: vv-deploy
 
 services:
-  surrealdb:
+  vv-surrealdb:
+    container_name: vv-surrealdb
     image: surrealdb/surrealdb:v3.3.0@sha256:681c6c22c287421b5c7d99e0fde79b6e0d32c36c1ddeaab2762a1661cb04cd20
     command:
       - start
       - --user
       - root
       - --pass
-      - ${SURREAL_PASS:?set SURREAL_PASS to the root password before starting}
+      - ${VEOVEO_SURREAL_PASSWORD:?set VEOVEO_SURREAL_PASSWORD to the root password before starting}
       - rocksdb:/home/nonroot/veoveo.db
     ports:
-      - "${SURREAL_PORT:-8000}:8000"
+      # Loopback only: sandboxes reach it through host.openshell.internal, and the
+      # network does not.
+      - "127.0.0.1:${VEOVEO_SURREAL_PORT:-8000}:8000"
     # The image runs as nonroot (uid 65532) and owns /home/nonroot, so a new named
     # volume mounted there inherits that owner.
     volumes:
-      - surrealdb:/home/nonroot
+      - vv-surrealdb:/home/nonroot
     healthcheck:
       test: ["CMD", "/surreal", "is-ready", "--endpoint", "http://127.0.0.1:8000"]
       interval: 5s
@@ -26,4 +29,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  surrealdb:
+  vv-surrealdb:
