@@ -41,7 +41,7 @@ steps below run them together. Run them from this repository's directory.
 
    ```sh
    openshell sandbox exec vv-srv-gateway -- mkdir -p /sandbox/state/gateway
-   openshell sandbox upload vv-srv-gateway .env /sandbox/state/database.env
+   openshell sandbox upload --no-git-ignore vv-srv-gateway .env /sandbox/state/database.env
    openshell sandbox exec vv-srv-gateway -- bash -lc 'chmod 600 /sandbox/state/database.env \
      && cd /sandbox/src && cargo build --locked --bin veoveo-service-gateway \
      && target/debug/veoveo-service-gateway generate-local-installation \
@@ -84,8 +84,13 @@ steps below run them together. Run them from this repository's directory.
    openshell sandbox exec vv-mcp-time -- bash -c 'chmod 700 /sandbox/acceptance && chmod 600 /sandbox/acceptance/*.pem'
    ```
 
-Environments reach the database and each other through `host.openshell.internal`, and
-each component's policy names the endpoints it may reach. Names follow the Veoveo
+`openshell sandbox upload` skips files that `.gitignore` excludes unless it is given
+`--no-git-ignore`, which is why the uploads of the gitignored `.env` above carry it.
+
+Environments reach the database and each other through `host.openshell.internal`, which
+OpenShell 0.1.3 maps to the host's loopback interface on macOS and on Linux, so the
+database and every forward stay on `127.0.0.1`. Each component's policy names the
+endpoints it may reach. Names follow the Veoveo
 [naming and format conventions](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/CONVENTIONS.md).
 
 ## License
