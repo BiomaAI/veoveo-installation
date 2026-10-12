@@ -1,0 +1,15 @@
+# An endpointless provider profile for the installation's registration secret. The
+# secret has no endpoints of its own, so it resolves only where a component's policy
+# binds this provider with `credential_binding.provider` to the Gateway's registration
+# endpoint. Environments see only a placeholder.
+id: vv-registration
+display_name: Veoveo registration secret
+description: The installation's registration secret, the RFC 7591 initial access token
+category: other
+credentials:
+  - name: registration_secret
+    description: The registration secret the Gateway generates for the installation
+    env_vars: [VEOVEO_REGISTRATION_SECRET]
+    required: true
+    auth_style: bearer
+    header_name: authorization
