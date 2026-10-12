@@ -1,6 +1,6 @@
-# Upstream infrastructure that runs outside OpenShell for the first slice.
+# Upstream infrastructure of the local installation, which runs outside OpenShell.
 # Component environments run as OpenShell sandboxes, described in README.md.
-name: vv-deploy
+name: vv-local
 
 services:
   vv-surrealdb:

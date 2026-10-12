@@ -93,6 +93,37 @@ database and every forward stay on `127.0.0.1`. Each component's policy names th
 endpoints it may reach. Names follow the Veoveo
 [naming and format conventions](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/CONVENTIONS.md).
 
+## Stop
+
+Stop each service with Ctrl-C in its terminal, or from the host, then remove the
+forwards and stop the database. The data stays in the `vv-local_vv-surrealdb` volume,
+and the steps above start the installation again:
+
+```sh
+openshell sandbox exec vv-mcp-time -- pkill -TERM -f '^/sandbox/run/veoveo-mcp-time-'
+openshell sandbox exec vv-srv-gateway -- pkill -TERM -f '^/sandbox/run/veoveo-service-gateway-'
+openshell forward stop 8800 vv-mcp-time
+openshell forward stop 8080 vv-srv-gateway
+docker compose stop
+```
+
+Time removes its registration when it receives SIGTERM.
+
+## Reset
+
+A server's key lives in its environment, and the Gateway pins a namespace to the first
+key that registers it. A recreated environment has a new key, so its server needs a
+fresh namespace claim, which a reset of the database provides. After the steps in Stop,
+remove the database volume, the environments, and the registration provider and its
+profile, then start again from step 1:
+
+```sh
+docker compose down -v
+openshell sandbox delete vv-mcp-time vv-srv-gateway
+openshell provider delete vv-registration
+openshell profile delete vv-registration --global
+```
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
