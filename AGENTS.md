@@ -8,7 +8,7 @@
   every installation starts from them.
 - Build, check and repair logic belongs to each component's own repository and
   environment. Planning documents belong in `veoveo-docs`.
-- Use upstream images such as SurrealDB unmodified and pinned by digest. Verify the
+- Use upstream images such as PostgreSQL unmodified and pinned by digest. Verify the
   latest stable release at its source when changing a pin.
 - Never commit credentials. Compose reads them from an uncommitted `.env` file, and
   environments receive secrets through OpenShell providers.

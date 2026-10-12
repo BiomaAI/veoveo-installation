@@ -8,15 +8,20 @@ named `veoveo-<installation>` in your organization, for example `BiomaAI/veoveo-
 Components register themselves with the Gateway and declare their own permissions, so
 an installation names no server's internals. It decides only who may do what.
 
-The defaults run a local installation on one workstation: SurrealDB in Docker Compose,
+The defaults run a local installation on one workstation: PostgreSQL in Docker Compose,
 and each component in its own OpenShell environment.
 
 ## Contents
 
 | Path | Purpose |
 |---|---|
-| `compose.yaml` | SurrealDB 3.3.0, pinned by digest and published on the loopback interface only |
+| `compose.yaml` | PostgreSQL 18.6, pinned by digest and published on the loopback interface only |
+| `postgres/initdb/owner.sql` | Creates the installation owner `veoveo_owner` and its database `veoveo` when the data directory is new |
 | `openshell/providers/vv-registration.yaml` | The OpenShell provider profile that carries the installation's registration secret into environments as a placeholder |
+
+The installation owner owns the database and may create roles, and it is not a
+superuser. The Gateway connects as the owner, applies the kernel migrations and gives
+each registered server its own login and schema.
 
 ## Local Installation
 
@@ -25,23 +30,28 @@ with `OPENSHELL_TELEMETRY_ENABLED=false`. On macOS, Docker Desktop 4.94 or newer
 host networking enabled. Each component repository documents its own environment; the
 steps below run them together. Run them from this repository's directory.
 
-1. Keep `VEOVEO_SURREAL_PASSWORD` and, optionally, `VEOVEO_SURREAL_PORT` (8000 by
-   default) in an uncommitted `.env` file next to `compose.yaml`, then start the
-   database:
+1. Keep `VEOVEO_POSTGRES_PASSWORD` (the superuser's), `VEOVEO_DATABASE_PASSWORD` (the
+   installation owner's) and, optionally, `VEOVEO_DATABASE_PORT` (5432 by default) in an
+   uncommitted `.env` file next to `compose.yaml`, then start the database:
 
    ```sh
+   umask 077
+   printf 'VEOVEO_POSTGRES_PASSWORD=%s\nVEOVEO_DATABASE_PASSWORD=%s\n' \
+     "$(openssl rand -hex 24)" "$(openssl rand -hex 24)" > .env
    docker compose up -d --wait
    ```
 
 2. Create the Gateway environment from
    [veoveo-service-gateway](https://github.com/VeoveoAI/veoveo-service-gateway): build its
    `dev` image, create `vv-srv-gateway` with its `openshell/policy.yaml`, and clone its
-   source into `/sandbox/src`. Give it the database password and generate the
-   installation once:
+   source into `/sandbox/src`. Give it the installation owner's password, and only that
+   one, then generate the installation once:
 
    ```sh
+   owner=$(mktemp) && grep '^VEOVEO_DATABASE_PASSWORD=' .env > "$owner"
    openshell sandbox exec vv-srv-gateway -- mkdir -p /sandbox/state/gateway
-   openshell sandbox upload --no-git-ignore vv-srv-gateway .env /sandbox/state/database.env
+   openshell sandbox upload vv-srv-gateway "$owner" /sandbox/state/database.env
+   rm -f "$owner"
    openshell sandbox exec vv-srv-gateway -- bash -lc 'chmod 600 /sandbox/state/database.env \
      && cd /sandbox/src && cargo build --locked --bin veoveo-service-gateway \
      && target/debug/veoveo-service-gateway generate-local-installation \
@@ -84,9 +94,6 @@ steps below run them together. Run them from this repository's directory.
    openshell sandbox exec vv-mcp-time -- bash -c 'chmod 700 /sandbox/acceptance && chmod 600 /sandbox/acceptance/*.pem'
    ```
 
-`openshell sandbox upload` skips files that `.gitignore` excludes unless it is given
-`--no-git-ignore`, which is why the uploads of the gitignored `.env` above carry it.
-
 Environments reach the database and each other through `host.openshell.internal`, which
 OpenShell 0.1.3 maps to the host's loopback interface on macOS and on Linux, so the
 database and every forward stay on `127.0.0.1`. Each component's policy names the
@@ -96,7 +103,7 @@ endpoints it may reach. Names follow the Veoveo
 ## Stop
 
 Stop each service with Ctrl-C in its terminal, or from the host, then remove the
-forwards and stop the database. The data stays in the `vv-local_vv-surrealdb` volume,
+forwards and stop the database. The data stays in the `vv-local_vv-postgres` volume,
 and the steps above start the installation again:
 
 ```sh
