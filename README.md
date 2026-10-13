@@ -167,9 +167,12 @@ A server's key lives in its environment, and the Gateway pins a namespace to the
 key that registers it. A recreated environment has a new key, so its server needs a
 fresh namespace claim, which a reset of the database provides. After the steps in Stop,
 remove the database and object store volumes, the environments, and the registration
-provider and its profile, then start again from step 1:
+provider and its profile, then start again from step 1. Compose reads every variable
+`compose.yaml` requires even to remove the services, so an `.env` that holds no object
+store credential gets a placeholder one first; step 1 writes a new `.env`:
 
 ```sh
+grep -q '^VEOVEO_STORAGE_SECRET_KEY=' .env || printf 'VEOVEO_STORAGE_ACCESS_KEY=reset\nVEOVEO_STORAGE_SECRET_KEY=reset\n' >> .env
 docker compose down -v
 openshell sandbox delete vv-mcp-artifact vv-mcp-time vv-srv-gateway
 openshell provider delete vv-registration
