@@ -8,21 +8,23 @@ named `veoveo-<installation>` in your organization, for example `BiomaAI/veoveo-
 Components register themselves with the Gateway and declare their own permissions, so
 an installation names no server's internals. It decides only who may do what.
 
-The defaults run a local installation on one workstation: PostgreSQL in Docker Compose,
-and each component in its own OpenShell environment.
+The defaults run a local installation on one workstation: PostgreSQL and the RustFS
+object store in Docker Compose, and each component in its own OpenShell environment.
 
 ## Contents
 
 | Path | Purpose |
 |---|---|
 | `component-lock.json` | The repository and Git revision of each component the installation runs, in core's [component lock](https://github.com/VeoveoAI/veoveo-core/blob/main/platform/installation/contract/DESIGN.md) format |
-| `compose.yaml` | PostgreSQL 18.6, pinned by digest and published on the loopback interface only |
+| `compose.yaml` | PostgreSQL 18.6 and RustFS 1.0.1, each pinned by digest and published on the loopback interface only |
 | `postgres/initdb/owner.sql` | Creates the installation owner `veoveo_owner` and its database `veoveo` when the data directory is new |
 | `openshell/providers/vv-registration.yaml` | The OpenShell provider profile that carries the installation's registration secret into environments as a placeholder |
 
 The installation owner owns the database and may create roles, and it is not a
 superuser. The Gateway connects as the owner, applies the kernel migrations and gives
-each registered server its own login and schema.
+each registered server its own login and schema. The Artifact server holds the object
+store's credential and signs every request that moves bytes, so clients send and fetch
+bytes at the object store directly.
 
 ## Local Installation
 
@@ -46,13 +48,15 @@ run `git -C /sandbox/src fetch --quiet` and the same checkout in its environment
 restart it.
 
 1. Keep `VEOVEO_POSTGRES_PASSWORD` (the superuser's), `VEOVEO_DATABASE_PASSWORD` (the
-   installation owner's) and, optionally, `VEOVEO_DATABASE_PORT` (5432 by default) in an
-   uncommitted `.env` file next to `compose.yaml`, then start the database:
+   installation owner's), `VEOVEO_STORAGE_ACCESS_KEY` and `VEOVEO_STORAGE_SECRET_KEY`
+   (the object store's credential) and, optionally, `VEOVEO_DATABASE_PORT` (5432 by
+   default) and `VEOVEO_STORAGE_PORT` (9000 by default) in an uncommitted `.env` file
+   next to `compose.yaml`, then start PostgreSQL and RustFS:
 
    ```sh
    umask 077
-   printf 'VEOVEO_POSTGRES_PASSWORD=%s\nVEOVEO_DATABASE_PASSWORD=%s\n' \
-     "$(openssl rand -hex 24)" "$(openssl rand -hex 24)" > .env
+   printf 'VEOVEO_POSTGRES_PASSWORD=%s\nVEOVEO_DATABASE_PASSWORD=%s\nVEOVEO_STORAGE_ACCESS_KEY=%s\nVEOVEO_STORAGE_SECRET_KEY=%s\n' \
+     "$(openssl rand -hex 24)" "$(openssl rand -hex 24)" "$(openssl rand -hex 12)" "$(openssl rand -hex 24)" > .env
    docker compose up -d --wait
    ```
 
@@ -93,55 +97,81 @@ restart it.
    and forward port 8800, as its README shows. Time registers itself with the Gateway
    at startup.
 
-5. To run Time's acceptance tests, copy the callers' keys from the Gateway environment
-   into `/sandbox/acceptance` in the Time environment and follow the Acceptance section
-   of Time's README:
+5. Create the Artifact environment from
+   [veoveo-mcp-artifact](https://github.com/VeoveoAI/veoveo-mcp-artifact) with the
+   provider attached and check out its locked revision into `/sandbox/src`. Artifact
+   signs transfers with the object store's credential itself, so it receives that
+   credential, and only that one, as an owner-only file:
+
+   ```sh
+   storage=$(mktemp) && grep -E '^VEOVEO_STORAGE_(ACCESS|SECRET)_KEY=' .env > "$storage"
+   openshell sandbox exec vv-mcp-artifact -- mkdir -p /sandbox/state
+   openshell sandbox upload vv-mcp-artifact "$storage" /sandbox/state/storage.env
+   rm -f "$storage"
+   openshell sandbox exec vv-mcp-artifact -- chmod 600 /sandbox/state/storage.env
+   ```
+
+   Then start Artifact in its own terminal and forward port 8801, as its README's
+   Running Artifact section shows. Artifact prepares its bucket and registers itself
+   with the Gateway at startup.
+
+6. To run the acceptance tests of Time and Artifact, copy the callers' keys from the
+   Gateway environment into `/sandbox/acceptance` in each environment and follow the
+   Acceptance section of each README:
 
    ```sh
    keys=$(mktemp -d) && chmod 700 "$keys"
    for f in acceptance-member acceptance-admin; do
      for e in pem jwks.json; do
        openshell sandbox download vv-srv-gateway /sandbox/state/gateway/$f.$e "$keys/"
-       openshell sandbox upload vv-mcp-time "$keys/$f.$e" /sandbox/acceptance/$f.$e
+       for env in vv-mcp-time vv-mcp-artifact; do
+         openshell sandbox upload $env "$keys/$f.$e" /sandbox/acceptance/$f.$e
+       done
      done
    done
    rm -rf "$keys"
-   openshell sandbox exec vv-mcp-time -- bash -c 'chmod 700 /sandbox/acceptance && chmod 600 /sandbox/acceptance/*.pem'
+   for env in vv-mcp-time vv-mcp-artifact; do
+     openshell sandbox exec $env -- bash -c 'chmod 700 /sandbox/acceptance && chmod 600 /sandbox/acceptance/*.pem'
+   done
    ```
 
-Environments reach the database and each other through `host.openshell.internal`, which
-OpenShell 0.1.3 maps to the host's loopback interface on macOS and on Linux, so the
-database and every forward stay on `127.0.0.1`. Each component's policy names the
-endpoints it may reach. Names follow the Veoveo
+Environments reach the database, the object store and each other through
+`host.openshell.internal`, which OpenShell 0.1.3 maps to the host's loopback interface on
+macOS and on Linux, so the database, the object store and every forward stay on
+`127.0.0.1`. Each component's policy names the endpoints it may reach. Artifact signs
+its URLs for `http://host.openshell.internal:9000`, so a browser on the host fetches them
+only when the host maps `host.openshell.internal` to `127.0.0.1`. Names follow the Veoveo
 [naming and format conventions](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/CONVENTIONS.md).
 
 ## Stop
 
 Stop each service with Ctrl-C in its terminal, or from the host, then remove the
-forwards and stop the database. The data stays in the `vv-local_vv-postgres` volume,
-and the steps above start the installation again:
+forwards and stop PostgreSQL and RustFS. The data stays in the `vv-local_vv-postgres` and
+`vv-local_vv-rustfs` volumes, and the steps above start the installation again:
 
 ```sh
+openshell sandbox exec vv-mcp-artifact -- pkill -TERM -f '^/sandbox/run/veoveo-mcp-artifact-'
 openshell sandbox exec vv-mcp-time -- pkill -TERM -f '^/sandbox/run/veoveo-mcp-time-'
 openshell sandbox exec vv-srv-gateway -- pkill -TERM -f '^/sandbox/run/veoveo-service-gateway-'
+openshell forward stop 8801 vv-mcp-artifact
 openshell forward stop 8800 vv-mcp-time
 openshell forward stop 8080 vv-srv-gateway
 docker compose stop
 ```
 
-Time removes its registration when it receives SIGTERM.
+Time and Artifact remove their registrations when they receive SIGTERM.
 
 ## Reset
 
 A server's key lives in its environment, and the Gateway pins a namespace to the first
 key that registers it. A recreated environment has a new key, so its server needs a
 fresh namespace claim, which a reset of the database provides. After the steps in Stop,
-remove the database volume, the environments, and the registration provider and its
-profile, then start again from step 1:
+remove the database and object store volumes, the environments, and the registration
+provider and its profile, then start again from step 1:
 
 ```sh
 docker compose down -v
-openshell sandbox delete vv-mcp-time vv-srv-gateway
+openshell sandbox delete vv-mcp-artifact vv-mcp-time vv-srv-gateway
 openshell provider delete vv-registration
 openshell profile delete vv-registration --global
 ```

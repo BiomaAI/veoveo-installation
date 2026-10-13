@@ -1,4 +1,5 @@
-# Upstream infrastructure of the local installation, which runs outside OpenShell.
+# The local installation's upstream infrastructure, PostgreSQL and the RustFS object
+# store, runs here outside OpenShell.
 # Component environments run as OpenShell sandboxes, described in README.md.
 name: vv-local
 
@@ -35,5 +36,24 @@ services:
       retries: 12
     restart: unless-stopped
 
+  vv-rustfs:
+    container_name: vv-rustfs
+    # RustFS 1.0.1, the latest stable release, unmodified. The Artifact server signs
+    # every byte transfer with this credential and calls only standard S3 operations.
+    image: rustfs/rustfs:1.0.1@sha256:1803faef57627e2d9c2e7d89d655d712ddded5389040054987163043fecb6a3c
+    environment:
+      RUSTFS_ACCESS_KEY: ${VEOVEO_STORAGE_ACCESS_KEY:?set VEOVEO_STORAGE_ACCESS_KEY to the object store's access key before starting}
+      RUSTFS_SECRET_KEY: ${VEOVEO_STORAGE_SECRET_KEY:?set VEOVEO_STORAGE_SECRET_KEY to the object store's secret key before starting}
+    ports:
+      # The S3 endpoint on loopback only; the console port stays inside the container.
+      # Sandboxes reach it through host.openshell.internal. RustFS answers its health
+      # routes before it accepts S3 calls, so the Artifact server, which retries its
+      # bucket preparation, decides when storage is ready.
+      - "127.0.0.1:${VEOVEO_STORAGE_PORT:-9000}:9000"
+    volumes:
+      - vv-rustfs:/data
+    restart: unless-stopped
+
 volumes:
   vv-postgres:
+  vv-rustfs:
