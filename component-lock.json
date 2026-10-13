@@ -1,0 +1,15 @@
+{
+  "format": "https://veoveo.ai/formats/component-lock",
+  "components": [
+    {
+      "name": "veoveo-service-gateway",
+      "repository": "https://github.com/VeoveoAI/veoveo-service-gateway",
+      "revision": "36cdec814db0d888ff5556edd5403729613a2dc2"
+    },
+    {
+      "name": "veoveo-mcp-time",
+      "repository": "https://github.com/VeoveoAI/veoveo-mcp-time",
+      "revision": "7cfbf6d8917fcfacc6c3bb78aed0c1747d11e7a6"
+    }
+  ]
+}

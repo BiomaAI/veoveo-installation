@@ -15,6 +15,7 @@ and each component in its own OpenShell environment.
 
 | Path | Purpose |
 |---|---|
+| `component-lock.json` | The repository and Git revision of each component the installation runs, in core's [component lock](https://github.com/VeoveoAI/veoveo-core/blob/main/platform/installation/contract/DESIGN.md) format |
 | `compose.yaml` | PostgreSQL 18.6, pinned by digest and published on the loopback interface only |
 | `postgres/initdb/owner.sql` | Creates the installation owner `veoveo_owner` and its database `veoveo` when the data directory is new |
 | `openshell/providers/vv-registration.yaml` | The OpenShell provider profile that carries the installation's registration secret into environments as a placeholder |
@@ -25,10 +26,24 @@ each registered server its own login and schema.
 
 ## Local Installation
 
-Requirements: Docker with Compose v2, and OpenShell 0.1.3 with a local gateway started
-with `OPENSHELL_TELEMETRY_ENABLED=false`. On macOS, Docker Desktop 4.94 or newer with
-host networking enabled. Each component repository documents its own environment; the
-steps below run them together. Run them from this repository's directory.
+Requirements: Docker with Compose v2, `jq`, and OpenShell 0.1.3 with a local gateway
+started with `OPENSHELL_TELEMETRY_ENABLED=false`. On macOS, Docker Desktop 4.94 or newer
+with host networking enabled. Each component repository documents its own environment;
+the steps below run them together. Run them from this repository's directory.
+
+Every environment runs the revision `component-lock.json` names. To check one out, clone
+the component's repository into its environment and detach at the locked revision, for
+example for the Gateway:
+
+```sh
+rev=$(jq -er '.components[] | select(.name == "veoveo-service-gateway") | .revision' component-lock.json)
+openshell sandbox exec vv-srv-gateway -- git clone --quiet https://github.com/VeoveoAI/veoveo-service-gateway /sandbox/src
+openshell sandbox exec vv-srv-gateway -- git -C /sandbox/src checkout --quiet --detach "$rev"
+```
+
+To move a component to a new revision, change it in `component-lock.json`, commit, then
+run `git -C /sandbox/src fetch --quiet` and the same checkout in its environment and
+restart it.
 
 1. Keep `VEOVEO_POSTGRES_PASSWORD` (the superuser's), `VEOVEO_DATABASE_PASSWORD` (the
    installation owner's) and, optionally, `VEOVEO_DATABASE_PORT` (5432 by default) in an
@@ -43,8 +58,8 @@ steps below run them together. Run them from this repository's directory.
 
 2. Create the Gateway environment from
    [veoveo-service-gateway](https://github.com/VeoveoAI/veoveo-service-gateway): build its
-   `dev` image, create `vv-srv-gateway` with its `openshell/policy.yaml`, and clone its
-   source into `/sandbox/src`. Give it the installation owner's password, and only that
+   `dev` image, create `vv-srv-gateway` with its `openshell/policy.yaml`, and check out its
+   locked revision into `/sandbox/src`. Give it the installation owner's password, and only that
    one, then generate the installation once:
 
    ```sh
@@ -74,7 +89,7 @@ steps below run them together. Run them from this repository's directory.
 
 4. Create the Time environment from
    [veoveo-mcp-time](https://github.com/VeoveoAI/veoveo-mcp-time) with the provider
-   attached, clone its source into `/sandbox/src`, then start Time in its own terminal
+   attached, check out its locked revision into `/sandbox/src`, then start Time in its own terminal
    and forward port 8800, as its README shows. Time registers itself with the Gateway
    at startup.
 
