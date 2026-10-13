@@ -8,10 +8,12 @@
   every installation starts from them.
 - Build, check and repair logic belongs to each component's own repository and
   environment. Planning documents belong in `veoveo-docs`.
-- Use upstream images such as PostgreSQL unmodified and pinned by digest. Verify the
-  latest stable release at its source when changing a pin.
+- Use upstream images such as PostgreSQL and RustFS unmodified and pinned by digest.
+  Verify the latest stable release at its source when changing a pin.
 - Never commit credentials. Compose reads them from an uncommitted `.env` file, and
-  environments receive secrets through OpenShell providers.
+  environments receive secrets through OpenShell providers. A component that signs with
+  a secret itself, such as Artifact with the object store's credential, receives only
+  that secret as an owner-only file uploaded without printing it.
 - Names, identifiers and formats follow the
   [naming and format conventions](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/CONVENTIONS.md);
   sandboxes, providers and Compose services use the `vv-` short form.
