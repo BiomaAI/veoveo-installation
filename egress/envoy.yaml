@@ -1,0 +1,229 @@
+# The installation's Envoy edge (D42): the only path into and out of environments.
+# egress/render writes egress/envoy.local.yaml from this file, filling the hosts .env
+# names: the public origin, the media provider's API and its output hosts.
+node: { id: vv-egress, cluster: vv-local }
+admin:
+  address: { socket_address: { address: 127.0.0.1, port_value: 9901 } }
+static_resources:
+  listeners:
+  # The Gateway as environments reach it, at vv-gateway.internal:8080. Only the local
+  # network may use it, and the registration secret replaces the placeholder an
+  # environment sends only on POST /oauth/register, so registration access tokens on
+  # /oauth/register/{client} pass unchanged.
+  - name: gateway
+    address: { socket_address: { address: 0.0.0.0, port_value: 8080 } }
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: gateway
+          stream_idle_timeout: 0s
+          route_config:
+            virtual_hosts:
+            - name: gateway
+              domains: ["*"]
+              routes: [{ match: { prefix: "/" }, route: { cluster: gateway, timeout: 0s } }]
+          http_filters:
+          - name: envoy.filters.http.rbac
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC
+              rules:
+                action: ALLOW
+                policies:
+                  local-network:
+                    permissions: [{ any: true }]
+                    principals: [{ direct_remote_ip: { address_prefix: 10.231.10.0, prefix_len: 24 } }]
+          - name: envoy.filters.http.match_delegate
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.common.matching.v3.ExtensionWithMatcher
+              extension_config:
+                name: envoy.filters.http.credential_injector
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.credential_injector.v3.CredentialInjector
+                  overwrite: true
+                  credential:
+                    name: envoy.http.injected_credentials.generic
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.http.injected_credentials.generic.v3.Generic
+                      credential:
+                        name: registration-secret
+                        sds_config: { path_config_source: { path: /etc/envoy/sds/registration-secret.yaml } }
+                      header: Authorization
+              xds_matcher:
+                matcher_list:
+                  matchers:
+                  - predicate:
+                      not_matcher:
+                        and_matcher:
+                          predicate:
+                          - single_predicate:
+                              input: { name: method, typed_config: { "@type": type.googleapis.com/envoy.type.matcher.v3.HttpRequestHeaderMatchInput, header_name: ":method" } }
+                              value_match: { exact: POST }
+                          - single_predicate:
+                              input: { name: path, typed_config: { "@type": type.googleapis.com/envoy.type.matcher.v3.HttpRequestHeaderMatchInput, header_name: ":path" } }
+                              value_match: { exact: /oauth/register }
+                    on_match:
+                      action: { name: skip, typed_config: { "@type": type.googleapis.com/envoy.extensions.filters.common.matcher.action.v3.SkipFilter } }
+          - name: envoy.filters.http.router
+            typed_config: { "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router }
+  # The media provider's API at media-provider.internal, for Media's network only. The
+  # provider key replaces whatever Authorization Media sends.
+  - name: media_provider
+    address: { socket_address: { address: 0.0.0.0, port_value: 443 } }
+    filter_chains:
+    - transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+          common_tls_context:
+            tls_certificates:
+            - certificate_chain: { filename: /etc/envoy/tls/media-provider.internal.crt }
+              private_key: { filename: /etc/envoy/tls/media-provider.internal.key }
+      filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: media_provider
+          route_config:
+            virtual_hosts:
+            - name: provider
+              domains: ["media-provider.internal", "media-provider.internal:443"]
+              routes: [{ match: { prefix: "/" }, route: { cluster: media_provider, host_rewrite_literal: "@MEDIA_PROVIDER_HOST@" } }]
+          http_filters:
+          - name: envoy.filters.http.rbac
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC
+              rules:
+                action: ALLOW
+                policies:
+                  media-network:
+                    permissions: [{ any: true }]
+                    principals: [{ direct_remote_ip: { address_prefix: 10.231.11.0, prefix_len: 24 } }]
+          - name: envoy.filters.http.credential_injector
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.credential_injector.v3.CredentialInjector
+              overwrite: true
+              credential:
+                name: envoy.http.injected_credentials.generic
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.http.injected_credentials.generic.v3.Generic
+                  credential:
+                    name: media-provider-key
+                    sds_config: { path_config_source: { path: /etc/envoy/sds/media-provider-key.yaml } }
+                  header: Authorization
+          - name: envoy.filters.http.router
+            typed_config: { "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router }
+  # HTTPS egress for every environment through CONNECT, to the hosts they fetch from
+  # and the hosts .env names. No environment holds a credential for any of them.
+  - name: egress
+    address: { socket_address: { address: 0.0.0.0, port_value: 3128 } }
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: egress
+          route_config:
+            virtual_hosts:
+            - name: allowed
+              domains: ["static.rust-lang.org:443", "index.crates.io:443", "static.crates.io:443", "crates.io:443", "github.com:443", "api.github.com:443"@EGRESS_HOSTS@]
+              routes:
+              - match: { connect_matcher: {} }
+                route: { cluster: egress, upgrade_configs: [{ upgrade_type: CONNECT, connect_config: {} }], timeout: 0s }
+            - name: refused
+              domains: ["*"]
+              routes:
+              - { match: { connect_matcher: {} }, direct_response: { status: 403 } }
+              - { match: { prefix: "/" }, direct_response: { status: 403 } }
+          http_filters:
+          - name: envoy.filters.http.rbac
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC
+              rules:
+                action: ALLOW
+                policies:
+                  environments:
+                    permissions: [{ any: true }]
+                    principals:
+                    - direct_remote_ip: { address_prefix: 10.231.10.0, prefix_len: 24 }
+                    - direct_remote_ip: { address_prefix: 10.231.11.0, prefix_len: 24 }
+          - name: envoy.filters.http.dynamic_forward_proxy
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.dynamic_forward_proxy.v3.FilterConfig
+              dns_cache_config: { name: egress, dns_lookup_family: V4_ONLY }
+          - name: envoy.filters.http.router
+            typed_config: { "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router }
+  # Published on the host's loopback interface, for the host and the tunnel.
+  - name: published_gateway
+    address: { socket_address: { address: 0.0.0.0, port_value: 18080 } }
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.tcp_proxy
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+          stat_prefix: published_gateway
+          cluster: published_gateway
+  - name: published_time
+    address: { socket_address: { address: 0.0.0.0, port_value: 18800 } }
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.tcp_proxy
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+          stat_prefix: published_time
+          cluster: published_time
+  - name: published_artifact
+    address: { socket_address: { address: 0.0.0.0, port_value: 18801 } }
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.tcp_proxy
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+          stat_prefix: published_artifact
+          cluster: published_artifact
+  - name: published_media
+    address: { socket_address: { address: 0.0.0.0, port_value: 18802 } }
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.tcp_proxy
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+          stat_prefix: published_media
+          cluster: published_media
+  clusters:
+  - name: gateway
+    type: STRICT_DNS
+    load_assignment: { cluster_name: gateway, endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: vv-srv-gateway.internal, port_value: 8080 } } } }] }] }
+  - name: published_gateway
+    type: STRICT_DNS
+    load_assignment: { cluster_name: published_gateway, endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: vv-srv-gateway.internal, port_value: 8080 } } } }] }] }
+  - name: published_time
+    type: STRICT_DNS
+    load_assignment: { cluster_name: published_time, endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: vv-mcp-time.internal, port_value: 8800 } } } }] }] }
+  - name: published_artifact
+    type: STRICT_DNS
+    load_assignment: { cluster_name: published_artifact, endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: vv-mcp-artifact.internal, port_value: 8801 } } } }] }] }
+  - name: published_media
+    type: STRICT_DNS
+    load_assignment: { cluster_name: published_media, endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: vv-mcp-media.internal, port_value: 8802 } } } }] }] }
+  - name: media_provider
+    type: STRICT_DNS
+    dns_lookup_family: V4_ONLY
+    load_assignment: { cluster_name: media_provider, endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: "@MEDIA_PROVIDER_HOST@", port_value: 443 } } } }] }] }
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        sni: "@MEDIA_PROVIDER_HOST@"
+        common_tls_context:
+          validation_context:
+            trusted_ca: { filename: /etc/ssl/certs/ca-certificates.crt }
+            match_typed_subject_alt_names: [{ san_type: DNS, matcher: { exact: "@MEDIA_PROVIDER_HOST@" } }]
+  - name: egress
+    lb_policy: CLUSTER_PROVIDED
+    cluster_type:
+      name: envoy.clusters.dynamic_forward_proxy
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.clusters.dynamic_forward_proxy.v3.ClusterConfig
+        dns_cache_config: { name: egress, dns_lookup_family: V4_ONLY }

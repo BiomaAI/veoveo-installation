@@ -1,0 +1,33 @@
+# The installation's Lore server. The Gateway's authorization server issues its tokens
+# (D43), and each token's `lore_resources` claim names the repositories it reaches.
+
+[server.auth]
+jwt_issuer = "http://vv-gateway.internal:8080/oauth"
+jwt_audience = ["lores://vv-lore.internal:41337"]
+jwt_typ = "at+jwt"
+resource_claim = "lore_resources"
+# `lore repository list` names no repository; a client reaches the ones it is granted.
+baseline_access = "denied"
+
+[server.auth.jwk]
+endpoint = "http://vv-gateway.internal:8080/oauth/jwks.json"
+
+# Lore's per-repository mode requires an advertised OIDC provider and a resource
+# template, though the Gateway grants repositories directly in each token.
+[server.auth.oidc]
+client_id = "lore-cli"
+resource_template = "lores://vv-lore.internal:41337/repositories/{id}"
+
+[server.quic.certificate]
+cert_file = "/etc/lore/tls/vv-lore.internal.crt"
+pkey_file = "/etc/lore/tls/vv-lore.internal.key"
+
+[server.grpc.certificate]
+cert_file = "/etc/lore/tls/vv-lore.internal.crt"
+pkey_file = "/etc/lore/tls/vv-lore.internal.key"
+
+[immutable_store.local]
+path = "/data"
+
+[mutable_store.local]
+path = "/data"

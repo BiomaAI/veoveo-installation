@@ -1,7 +1,45 @@
-# The local installation's upstream infrastructure, PostgreSQL and the SeaweedFS object
-# store, runs here outside OpenShell.
-# Component environments run as OpenShell sandboxes, described in README.md.
+# The local installation on one workstation (D40 to D43). PostgreSQL, the SeaweedFS
+# object store and the Envoy edge start by default. The `envs` profile adds the Lore
+# server, the Lore token service, the Lore admin container and one environment per
+# component. Environments and Lore sit on internal networks; the edge is their only
+# path to the host and the internet. README.md builds the images this file names.
 name: vv-local
+
+networks:
+  # Environments, Lore and the infrastructure they use. No route leaves it.
+  vv-local:
+    internal: true
+    ipam: { config: [{ subnet: 10.231.10.0/24 }] }
+  # Media's network: only its environment reaches the media provider's route.
+  vv-media:
+    internal: true
+    ipam: { config: [{ subnet: 10.231.11.0/24 }] }
+  # The edge's and the infrastructure's way to the host and the internet.
+  vv-outside: {}
+
+x-environment-variables: &environment-variables
+  HTTPS_PROXY: http://vv-egress.internal:3128
+  https_proxy: http://vv-egress.internal:3128
+  NO_PROXY: .internal,localhost,127.0.0.1
+  no_proxy: .internal,localhost,127.0.0.1
+  # A server registers with this placeholder; the edge replaces it with the
+  # registration secret on POST /oauth/register only.
+  VEOVEO_REGISTRATION_SECRET: replaced-by-the-edge
+
+x-environment: &environment
+  profiles: [envs]
+  # Every capability dropped. No no-new-privileges, so the setgid Lore client reads
+  # its token; the image carries no other setuid or setgid program.
+  cap_drop: [ALL]
+  environment: *environment-variables
+  command: [sleep, infinity]
+  restart: unless-stopped
+
+x-environment-build: &environment-build
+  context: ./envs
+  additional_contexts:
+    lore: docker-image://vv-lore:local
+    ca: ./tls/ca
 
 services:
   vv-postgres:
@@ -21,9 +59,11 @@ services:
       - tcp_keepalives_interval=5
       - -c
       - tcp_keepalives_count=3
+    networks:
+      vv-local: { aliases: [vv-postgres.internal] }
+      vv-outside: {}
     ports:
-      # Loopback only: sandboxes reach it through host.openshell.internal, and the
-      # network does not.
+      # Loopback only, for the host's tools; environments use vv-postgres.internal.
       - "127.0.0.1:${VEOVEO_DATABASE_PORT:-5432}:5432"
     volumes:
       - vv-postgres:/var/lib/postgresql
@@ -57,17 +97,176 @@ services:
     environment:
       AWS_ACCESS_KEY_ID: ${VEOVEO_STORAGE_ACCESS_KEY:?set VEOVEO_STORAGE_ACCESS_KEY to the object store's access key before starting}
       AWS_SECRET_ACCESS_KEY: ${VEOVEO_STORAGE_SECRET_KEY:?set VEOVEO_STORAGE_SECRET_KEY to the object store's secret key before starting}
+    networks:
+      vv-local: { aliases: [vv-seaweedfs.internal] }
+      vv-outside: {}
     ports:
-      # The S3 endpoint on loopback only; the other ports, except the admin UI's, stay
-      # inside the container.
-      # Sandboxes reach it through host.openshell.internal. The Artifact server retries
-      # its bucket preparation, so it decides when storage is ready.
+      # The S3 endpoint on loopback only, where a browser on the host fetches signed
+      # URLs once the host maps vv-seaweedfs.internal to 127.0.0.1. The Artifact server
+      # retries its bucket preparation, so it decides when storage is ready.
       - "127.0.0.1:${VEOVEO_STORAGE_PORT:-9000}:9000"
       # The admin UI, user `admin`, on loopback only.
       - "127.0.0.1:${VEOVEO_SEAWEEDFS_ADMIN_PORT:-23646}:23646"
     volumes:
       - vv-seaweedfs:/data
     restart: unless-stopped
+
+  vv-egress:
+    container_name: vv-egress
+    # Envoy 1.40.0, the latest stable release, unmodified (D42). egress/render writes
+    # its configuration from .env.
+    image: envoyproxy/envoy:v1.40.0@sha256:459f2a6404c340fe6afccd69d85527012d47f3c036765493e6f8f3113fa384de
+    command: [-c, /etc/envoy/envoy.yaml, --log-level, warn]
+    environment:
+      # Envoy reads the edge's keys and secrets as root inside its container.
+      ENVOY_UID: "0"
+    networks:
+      vv-local: { aliases: [vv-gateway.internal, vv-egress.internal] }
+      vv-media: { aliases: [media-provider.internal] }
+      vv-outside: {}
+    ports:
+      # The Gateway and the servers on the host's loopback interface, for the host and
+      # the tunnel.
+      - "127.0.0.1:8080:18080"
+      - "127.0.0.1:8800:18800"
+      - "127.0.0.1:8801:18801"
+      - "127.0.0.1:8802:18802"
+    volumes:
+      - ./egress/envoy.local.yaml:/etc/envoy/envoy.yaml:ro
+      - ./egress/sds:/etc/envoy/sds:ro
+      - ./tls/egress:/etc/envoy/tls:ro
+      - vv-egress-secrets:/etc/envoy/secrets:ro
+    restart: unless-stopped
+
+  vv-lore:
+    container_name: vv-lore
+    profiles: [envs]
+    # Lore built from VeoveoAI/lore at its locked revision (D41). It reads the
+    # Gateway's keys at startup, so it restarts until the Gateway answers.
+    image: vv-lore:local
+    build: ./lore
+    networks:
+      vv-local: { aliases: [vv-lore.internal] }
+    volumes:
+      - vv-lore:/data
+      - ./lore/server.toml:/etc/lore/config/local.toml:ro
+      - ./tls/lore:/etc/lore/tls:ro
+    restart: unless-stopped
+
+  vv-lore-tokens:
+    container_name: vv-lore-tokens
+    profiles: [envs]
+    # The Gateway's `lore-tokens` command as root: it keeps each environment's
+    # /run/lore/token current with the keys the Gateway environment generated, which
+    # no environment holds.
+    image: veoveo-service-gateway:runtime
+    user: root
+    entrypoint: [/usr/local/bin/veoveo-service-gateway]
+    command:
+      - lore-tokens
+      - --directory
+      - /gateway/state/gateway
+      - --token-endpoint
+      - http://vv-gateway.internal:8080/oauth/token
+      - --resource
+      - lores://vv-lore.internal:41337
+      - --group
+      - "990"
+      - --target
+      - lore-admin=/tokens/vv-lore-admin/token
+      - --target
+      - lore-vv-srv-gateway=/tokens/vv-srv-gateway/token
+      - --target
+      - lore-vv-mcp-time=/tokens/vv-mcp-time/token
+      - --target
+      - lore-vv-mcp-artifact=/tokens/vv-mcp-artifact/token
+      - --target
+      - lore-vv-mcp-media=/tokens/vv-mcp-media/token
+    environment:
+      RUST_LOG: info
+    networks:
+      vv-local: {}
+    volumes:
+      - vv-srv-gateway:/gateway:ro
+      - vv-lore-admin-token:/tokens/vv-lore-admin
+      - vv-srv-gateway-token:/tokens/vv-srv-gateway
+      - vv-mcp-time-token:/tokens/vv-mcp-time
+      - vv-mcp-artifact-token:/tokens/vv-mcp-artifact
+      - vv-mcp-media-token:/tokens/vv-mcp-media
+    restart: unless-stopped
+
+  vv-lore-admin:
+    <<: *environment
+    container_name: vv-lore-admin
+    # Creates each component's Lore repository from its locked GitHub snapshot, records
+    # later snapshots and merges into protected `main`, as Lore's service account.
+    image: vv-lore-admin:local
+    build:
+      <<: *environment-build
+      args:
+        BASE: debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f
+        PACKAGES: ca-certificates git
+    networks:
+      vv-local: {}
+    volumes:
+      - vv-lore-admin:/sandbox
+      - vv-lore-admin-token:/run/lore:ro
+
+  vv-srv-gateway:
+    <<: *environment
+    container_name: vv-srv-gateway
+    image: vv-srv-gateway:local
+    build:
+      <<: *environment-build
+      args: { BASE: "veoveo-service-gateway:dev" }
+    environment:
+      <<: *environment-variables
+      HOME: /sandbox
+    networks:
+      vv-local: { aliases: [vv-srv-gateway.internal] }
+    volumes:
+      - vv-srv-gateway:/sandbox
+      - vv-srv-gateway-token:/run/lore:ro
+
+  vv-mcp-time:
+    <<: *environment
+    container_name: vv-mcp-time
+    image: vv-mcp-time:local
+    build:
+      <<: *environment-build
+      args: { BASE: "veoveo-mcp-time:dev" }
+    networks:
+      vv-local: { aliases: [vv-mcp-time.internal] }
+    volumes:
+      - vv-mcp-time:/sandbox
+      - vv-mcp-time-token:/run/lore:ro
+
+  vv-mcp-artifact:
+    <<: *environment
+    container_name: vv-mcp-artifact
+    image: vv-mcp-artifact:local
+    build:
+      <<: *environment-build
+      args: { BASE: "veoveo-mcp-artifact:dev" }
+    networks:
+      vv-local: { aliases: [vv-mcp-artifact.internal] }
+    volumes:
+      - vv-mcp-artifact:/sandbox
+      - vv-mcp-artifact-token:/run/lore:ro
+
+  vv-mcp-media:
+    <<: *environment
+    container_name: vv-mcp-media
+    image: vv-mcp-media:local
+    build:
+      <<: *environment-build
+      args: { BASE: "veoveo-mcp-media:dev" }
+    networks:
+      vv-local: { aliases: [vv-mcp-media.internal] }
+      vv-media: {}
+    volumes:
+      - vv-mcp-media:/sandbox
+      - vv-mcp-media-token:/run/lore:ro
 
   vv-tunnel:
     container_name: vv-tunnel
@@ -82,10 +281,22 @@ services:
       # Compose reads every service's variables even when its profile is off, so the
       # token is optional here and cloudflared refuses to start without it.
       TUNNEL_TOKEN: ${VEOVEO_TUNNEL_TOKEN:-}
-    # Host networking, so the tunnel reaches the environments' forwards on 127.0.0.1.
+    # Host networking, so the tunnel reaches the edge's published ports on 127.0.0.1.
     network_mode: host
     restart: unless-stopped
 
 volumes:
   vv-postgres:
   vv-seaweedfs:
+  vv-lore:
+  vv-egress-secrets:
+  vv-lore-admin:
+  vv-srv-gateway:
+  vv-mcp-time:
+  vv-mcp-artifact:
+  vv-mcp-media:
+  vv-lore-admin-token:
+  vv-srv-gateway-token:
+  vv-mcp-time-token:
+  vv-mcp-artifact-token:
+  vv-mcp-media-token:
