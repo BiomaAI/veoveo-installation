@@ -19,6 +19,7 @@ object store in Docker Compose, and each component in its own OpenShell environm
 | `compose.yaml` | PostgreSQL 18.6 and RustFS 1.0.1, each pinned by digest and published on the loopback interface only, and cloudflared 2026.10.0 under the optional `tunnel` profile |
 | `postgres/initdb/owner.sql` | Creates the installation owner `veoveo_owner` and its database `veoveo` when the data directory is new |
 | `openshell/providers/vv-registration.yaml` | The OpenShell provider profile that carries the installation's registration secret into environments as a placeholder |
+| `openshell/providers/vv-media-provider.json` | The OpenShell provider profile that carries the media provider's API key into Media's environment as a placeholder, for the [real media provider](#real-media-provider) |
 
 The installation owner owns the database and may create roles, and it is not a
 superuser. The Gateway connects as the owner, applies the kernel migrations and gives
@@ -55,7 +56,7 @@ running environment first with `openshell policy set <environment> --policy <fil
    default) and `VEOVEO_STORAGE_PORT` (9000 by default) in an uncommitted `.env` file
    next to `compose.yaml`, then start PostgreSQL and RustFS. The commands below write
    new credentials and keep every other setting in `.env`, such as those of the
-   [public origin](#public-origin):
+   [public origin](#public-origin) and the [real media provider](#real-media-provider):
 
    ```sh
    umask 077
@@ -154,6 +155,7 @@ running environment first with `openshell policy set <environment> --policy <fil
    itself with the Gateway at startup. With `VEOVEO_PUBLIC_ORIGIN` set to
    `http://127.0.0.1:8802`, Media's own listener, the fake provider posts each outcome to
    Media's callback route; without it, runs complete through status checks of the fake.
+   [Real Media Provider](#real-media-provider) runs Media against the provider itself.
 
 7. To run the acceptance tests of Time, Artifact and Media, copy the callers' keys from
    the Gateway environment into `/sandbox/acceptance` in each environment and follow the
@@ -218,6 +220,69 @@ openshell policy update vv-mcp-artifact --add-endpoint "$host:443" \
   --rule-name public_origin --binary '/sandbox/run/acceptance-*/**' --wait
 ```
 
+## Real Media Provider
+
+Media runs against its fake provider by default. A run against the media provider itself
+bills the provider's account. Keep the provider's API URL as `MEDIA_PROVIDER_URL` and the
+hosts its outputs come from as `MEDIA_OUTPUT_HOSTS`, separated by commas, in `.env`, and
+the account's API key and webhook secret in `MEDIA_PROVIDER_API_KEY` and
+`MEDIA_PROVIDER_WEBHOOK_SECRET` in the shell's environment.
+
+The API key reaches Media only as an OpenShell placeholder that resolves on requests to
+the provider's API host. Import the provider profile with the provider's hosts as its
+endpoints, create the provider and attach it to Media's environment:
+
+```sh
+api=$(sed -n 's#^MEDIA_PROVIDER_URL=https://\([^/:]*\).*#\1#p' .env)
+outputs=$(sed -n 's/^MEDIA_OUTPUT_HOSTS=//p' .env)
+profile=$(mktemp -d)
+jq --arg api "$api" --arg outputs "$outputs" '.endpoints =
+    [{host: $api, port: 443, protocol: "rest", enforcement: "enforce",
+      rules: [{allow: {method: "GET", path: "**"}}, {allow: {method: "POST", path: "**"}}]}]
+    + ($outputs | split(",") | map(select(. != "") | {host: ., port: 443, protocol: "rest",
+      enforcement: "enforce", rules: [{allow: {method: "GET", path: "**"}}]}))' \
+  openshell/providers/vv-media-provider.json > "$profile/vv-media-provider.json"
+openshell profile import -f "$profile/vv-media-provider.json" --global
+rm -f "$profile/vv-media-provider.json" && rmdir "$profile"
+openshell provider create --name vv-media-provider --type vv-media-provider \
+  --credential MEDIA_PROVIDER_API_KEY
+openshell sandbox provider attach vv-mcp-media vv-media-provider --wait
+```
+
+Media checks the provider's webhook signatures itself, so it receives the webhook secret
+as an owner-only file:
+
+```sh
+secret=$(mktemp) && printf 'MEDIA_PROVIDER_WEBHOOK_SECRET=%s\n' "$MEDIA_PROVIDER_WEBHOOK_SECRET" > "$secret"
+openshell sandbox upload vv-mcp-media "$secret" /sandbox/state/media-provider.env
+rm -f "$secret"
+openshell sandbox exec vv-mcp-media -- chmod 600 /sandbox/state/media-provider.env
+```
+
+Stop Media and the fake provider as [Stop](#stop) shows, then start Media against the
+provider. With a public origin in `.env`, the provider posts each outcome through the
+tunnel to Media's callback route; without one, runs complete through status checks of
+the provider:
+
+```sh
+origin=$(sed -n 's/^VEOVEO_PUBLIC_ORIGIN=//p' .env)
+provider=$(sed -n 's/^MEDIA_PROVIDER_URL=//p' .env)
+openshell sandbox exec vv-mcp-media -- env ${origin:+VEOVEO_PUBLIC_ORIGIN=$origin} \
+    MEDIA_PROVIDER_URL="$provider" MEDIA_OUTPUT_HOSTS="$outputs" \
+  bash -lc 'cd /sandbox/src \
+  && bin=/sandbox/run/veoveo-mcp-media-$(sha256sum target/debug/veoveo-mcp-media | cut -c1-16) \
+  && install -D -m 0755 target/debug/veoveo-mcp-media "$bin" \
+  && set -a && . /sandbox/state/media-provider.env && set +a \
+  && VEOVEO_PUBLIC_BASE_URL=http://host.openshell.internal:8802 \
+     VEOVEO_GATEWAY_ISSUER=http://host.openshell.internal:8080 \
+     VEOVEO_KEY_DIRECTORY=/sandbox/media/keys \
+     "$bin"'
+```
+
+Media's acceptance tests run the fake provider's model, so they run with the fake
+provider. Media's README's Provider Qualification section runs one billed generation
+through the whole flow.
+
 ## Stop
 
 Stop each service with Ctrl-C in its terminal, or from the host, then remove the
@@ -257,6 +322,10 @@ openshell sandbox delete vv-mcp-media vv-mcp-artifact vv-mcp-time vv-srv-gateway
 openshell provider delete vv-registration
 openshell profile delete vv-registration --global
 ```
+
+The `vv-media-provider` provider of the [real media provider](#real-media-provider)
+depends on no database state, so it stays, and the new Media environment attaches it
+again.
 
 ## License
 

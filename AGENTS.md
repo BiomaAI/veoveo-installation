@@ -11,9 +11,13 @@
 - Use upstream images such as PostgreSQL and RustFS unmodified and pinned by digest.
   Verify the latest stable release at its source when changing a pin.
 - Never commit credentials. Compose reads them from an uncommitted `.env` file, and
-  environments receive secrets through OpenShell providers. A component that signs with
-  a secret itself, such as Artifact with the object store's credential, receives only
-  that secret as an owner-only file uploaded without printing it.
+  environments receive secrets through OpenShell providers. A component that signs or
+  verifies with a secret itself, such as Artifact with the object store's credential or
+  Media with the provider's webhook secret, receives only that secret as an owner-only
+  file uploaded without printing it.
+- Committed files name the installation's public origin only by the placeholder
+  `https://veoveo.example.com`. The real origin and the tunnel's connector token live in
+  the uncommitted `.env`.
 - Names, identifiers and formats follow the
   [naming and format conventions](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/CONVENTIONS.md);
   sandboxes, providers and Compose services use the `vv-` short form.
