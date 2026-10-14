@@ -49,9 +49,10 @@ revision. To move a component to a new revision, change it in `component-lock.js
 commit, then run `git -C /sandbox/src fetch --quiet` and the same checkout in its
 environment and restart it. When the new revision changes only the policy's
 `network_policies`, apply it to the running environment first with
-`openshell policy set <environment> --policy <file> --wait`. OpenShell applies
-`filesystem_policy` when it creates an environment, so a change there needs the
-environment recreated, as for a new image.
+`openshell policy set <environment> --policy <file> --wait`. The command replaces the
+environment's live policy, so apply the [public origin](#public-origin) updates to Artifact
+and Media again afterwards. OpenShell applies `filesystem_policy` when it creates an
+environment, so a change there needs the environment recreated, as for a new image.
 
 When the new revision changes the `dev` image or the `filesystem_policy`, build the image and recreate the
 environment. The Gateway keeps the installation's configuration, secrets and callers'
@@ -251,10 +252,11 @@ openshell policy update vv-mcp-media --add-endpoint "$host:443" \
   --rule-name public_origin --binary '/sandbox/run/veoveo-mcp-media-fake-provider-*' --wait
 ```
 
-A policy update closes the environment's open connections, and a server that loses its
-database session stops, so apply these updates before starting Artifact and Media, or
-start them again afterwards. A recreated environment starts from its component's policy,
-so the installation applies these updates again after a [reset](#reset).
+A policy update closes the environment's open connections. A running server reconnects
+and keeps its registration: it takes its process instance back, or continues as a new
+instance when a reaper already removed the old one, in which case the Tasks it held go to
+their recovery. A recreated environment starts from its component's policy, so the
+installation applies these updates again after a [reset](#reset).
 
 ## Real Media Provider
 
@@ -266,10 +268,10 @@ the account's API key and webhook secret in `MEDIA_PROVIDER_API_KEY` and
 
 The API key reaches Media only as an OpenShell placeholder that resolves on requests to
 the provider's API host. Creating the provider makes every environment that has a
-provider attached reload its settings and close its open connections, so Time, Artifact
-and Media lose their database sessions and stop; create it before starting them, or start
-them again afterwards. Import the provider profile with the provider's hosts as its
-endpoints, create the provider and attach it to Media's environment:
+provider attached reload its settings and close its open connections, and attaching or
+detaching it does the same for Media's environment. The running servers reconnect as
+after a [policy update](#public-origin). Import the provider profile with the provider's
+hosts as its endpoints, create the provider and attach it to Media's environment:
 
 ```sh
 api=$(sed -n 's#^MEDIA_PROVIDER_URL=https://\([^/:]*\).*#\1#p' .env)
