@@ -20,6 +20,7 @@ without handing them over.
 
 | Path | Purpose |
 |---|---|
+| `DESIGN.md` | How the installation's environments, edge and Lore fit together, and what remains open |
 | `component-lock.json` | The repository and Git revision of each component the installation runs, in core's [component lock](https://github.com/VeoveoAI/veoveo-core/blob/main/platform/installation/contract/DESIGN.md) format |
 | `compose.yaml` | PostgreSQL 18.6, SeaweedFS 4.48 (`weed mini`) and Envoy 1.40.0, each pinned by digest; the Lore server, the Lore token service, the Lore admin container and the environments under the `envs` profile; cloudflared 2026.10.0 under the `tunnel` profile |
 | `envs/Dockerfile` | The installation's layer over each environment image: the setgid Lore client, the installation CA, and no other setuid or setgid program |
