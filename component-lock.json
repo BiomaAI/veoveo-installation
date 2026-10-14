@@ -4,22 +4,22 @@
     {
       "name": "veoveo-service-gateway",
       "repository": "https://github.com/VeoveoAI/veoveo-service-gateway",
-      "revision": "cd460dc6de4729b424e160f59939a8f7af0abb93"
+      "revision": "e000b2275a3d7e56ad8d2f79c92aba8243ec3875"
     },
     {
       "name": "veoveo-mcp-time",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-time",
-      "revision": "ffeec94f5f8f13d78a53c29e2e60ad8350d1b5ef"
+      "revision": "35f582f3325404fcfd7cb6289e008ab9f01c9465"
     },
     {
       "name": "veoveo-mcp-artifact",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-artifact",
-      "revision": "ce550f89c6555cd9b949503500a362f8a4bddd71"
+      "revision": "9a84f9e3840a91f444b9db3326a2bdd4632c02d6"
     },
     {
       "name": "veoveo-mcp-media",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-media",
-      "revision": "1fe31f760727584e785a6b77da410fec12d30f88"
+      "revision": "89a0d61d2dc666be5e0f5db687fa34151c694b35"
     }
   ]
 }
