@@ -16,7 +16,7 @@ object store in Docker Compose, and each component in its own OpenShell environm
 | Path | Purpose |
 |---|---|
 | `component-lock.json` | The repository and Git revision of each component the installation runs, in core's [component lock](https://github.com/VeoveoAI/veoveo-core/blob/main/platform/installation/contract/DESIGN.md) format |
-| `compose.yaml` | PostgreSQL 18.6 and RustFS 1.0.1, each pinned by digest and published on the loopback interface only |
+| `compose.yaml` | PostgreSQL 18.6 and RustFS 1.0.1, each pinned by digest and published on the loopback interface only, and cloudflared 2026.10.0 under the optional `tunnel` profile |
 | `postgres/initdb/owner.sql` | Creates the installation owner `veoveo_owner` and its database `veoveo` when the data directory is new |
 | `openshell/providers/vv-registration.yaml` | The OpenShell provider profile that carries the installation's registration secret into environments as a placeholder |
 
@@ -53,12 +53,17 @@ running environment first with `openshell policy set <environment> --policy <fil
    installation owner's), `VEOVEO_STORAGE_ACCESS_KEY` and `VEOVEO_STORAGE_SECRET_KEY`
    (the object store's credential) and, optionally, `VEOVEO_DATABASE_PORT` (5432 by
    default) and `VEOVEO_STORAGE_PORT` (9000 by default) in an uncommitted `.env` file
-   next to `compose.yaml`, then start PostgreSQL and RustFS:
+   next to `compose.yaml`, then start PostgreSQL and RustFS. The commands below write
+   new credentials and keep every other setting in `.env`, such as those of the
+   [public origin](#public-origin):
 
    ```sh
    umask 077
+   touch .env
+   grep -v -E '^VEOVEO_(POSTGRES_PASSWORD|DATABASE_PASSWORD|STORAGE_ACCESS_KEY|STORAGE_SECRET_KEY)=' .env > .env.next
    printf 'VEOVEO_POSTGRES_PASSWORD=%s\nVEOVEO_DATABASE_PASSWORD=%s\nVEOVEO_STORAGE_ACCESS_KEY=%s\nVEOVEO_STORAGE_SECRET_KEY=%s\n' \
-     "$(openssl rand -hex 24)" "$(openssl rand -hex 24)" "$(openssl rand -hex 12)" "$(openssl rand -hex 24)" > .env
+     "$(openssl rand -hex 24)" "$(openssl rand -hex 24)" "$(openssl rand -hex 12)" "$(openssl rand -hex 24)" >> .env.next
+   mv .env.next .env
    docker compose up -d --wait
    ```
 
@@ -129,7 +134,8 @@ running environment first with `openshell policy set <environment> --policy <fil
 
    Then start Artifact in its own terminal and forward port 8801, as its README's
    Running Artifact section shows. Artifact prepares its bucket and registers itself
-   with the Gateway at startup.
+   with the Gateway at startup. With a [public origin](#public-origin), start it with
+   `VEOVEO_SHARE_BASE_URL` set to that origin, so share links name it.
 
 6. Create the Media environment from
    [veoveo-mcp-media](https://github.com/VeoveoAI/veoveo-mcp-media) with the provider
@@ -177,11 +183,47 @@ its URLs for `http://host.openshell.internal:9000`, so a browser on the host fet
 only when the host maps `host.openshell.internal` to `127.0.0.1`. Names follow the Veoveo
 [naming and format conventions](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/CONVENTIONS.md).
 
+## Public Origin
+
+An installation has one public origin, such as `https://veoveo.example.com`, and serves
+each public route under its own path. The local installation publishes the two routes
+that callers without an account use: the media provider's callbacks under
+`/media/operations/` and Artifact's share links under `/artifact/shares/`.
+
+The optional `tunnel` Compose profile connects the origin to the workstation through a
+remote-managed [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/).
+Create the tunnel with a proxied DNS record for the origin's host and these ingress
+rules, in this order:
+
+| Path | Service | Origin Host header |
+|---|---|---|
+| `^/media/operations/` | `http://127.0.0.1:8802` | `host.openshell.internal:8802` |
+| `^/artifact/shares/` | `http://127.0.0.1:8801` | `host.openshell.internal:8801` |
+| Any other | `http_status:404` | |
+
+Each server accepts requests only for the host it registers at, so the tunnel sends that
+host. Add the origin as `VEOVEO_PUBLIC_ORIGIN` and the tunnel's connector token as
+`VEOVEO_TUNNEL_TOKEN` to `.env`, then start the tunnel:
+
+```sh
+docker compose --profile tunnel up -d vv-tunnel
+```
+
+Artifact's share links then name the origin. Its acceptance tests open them from inside
+the environment, which reaches the origin once its policy admits it for them:
+
+```sh
+host=$(sed -n 's#^VEOVEO_PUBLIC_ORIGIN=https://\([^/:]*\).*#\1#p' .env)
+openshell policy update vv-mcp-artifact --add-endpoint "$host:443" \
+  --rule-name public_origin --binary '/sandbox/run/acceptance-*/**' --wait
+```
+
 ## Stop
 
 Stop each service with Ctrl-C in its terminal, or from the host, then remove the
-forwards and stop PostgreSQL and RustFS. The data stays in the `vv-local_vv-postgres` and
-`vv-local_vv-rustfs` volumes, and the steps above start the installation again:
+forwards and stop PostgreSQL, RustFS and the tunnel. The data stays in the
+`vv-local_vv-postgres` and `vv-local_vv-rustfs` volumes, and the steps above start the
+installation again:
 
 ```sh
 openshell sandbox exec vv-mcp-media -- pkill -TERM -f '^/sandbox/run/veoveo-mcp-media-'
@@ -192,7 +234,7 @@ openshell forward stop 8802 vv-mcp-media
 openshell forward stop 8801 vv-mcp-artifact
 openshell forward stop 8800 vv-mcp-time
 openshell forward stop 8080 vv-srv-gateway
-docker compose stop
+docker compose --profile tunnel stop
 ```
 
 The first command stops Media and its fake provider. Time, Artifact and Media remove
@@ -206,11 +248,11 @@ fresh namespace claim, which a reset of the database provides. After the steps i
 remove the database and object store volumes, the environments, and the registration
 provider and its profile, then start again from step 1. Compose reads every variable
 `compose.yaml` requires even to remove the services, so an `.env` that holds no object
-store credential gets a placeholder one first; step 1 writes a new `.env`:
+store credential gets a placeholder one first; step 1 writes new credentials:
 
 ```sh
 grep -q '^VEOVEO_STORAGE_SECRET_KEY=' .env || printf 'VEOVEO_STORAGE_ACCESS_KEY=reset\nVEOVEO_STORAGE_SECRET_KEY=reset\n' >> .env
-docker compose down -v
+docker compose --profile tunnel down -v
 openshell sandbox delete vv-mcp-media vv-mcp-artifact vv-mcp-time vv-srv-gateway
 openshell provider delete vv-registration
 openshell profile delete vv-registration --global

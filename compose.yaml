@@ -54,6 +54,23 @@ services:
       - vv-rustfs:/data
     restart: unless-stopped
 
+  vv-tunnel:
+    container_name: vv-tunnel
+    # Optional: `docker compose --profile tunnel up -d` connects the installation's
+    # public origin to this workstation through a remote-managed Cloudflare Tunnel,
+    # whose ingress rules live with the tunnel. cloudflared 2026.10.0, the latest stable
+    # release, unmodified.
+    profiles: [tunnel]
+    image: cloudflare/cloudflared:2026.10.0@sha256:9b49eed8f62806d5d45ddf59ecefb5710429598ea6d3fcccd2af938f621b2b07
+    command: [tunnel, --no-autoupdate, run]
+    environment:
+      # Compose reads every service's variables even when its profile is off, so the
+      # token is optional here and cloudflared refuses to start without it.
+      TUNNEL_TOKEN: ${VEOVEO_TUNNEL_TOKEN:-}
+    # Host networking, so the tunnel reaches the environments' forwards on 127.0.0.1.
+    network_mode: host
+    restart: unless-stopped
+
 volumes:
   vv-postgres:
   vv-rustfs:
