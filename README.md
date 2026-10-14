@@ -131,8 +131,26 @@ running environment first with `openshell policy set <environment> --policy <fil
    Running Artifact section shows. Artifact prepares its bucket and registers itself
    with the Gateway at startup.
 
-6. To run the acceptance tests of Time and Artifact, copy the callers' keys from the
-   Gateway environment into `/sandbox/acceptance` in each environment and follow the
+6. Create the Media environment from
+   [veoveo-mcp-media](https://github.com/VeoveoAI/veoveo-mcp-media) with the provider
+   attached and check out its locked revision into `/sandbox/src`. The local
+   installation runs Media against its fake provider, which shares a webhook secret
+   with Media. Both values live in an owner-only file the environment generates:
+
+   ```sh
+   openshell sandbox exec vv-mcp-media -- bash -lc 'mkdir -p /sandbox/state && umask 077 \
+     && printf "MEDIA_PROVIDER_API_KEY=fake\nMEDIA_PROVIDER_WEBHOOK_SECRET=whsec_%s\n" \
+          "$(head -c 24 /dev/urandom | od -An -tx1 | tr -d " \n")" > /sandbox/state/media.env'
+   ```
+
+   Then start the fake provider on `127.0.0.1:8803` and Media in their own terminals and
+   forward port 8802, as its README's Running Media section shows. Media registers
+   itself with the Gateway at startup. With `VEOVEO_PUBLIC_ORIGIN` set to
+   `http://127.0.0.1:8802`, Media's own listener, the fake provider posts each outcome to
+   Media's callback route; without it, runs complete through status checks of the fake.
+
+7. To run the acceptance tests of Time, Artifact and Media, copy the callers' keys from
+   the Gateway environment into `/sandbox/acceptance` in each environment and follow the
    Acceptance section of each README:
 
    ```sh
@@ -140,13 +158,13 @@ running environment first with `openshell policy set <environment> --policy <fil
    for f in acceptance-member acceptance-admin; do
      for e in pem jwks.json; do
        openshell sandbox download vv-srv-gateway /sandbox/state/gateway/$f.$e "$keys/"
-       for env in vv-mcp-time vv-mcp-artifact; do
+       for env in vv-mcp-time vv-mcp-artifact vv-mcp-media; do
          openshell sandbox upload $env "$keys/$f.$e" /sandbox/acceptance/$f.$e
        done
      done
    done
-   rm -rf "$keys"
-   for env in vv-mcp-time vv-mcp-artifact; do
+   rm -f "$keys"/acceptance-* && rmdir "$keys"
+   for env in vv-mcp-time vv-mcp-artifact vv-mcp-media; do
      openshell sandbox exec $env -- bash -c 'chmod 700 /sandbox/acceptance && chmod 600 /sandbox/acceptance/*.pem'
    done
    ```
@@ -166,16 +184,19 @@ forwards and stop PostgreSQL and RustFS. The data stays in the `vv-local_vv-post
 `vv-local_vv-rustfs` volumes, and the steps above start the installation again:
 
 ```sh
+openshell sandbox exec vv-mcp-media -- pkill -TERM -f '^/sandbox/run/veoveo-mcp-media-'
 openshell sandbox exec vv-mcp-artifact -- pkill -TERM -f '^/sandbox/run/veoveo-mcp-artifact-'
 openshell sandbox exec vv-mcp-time -- pkill -TERM -f '^/sandbox/run/veoveo-mcp-time-'
 openshell sandbox exec vv-srv-gateway -- pkill -TERM -f '^/sandbox/run/veoveo-service-gateway-'
+openshell forward stop 8802 vv-mcp-media
 openshell forward stop 8801 vv-mcp-artifact
 openshell forward stop 8800 vv-mcp-time
 openshell forward stop 8080 vv-srv-gateway
 docker compose stop
 ```
 
-Time and Artifact remove their registrations when they receive SIGTERM.
+The first command stops Media and its fake provider. Time, Artifact and Media remove
+their registrations when they receive SIGTERM.
 
 ## Reset
 
@@ -190,7 +211,7 @@ store credential gets a placeholder one first; step 1 writes a new `.env`:
 ```sh
 grep -q '^VEOVEO_STORAGE_SECRET_KEY=' .env || printf 'VEOVEO_STORAGE_ACCESS_KEY=reset\nVEOVEO_STORAGE_SECRET_KEY=reset\n' >> .env
 docker compose down -v
-openshell sandbox delete vv-mcp-artifact vv-mcp-time vv-srv-gateway
+openshell sandbox delete vv-mcp-media vv-mcp-artifact vv-mcp-time vv-srv-gateway
 openshell provider delete vv-registration
 openshell profile delete vv-registration --global
 ```

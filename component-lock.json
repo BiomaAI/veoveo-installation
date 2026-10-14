@@ -15,6 +15,11 @@
       "name": "veoveo-mcp-artifact",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-artifact",
       "revision": "cd4445b7e945998f170145d529cf1accb0d1667f"
+    },
+    {
+      "name": "veoveo-mcp-media",
+      "repository": "https://github.com/VeoveoAI/veoveo-mcp-media",
+      "revision": "a844a03bca1f9f2dfb323cbcfabc5001736325e7"
     }
   ]
 }
