@@ -136,7 +136,7 @@ running environment first with `openshell policy set <environment> --policy <fil
    Then start Artifact in its own terminal and forward port 8801, as its README's
    Running Artifact section shows. Artifact prepares its bucket and registers itself
    with the Gateway at startup. With a [public origin](#public-origin), start it with
-   `VEOVEO_SHARE_BASE_URL` set to that origin, so share links name it.
+   `VEOVEO_PUBLIC_ORIGIN` set to that origin, so share links name it.
 
 6. Create the Media environment from
    [veoveo-mcp-media](https://github.com/VeoveoAI/veoveo-mcp-media) with the provider
@@ -152,9 +152,10 @@ running environment first with `openshell policy set <environment> --policy <fil
 
    Then start the fake provider on `127.0.0.1:8803` and Media in their own terminals and
    forward port 8802, as its README's Running Media section shows. Media registers
-   itself with the Gateway at startup. With `VEOVEO_PUBLIC_ORIGIN` set to
-   `http://127.0.0.1:8802`, Media's own listener, the fake provider posts each outcome to
-   Media's callback route; without it, runs complete through status checks of the fake.
+   itself with the Gateway at startup. Without a public origin, runs complete through
+   status checks of the fake. With a [public origin](#public-origin), start Media with
+   `VEOVEO_PUBLIC_ORIGIN` set to that origin, and the fake provider posts each outcome
+   through the tunnel to Media's callback route.
    [Real Media Provider](#real-media-provider) runs Media against the provider itself.
 
 7. To run the acceptance tests of Time, Artifact and Media, copy the callers' keys from
@@ -187,38 +188,46 @@ only when the host maps `host.openshell.internal` to `127.0.0.1`. Names follow t
 
 ## Public Origin
 
-An installation has one public origin, such as `https://veoveo.example.com`, and serves
-each public route under its own path. The local installation publishes the two routes
-that callers without an account use: the media provider's callbacks under
-`/media/operations/` and Artifact's share links under `/artifact/shares/`.
+An installation has one public origin, an `https` origin without a path such as
+`https://veoveo.example.com`, and serves each public route under its own path. The local
+installation publishes the two routes that callers without an account use: the media
+provider's callbacks under `/media/operations/` and Artifact's share links under
+`/artifact/shares/`.
 
 The optional `tunnel` Compose profile connects the origin to the workstation through a
 remote-managed [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/).
 Create the tunnel with a proxied DNS record for the origin's host and these ingress
 rules, in this order:
 
-| Path | Service | Origin Host header |
-|---|---|---|
-| `^/media/operations/` | `http://127.0.0.1:8802` | `host.openshell.internal:8802` |
-| `^/artifact/shares/` | `http://127.0.0.1:8801` | `host.openshell.internal:8801` |
-| Any other | `http_status:404` | |
+| Path | Service |
+|---|---|
+| `^/media/operations/` | `http://127.0.0.1:8802` |
+| `^/artifact/shares/` | `http://127.0.0.1:8801` |
+| Any other | `http_status:404` |
 
-Each server accepts requests only for the host it registers at, so the tunnel sends that
-host. Add the origin as `VEOVEO_PUBLIC_ORIGIN` and the tunnel's connector token as
+Add the origin as `VEOVEO_PUBLIC_ORIGIN` and the tunnel's connector token as
 `VEOVEO_TUNNEL_TOKEN` to `.env`, then start the tunnel:
 
 ```sh
 docker compose --profile tunnel up -d vv-tunnel
 ```
 
-Artifact's share links then name the origin. Its acceptance tests open them from inside
-the environment, which reaches the origin once its policy admits it for them:
+Artifact and Media start with `VEOVEO_PUBLIC_ORIGIN` set to the origin and accept
+requests for its host. Artifact's share links name the origin, and the provider posts
+each run's outcome to Media's callback route under it. Artifact's acceptance tests open
+share links, and the fake provider posts outcomes, from inside their environments,
+which reach the origin once their policies admit it:
 
 ```sh
 host=$(sed -n 's#^VEOVEO_PUBLIC_ORIGIN=https://\([^/:]*\).*#\1#p' .env)
 openshell policy update vv-mcp-artifact --add-endpoint "$host:443" \
   --rule-name public_origin --binary '/sandbox/run/acceptance-*/**' --wait
+openshell policy update vv-mcp-media --add-endpoint "$host:443" \
+  --rule-name public_origin --binary '/sandbox/run/veoveo-mcp-media-fake-provider-*' --wait
 ```
+
+A recreated environment starts from its component's policy, so the installation applies
+these updates again after a [reset](#reset).
 
 ## Real Media Provider
 
@@ -267,6 +276,7 @@ the provider:
 ```sh
 origin=$(sed -n 's/^VEOVEO_PUBLIC_ORIGIN=//p' .env)
 provider=$(sed -n 's/^MEDIA_PROVIDER_URL=//p' .env)
+outputs=$(sed -n 's/^MEDIA_OUTPUT_HOSTS=//p' .env)
 openshell sandbox exec vv-mcp-media -- env ${origin:+VEOVEO_PUBLIC_ORIGIN=$origin} \
     MEDIA_PROVIDER_URL="$provider" MEDIA_OUTPUT_HOSTS="$outputs" \
   bash -lc 'cd /sandbox/src \
