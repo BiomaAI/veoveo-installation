@@ -135,7 +135,8 @@ running environment first with `openshell policy set <environment> --policy <fil
 
    Then start Artifact in its own terminal and forward port 8801, as its README's
    Running Artifact section shows. Artifact prepares its bucket and registers itself
-   with the Gateway at startup. With a [public origin](#public-origin), start it with
+   with the Gateway at startup. With a [public origin](#public-origin), admit the
+   origin in the environment's policy before starting Artifact, and start it with
    `VEOVEO_PUBLIC_ORIGIN` set to that origin, so share links name it.
 
 6. Create the Media environment from
@@ -153,9 +154,10 @@ running environment first with `openshell policy set <environment> --policy <fil
    Then start the fake provider on `127.0.0.1:8803` and Media in their own terminals and
    forward port 8802, as its README's Running Media section shows. Media registers
    itself with the Gateway at startup. Without a public origin, runs complete through
-   status checks of the fake. With a [public origin](#public-origin), start Media with
-   `VEOVEO_PUBLIC_ORIGIN` set to that origin, and the fake provider posts each outcome
-   through the tunnel to Media's callback route.
+   status checks of the fake. With a [public origin](#public-origin), admit the origin
+   in the environment's policy before starting Media and the fake provider, and start
+   Media with `VEOVEO_PUBLIC_ORIGIN` set to that origin; the fake provider then posts each
+   outcome through the tunnel to Media's callback route.
    [Real Media Provider](#real-media-provider) runs Media against the provider itself.
 
 7. To run the acceptance tests of Time, Artifact and Media, copy the callers' keys from
@@ -226,8 +228,10 @@ openshell policy update vv-mcp-media --add-endpoint "$host:443" \
   --rule-name public_origin --binary '/sandbox/run/veoveo-mcp-media-fake-provider-*' --wait
 ```
 
-A recreated environment starts from its component's policy, so the installation applies
-these updates again after a [reset](#reset).
+A policy update closes the environment's open connections, and a server that loses its
+database session stops, so apply these updates before starting Artifact and Media, or
+start them again afterwards. A recreated environment starts from its component's policy,
+so the installation applies these updates again after a [reset](#reset).
 
 ## Real Media Provider
 
