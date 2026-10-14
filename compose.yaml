@@ -1,4 +1,4 @@
-# The local installation's upstream infrastructure, PostgreSQL and the RustFS object
+# The local installation's upstream infrastructure, PostgreSQL and the SeaweedFS object
 # store, runs here outside OpenShell.
 # Component environments run as OpenShell sandboxes, described in README.md.
 name: vv-local
@@ -36,22 +36,32 @@ services:
       retries: 12
     restart: unless-stopped
 
-  vv-rustfs:
-    container_name: vv-rustfs
-    # RustFS 1.0.1, the latest stable release, unmodified. The Artifact server signs
-    # every byte transfer with this credential and calls only standard S3 operations.
-    image: rustfs/rustfs:1.0.1@sha256:1803faef57627e2d9c2e7d89d655d712ddded5389040054987163043fecb6a3c
+  vv-seaweedfs:
+    container_name: vv-seaweedfs
+    # SeaweedFS 4.48, the latest stable release, unmodified, in its all-in-one `weed mini`
+    # mode: master, volume server, filer and S3 gateway in one process. The Artifact
+    # server signs every byte transfer with this credential and calls only standard S3
+    # operations. With no S3 configuration file, SeaweedFS takes its one identity from
+    # AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
+    image: chrislusf/seaweedfs:4.48@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
+    command:
+      - mini
+      - -dir=/data
+      - -s3.port=9000
+      - -admin.ui=false
+      - -webdav=false
+      - -s3.port.iceberg=0
+      - -s3.port.lance=0
     environment:
-      RUSTFS_ACCESS_KEY: ${VEOVEO_STORAGE_ACCESS_KEY:?set VEOVEO_STORAGE_ACCESS_KEY to the object store's access key before starting}
-      RUSTFS_SECRET_KEY: ${VEOVEO_STORAGE_SECRET_KEY:?set VEOVEO_STORAGE_SECRET_KEY to the object store's secret key before starting}
+      AWS_ACCESS_KEY_ID: ${VEOVEO_STORAGE_ACCESS_KEY:?set VEOVEO_STORAGE_ACCESS_KEY to the object store's access key before starting}
+      AWS_SECRET_ACCESS_KEY: ${VEOVEO_STORAGE_SECRET_KEY:?set VEOVEO_STORAGE_SECRET_KEY to the object store's secret key before starting}
     ports:
-      # The S3 endpoint on loopback only; the console port stays inside the container.
-      # Sandboxes reach it through host.openshell.internal. RustFS answers its health
-      # routes before it accepts S3 calls, so the Artifact server, which retries its
-      # bucket preparation, decides when storage is ready.
+      # The S3 endpoint on loopback only; the other ports stay inside the container.
+      # Sandboxes reach it through host.openshell.internal. The Artifact server retries
+      # its bucket preparation, so it decides when storage is ready.
       - "127.0.0.1:${VEOVEO_STORAGE_PORT:-9000}:9000"
     volumes:
-      - vv-rustfs:/data
+      - vv-seaweedfs:/data
     restart: unless-stopped
 
   vv-tunnel:
@@ -73,4 +83,4 @@ services:
 
 volumes:
   vv-postgres:
-  vv-rustfs:
+  vv-seaweedfs:

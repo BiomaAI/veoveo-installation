@@ -8,7 +8,7 @@ named `veoveo-<installation>` in your organization, for example `BiomaAI/veoveo-
 Components register themselves with the Gateway and declare their own permissions, so
 an installation names no server's internals. It decides only who may do what.
 
-The defaults run a local installation on one workstation: PostgreSQL and the RustFS
+The defaults run a local installation on one workstation: PostgreSQL and the SeaweedFS
 object store in Docker Compose, and each component in its own OpenShell environment.
 
 ## Contents
@@ -16,7 +16,7 @@ object store in Docker Compose, and each component in its own OpenShell environm
 | Path | Purpose |
 |---|---|
 | `component-lock.json` | The repository and Git revision of each component the installation runs, in core's [component lock](https://github.com/VeoveoAI/veoveo-core/blob/main/platform/installation/contract/DESIGN.md) format |
-| `compose.yaml` | PostgreSQL 18.6 and RustFS 1.0.1, each pinned by digest and published on the loopback interface only, and cloudflared 2026.10.0 under the optional `tunnel` profile |
+| `compose.yaml` | PostgreSQL 18.6 and SeaweedFS 4.48 (`weed mini`), each pinned by digest and published on the loopback interface only, and cloudflared 2026.10.0 under the optional `tunnel` profile |
 | `postgres/initdb/owner.sql` | Creates the installation owner `veoveo_owner` and its database `veoveo` when the data directory is new |
 | `openshell/providers/vv-registration.yaml` | The OpenShell provider profile that carries the installation's registration secret into environments as a placeholder |
 | `openshell/providers/vv-media-provider.json` | The OpenShell provider profile that carries the media provider's API key into Media's environment as a placeholder, for the [real media provider](#real-media-provider) |
@@ -78,7 +78,7 @@ environment needs a [reset](#reset).
    installation owner's), `VEOVEO_STORAGE_ACCESS_KEY` and `VEOVEO_STORAGE_SECRET_KEY`
    (the object store's credential) and, optionally, `VEOVEO_DATABASE_PORT` (5432 by
    default) and `VEOVEO_STORAGE_PORT` (9000 by default) in an uncommitted `.env` file
-   next to `compose.yaml`, then start PostgreSQL and RustFS. The commands below write
+   next to `compose.yaml`, then start PostgreSQL and SeaweedFS. The commands below write
    new credentials and keep every other setting in `.env`, such as those of the
    [public origin](#public-origin) and the [real media provider](#real-media-provider):
 
@@ -341,8 +341,8 @@ openshell sandbox exec vv-mcp-media -- rm -f /sandbox/state/media-provider.env
 ## Stop
 
 Stop each service with Ctrl-C in its terminal, or from the host, then remove the
-forwards and stop PostgreSQL, RustFS and the tunnel. The data stays in the
-`vv-local_vv-postgres` and `vv-local_vv-rustfs` volumes, and the steps above start the
+forwards and stop PostgreSQL, SeaweedFS and the tunnel. The data stays in the
+`vv-local_vv-postgres` and `vv-local_vv-seaweedfs` volumes, and the steps above start the
 installation again:
 
 ```sh
@@ -365,14 +365,15 @@ their registrations when they receive SIGTERM.
 A server's key lives in its environment, and the Gateway pins a namespace to the first
 key that registers it. A recreated environment has a new key, so its server needs a
 fresh namespace claim, which a reset of the database provides. After the steps in Stop,
-remove the database and object store volumes, the environments, and the registration
-provider and its profile, then start again from step 1. Compose reads every variable
+remove the database and object store volumes, any service `compose.yaml` no longer
+defines, the environments, and the registration provider and its profile, then start
+again from step 1. Compose reads every variable
 `compose.yaml` requires even to remove the services, so an `.env` that holds no object
 store credential gets a placeholder one first; step 1 writes new credentials:
 
 ```sh
 grep -q '^VEOVEO_STORAGE_SECRET_KEY=' .env || printf 'VEOVEO_STORAGE_ACCESS_KEY=reset\nVEOVEO_STORAGE_SECRET_KEY=reset\n' >> .env
-docker compose --profile tunnel down -v
+docker compose --profile tunnel down -v --remove-orphans
 openshell sandbox delete vv-mcp-media vv-mcp-artifact vv-mcp-time vv-srv-gateway
 openshell provider delete vv-registration
 openshell profile delete vv-registration --global
