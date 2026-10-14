@@ -76,10 +76,13 @@ environment needs a [reset](#reset).
 
 1. Keep `VEOVEO_POSTGRES_PASSWORD` (the superuser's), `VEOVEO_DATABASE_PASSWORD` (the
    installation owner's), `VEOVEO_STORAGE_ACCESS_KEY` and `VEOVEO_STORAGE_SECRET_KEY`
-   (the object store's credential) and, optionally, `VEOVEO_DATABASE_PORT` (5432 by
-   default) and `VEOVEO_STORAGE_PORT` (9000 by default) in an uncommitted `.env` file
+   (the object store's credential), `VEOVEO_SEAWEEDFS_ADMIN_PASSWORD` (the password of
+   SeaweedFS's admin UI, user `admin`, at `http://127.0.0.1:23646`) and, optionally,
+   `VEOVEO_DATABASE_PORT` (5432 by default), `VEOVEO_STORAGE_PORT` (9000 by default) and
+   `VEOVEO_SEAWEEDFS_ADMIN_PORT` (23646 by default) in an uncommitted `.env` file
    next to `compose.yaml`, then start PostgreSQL and SeaweedFS. The commands below write
-   new credentials and keep every other setting in `.env`, such as those of the
+   new credentials, generate an admin password when `.env` has none, and keep every
+   other setting in `.env`, such as those of the
    [public origin](#public-origin) and the [real media provider](#real-media-provider):
 
    ```sh
@@ -88,6 +91,8 @@ environment needs a [reset](#reset).
    sed -E '/^VEOVEO_(POSTGRES_PASSWORD|DATABASE_PASSWORD|STORAGE_ACCESS_KEY|STORAGE_SECRET_KEY)=/d' .env > .env.next
    printf 'VEOVEO_POSTGRES_PASSWORD=%s\nVEOVEO_DATABASE_PASSWORD=%s\nVEOVEO_STORAGE_ACCESS_KEY=%s\nVEOVEO_STORAGE_SECRET_KEY=%s\n' \
      "$(openssl rand -hex 24)" "$(openssl rand -hex 24)" "$(openssl rand -hex 12)" "$(openssl rand -hex 24)" >> .env.next
+   grep -q '^VEOVEO_SEAWEEDFS_ADMIN_PASSWORD=' .env.next \
+     || printf 'VEOVEO_SEAWEEDFS_ADMIN_PASSWORD=%s\n' "$(openssl rand -hex 12)" >> .env.next
    mv .env.next .env
    docker compose up -d --wait
    ```
@@ -369,10 +374,12 @@ remove the database and object store volumes, any service `compose.yaml` no long
 defines, the environments, and the registration provider and its profile, then start
 again from step 1. Compose reads every variable
 `compose.yaml` requires even to remove the services, so an `.env` that holds no object
-store credential gets a placeholder one first; step 1 writes new credentials:
+store credential or admin password gets placeholders first; step 1 writes new
+credentials and keeps the admin password:
 
 ```sh
 grep -q '^VEOVEO_STORAGE_SECRET_KEY=' .env || printf 'VEOVEO_STORAGE_ACCESS_KEY=reset\nVEOVEO_STORAGE_SECRET_KEY=reset\n' >> .env
+grep -q '^VEOVEO_SEAWEEDFS_ADMIN_PASSWORD=' .env || printf 'VEOVEO_SEAWEEDFS_ADMIN_PASSWORD=reset\n' >> .env
 docker compose --profile tunnel down -v --remove-orphans
 openshell sandbox delete vv-mcp-media vv-mcp-artifact vv-mcp-time vv-srv-gateway
 openshell provider delete vv-registration

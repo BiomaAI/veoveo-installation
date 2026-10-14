@@ -48,7 +48,9 @@ services:
       - mini
       - -dir=/data
       - -s3.port=9000
-      - -admin.ui=false
+      # `weed mini` serves the admin UI only when asked explicitly, whatever its help says.
+      - -admin.ui=true
+      - -admin.password=${VEOVEO_SEAWEEDFS_ADMIN_PASSWORD:?set VEOVEO_SEAWEEDFS_ADMIN_PASSWORD to the admin UI's password before starting}
       - -webdav=false
       - -s3.port.iceberg=0
       - -s3.port.lance=0
@@ -56,10 +58,13 @@ services:
       AWS_ACCESS_KEY_ID: ${VEOVEO_STORAGE_ACCESS_KEY:?set VEOVEO_STORAGE_ACCESS_KEY to the object store's access key before starting}
       AWS_SECRET_ACCESS_KEY: ${VEOVEO_STORAGE_SECRET_KEY:?set VEOVEO_STORAGE_SECRET_KEY to the object store's secret key before starting}
     ports:
-      # The S3 endpoint on loopback only; the other ports stay inside the container.
+      # The S3 endpoint on loopback only; the other ports, except the admin UI's, stay
+      # inside the container.
       # Sandboxes reach it through host.openshell.internal. The Artifact server retries
       # its bucket preparation, so it decides when storage is ready.
       - "127.0.0.1:${VEOVEO_STORAGE_PORT:-9000}:9000"
+      # The admin UI, user `admin`, on loopback only.
+      - "127.0.0.1:${VEOVEO_SEAWEEDFS_ADMIN_PORT:-23646}:23646"
     volumes:
       - vv-seaweedfs:/data
     restart: unless-stopped
