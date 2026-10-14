@@ -79,6 +79,20 @@ running environment first with `openshell policy set <environment> --policy <fil
           --directory /sandbox/state/gateway --issuer http://host.openshell.internal:8080'
    ```
 
+   The generated configuration has no policy rules. The installation lets
+   `acceptance-admin` make administrative reads, such as the cost views and server
+   health, with one rule:
+
+   ```sh
+   config=$(mktemp -d)
+   openshell sandbox download vv-srv-gateway /sandbox/state/gateway/gateway.json "$config/"
+   jq '.policies[0].rules = [{id: "administrative-reads", effect: "allow", actions: ["admin_read"],
+         principalIds: [.authorizationServers[0].issuer + "#acceptance-admin"]}]' \
+     "$config/gateway.json" > "$config/rules.json"
+   openshell sandbox upload vv-srv-gateway "$config/rules.json" /sandbox/state/gateway/gateway.json
+   rm -f "$config/gateway.json" "$config/rules.json" && rmdir "$config"
+   ```
+
    Then start the Gateway in its own terminal and forward port 8080, as its README's
    Local Launch section shows.
 
