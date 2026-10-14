@@ -4,7 +4,7 @@
     {
       "name": "veoveo-service-gateway",
       "repository": "https://github.com/VeoveoAI/veoveo-service-gateway",
-      "revision": "0689f2b3f42eff4c417179be247fd91a74a42dfd"
+      "revision": "948461abee6bab20761349a46e47e9641592ec6f"
     },
     {
       "name": "veoveo-mcp-time",

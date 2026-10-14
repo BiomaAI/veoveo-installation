@@ -47,10 +47,13 @@ openshell sandbox exec vv-srv-gateway -- git -C /sandbox/src checkout --quiet --
 The environment's `dev` image and its `openshell/policy.yaml` come from the same
 revision. To move a component to a new revision, change it in `component-lock.json`,
 commit, then run `git -C /sandbox/src fetch --quiet` and the same checkout in its
-environment and restart it. When the new revision changes the policy, apply it to the
-running environment first with `openshell policy set <environment> --policy <file> --wait`.
+environment and restart it. When the new revision changes only the policy's
+`network_policies`, apply it to the running environment first with
+`openshell policy set <environment> --policy <file> --wait`. OpenShell applies
+`filesystem_policy` when it creates an environment, so a change there needs the
+environment recreated, as for a new image.
 
-When the new revision changes the `dev` image, build the image and recreate the
+When the new revision changes the `dev` image or the `filesystem_policy`, build the image and recreate the
 environment. The Gateway keeps the installation's configuration, secrets and callers'
 keys in `/sandbox/state`, so stop it, carry that directory into the new environment, and
 start it again; registered servers stay registered:
