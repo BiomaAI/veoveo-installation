@@ -104,8 +104,8 @@ environment needs a [reset](#reset).
    openshell sandbox upload vv-srv-gateway "$owner" /sandbox/state/database.env
    rm -f "$owner"
    openshell sandbox exec vv-srv-gateway -- bash -lc 'chmod 600 /sandbox/state/database.env \
-     && cd /sandbox/src && cargo build --locked --bin veoveo-service-gateway \
-     && target/debug/veoveo-service-gateway generate-local-installation \
+     && cd /sandbox/src && cargo build --locked --target-dir /sandbox/target-serve --bin veoveo-service-gateway \
+     && /sandbox/target-serve/debug/veoveo-service-gateway generate-local-installation \
           --directory /sandbox/state/gateway --issuer http://host.openshell.internal:8080'
    ```
 
@@ -303,7 +303,9 @@ openshell sandbox exec vv-mcp-media -- chmod 600 /sandbox/state/media-provider.e
 Stop Media and the fake provider as [Stop](#stop) shows, then start Media against the
 provider. With a public origin in `.env`, the provider posts each outcome through the
 tunnel to Media's callback route; without one, runs complete through status checks of
-the provider:
+the provider. As in Media's README, the served binary builds into
+`/sandbox/target-serve`, apart from `target/`, where acceptance builds enable test-only
+dependency features:
 
 ```sh
 origin=$(sed -n 's/^VEOVEO_PUBLIC_ORIGIN=//p' .env)
@@ -312,8 +314,9 @@ outputs=$(sed -n 's/^MEDIA_OUTPUT_HOSTS=//p' .env)
 openshell sandbox exec vv-mcp-media -- env ${origin:+VEOVEO_PUBLIC_ORIGIN=$origin} \
     MEDIA_PROVIDER_URL="$provider" MEDIA_OUTPUT_HOSTS="$outputs" \
   bash -lc 'cd /sandbox/src \
-  && bin=/sandbox/run/veoveo-mcp-media-$(sha256sum target/debug/veoveo-mcp-media | cut -c1-16) \
-  && install -D -m 0755 target/debug/veoveo-mcp-media "$bin" \
+  && cargo build --locked --target-dir /sandbox/target-serve --bin veoveo-mcp-media \
+  && bin=/sandbox/run/veoveo-mcp-media-$(sha256sum /sandbox/target-serve/debug/veoveo-mcp-media | cut -c1-16) \
+  && install -D -m 0755 /sandbox/target-serve/debug/veoveo-mcp-media "$bin" \
   && set -a && . /sandbox/state/media-provider.env && set +a \
   && VEOVEO_PUBLIC_BASE_URL=http://host.openshell.internal:8802 \
      VEOVEO_GATEWAY_ISSUER=http://host.openshell.internal:8080 \
