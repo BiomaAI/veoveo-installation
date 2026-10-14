@@ -43,9 +43,11 @@ openshell sandbox exec vv-srv-gateway -- git clone --quiet https://github.com/Ve
 openshell sandbox exec vv-srv-gateway -- git -C /sandbox/src checkout --quiet --detach "$rev"
 ```
 
-To move a component to a new revision, change it in `component-lock.json`, commit, then
-run `git -C /sandbox/src fetch --quiet` and the same checkout in its environment and
-restart it.
+The environment's `dev` image and its `openshell/policy.yaml` come from the same
+revision. To move a component to a new revision, change it in `component-lock.json`,
+commit, then run `git -C /sandbox/src fetch --quiet` and the same checkout in its
+environment and restart it. When the new revision changes the policy, apply it to the
+running environment first with `openshell policy set <environment> --policy <file> --wait`.
 
 1. Keep `VEOVEO_POSTGRES_PASSWORD` (the superuser's), `VEOVEO_DATABASE_PASSWORD` (the
    installation owner's), `VEOVEO_STORAGE_ACCESS_KEY` and `VEOVEO_STORAGE_SECRET_KEY`
