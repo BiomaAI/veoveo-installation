@@ -242,7 +242,10 @@ the account's API key and webhook secret in `MEDIA_PROVIDER_API_KEY` and
 `MEDIA_PROVIDER_WEBHOOK_SECRET` in the shell's environment.
 
 The API key reaches Media only as an OpenShell placeholder that resolves on requests to
-the provider's API host. Import the provider profile with the provider's hosts as its
+the provider's API host. Creating the provider makes every environment that has a
+provider attached reload its settings and close its open connections, so Time, Artifact
+and Media lose their database sessions and stop; create it before starting them, or start
+them again afterwards. Import the provider profile with the provider's hosts as its
 endpoints, create the provider and attach it to Media's environment:
 
 ```sh
@@ -296,6 +299,16 @@ openshell sandbox exec vv-mcp-media -- env ${origin:+VEOVEO_PUBLIC_ORIGIN=$origi
 Media's acceptance tests run the fake provider's model, so they run with the fake
 provider. Media's README's Provider Qualification section runs one billed generation
 through the whole flow.
+
+To return to the fake provider, stop Media, detach the provider, which removes the API
+key's placeholder from the environment, and remove the webhook secret, then start the
+fake provider and Media as step 6 shows:
+
+```sh
+openshell sandbox exec vv-mcp-media -- pkill -TERM -f '^/sandbox/run/veoveo-mcp-media-'
+openshell sandbox provider detach vv-mcp-media vv-media-provider --wait
+openshell sandbox exec vv-mcp-media -- rm -f /sandbox/state/media-provider.env
+```
 
 ## Stop
 
