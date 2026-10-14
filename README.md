@@ -340,11 +340,10 @@ docker compose exec -T vv-lore-admin bash -ec "
 
 The environment then runs `lore sync main@LATEST` in `/sandbox/src`, and its component restarts
 as its README shows. A new `dev` image, from step 2, needs the environment recreated:
-stop the component, `docker compose --profile envs up -d --build` the environment and
-clone again. The Gateway keeps the installation's configuration, secrets and callers'
-keys in `/sandbox/state`, which lives in the environment's volume and stays; registered
-servers stay registered. A server's environment holds the key its namespace is pinned
-to in its volume too.
+stop the component, run `docker compose --profile envs up -d --build`, and start the
+component again. `/sandbox` is the environment's volume, so its working copy, builds and
+state stay: the Gateway's configuration, secrets and callers' keys in `/sandbox/state`,
+and the key each server's namespace is pinned to. Registered servers stay registered.
 
 ## Public Origin
 
