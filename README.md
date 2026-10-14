@@ -50,6 +50,26 @@ commit, then run `git -C /sandbox/src fetch --quiet` and the same checkout in it
 environment and restart it. When the new revision changes the policy, apply it to the
 running environment first with `openshell policy set <environment> --policy <file> --wait`.
 
+When the new revision changes the `dev` image, build the image and recreate the
+environment. The Gateway keeps the installation's configuration, secrets and callers'
+keys in `/sandbox/state`, so stop it, carry that directory into the new environment, and
+start it again; registered servers stay registered:
+
+```sh
+state=$(mktemp -d) && chmod 700 "$state"
+openshell sandbox download vv-srv-gateway /sandbox/state "$state/"
+openshell sandbox exec vv-srv-gateway -- pkill -TERM -f '^/sandbox/run/veoveo-service-gateway-'
+openshell forward stop 8080 vv-srv-gateway
+openshell sandbox delete vv-srv-gateway
+```
+
+Create `vv-srv-gateway` from the new image and check out the locked revision as step 2
+shows, upload `"$state"/database.env` to `/sandbox/state/database.env` and each file of
+`"$state"/gateway` to `/sandbox/state/gateway/`, make `database.env`, `gateway.env` and
+the `.pem` files mode 0600, remove the local copies, then start the Gateway. A server's
+environment holds the key its namespace is pinned to, so recreating a server's
+environment needs a [reset](#reset).
+
 1. Keep `VEOVEO_POSTGRES_PASSWORD` (the superuser's), `VEOVEO_DATABASE_PASSWORD` (the
    installation owner's), `VEOVEO_STORAGE_ACCESS_KEY` and `VEOVEO_STORAGE_SECRET_KEY`
    (the object store's credential) and, optionally, `VEOVEO_DATABASE_PORT` (5432 by
