@@ -1,0 +1,102 @@
+# Live, read-only Desktop transport. Authentication remains mandatory at Lore.
+# Keep this exact RPC allowlist: repository access alone also permits writes to
+# unprotected branches in upstream Lore. Unknown and future RPCs fail closed.
+node:
+  id: vv-desktop-edge
+  cluster: vv-local
+overload_manager:
+  resource_monitors:
+  - name: envoy.resource_monitors.global_downstream_max_connections
+    typed_config:
+      '@type': type.googleapis.com/envoy.extensions.resource_monitors.downstream_connections.v3.DownstreamConnectionsConfig
+      max_active_downstream_connections: 256
+static_resources:
+  listeners:
+  - name: desktop
+    address:
+      socket_address: { address: 0.0.0.0, port_value: 7443 }
+    filter_chains:
+    - transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          '@type': type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+          common_tls_context:
+            tls_certificates:
+            - certificate_chain: { filename: /etc/envoy/tls/localhost.crt }
+              private_key: { filename: /etc/envoy/tls/localhost.key }
+            alpn_protocols: [h2]
+      filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: desktop
+          codec_type: HTTP2
+          stream_idle_timeout: 0s
+          route_config:
+            virtual_hosts:
+            - name: desktop
+              domains: ["localhost", "localhost:7443", "127.0.0.1", "127.0.0.1:7443"]
+              routes:
+              - match: { prefix: /, grpc: {} }
+                route: { cluster: lore, timeout: 0s }
+          http_filters:
+          - name: envoy.filters.http.rbac
+            typed_config:
+              '@type': type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC
+              rules:
+                action: ALLOW
+                policies:
+                  read:
+                    principals: [{ any: true }]
+                    permissions:
+                    - url_path: { path: { exact: /lore.environment.v1.EnvironmentService/EnvironmentGet } }
+                    - url_path: { path: { exact: /urc.rpc.EnvironmentService/Get } }
+                    - url_path: { path: { exact: /lore.repository.v1.RepositoryService/RepositoryGet } }
+                    - url_path: { path: { exact: /lore.repository.v1.RepositoryService/RepositoryList } }
+                    - url_path: { path: { exact: /lore.repository.v1.RepositoryService/RepositoryMetadataGet } }
+                    - url_path: { path: { exact: /lore.revision.v1.RevisionService/BranchGet } }
+                    - url_path: { path: { exact: /lore.revision.v1.RevisionService/BranchList } }
+                    - url_path: { path: { exact: /lore.revision.v1.RevisionService/BranchMetadataGet } }
+                    - url_path: { path: { exact: /lore.revision.v1.RevisionService/RevisionList } }
+                    - url_path: { path: { exact: /lore.storage.v1.StorageService/Get } }
+                    - url_path: { path: { exact: /lore.storage.v1.StorageService/GetMetadata } }
+                    - url_path: { path: { exact: /lore.storage.v1.StorageService/GetResolved } }
+                    - url_path: { path: { exact: /lore.storage.v1.StorageService/Query } }
+                    - url_path: { path: { exact: /lore.storage.v1.StorageService/MutableLoad } }
+                    - url_path: { path: { exact: /lore.thin_client.v1.ThinClientService/ContentDiff } }
+                    - url_path: { path: { exact: /lore.thin_client.v1.ThinClientService/RevisionInfo } }
+                    - url_path: { path: { exact: /lore.thin_client.v1.ThinClientService/RevisionDiff } }
+                    - url_path: { path: { exact: /lore.thin_client.v1.ThinClientService/RevisionTree } }
+                    - url_path: { path: { exact: /urc.lock.LockService/Query } }
+                    - url_path: { path: { exact: /urc.lock.LockService/Status } }
+                    - url_path: { path: { exact: /lore.notification.NotificationService/Subscribe } }
+          - name: envoy.filters.http.router
+            typed_config:
+              '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+  clusters:
+  - name: lore
+    type: STRICT_DNS
+    connect_timeout: 5s
+    load_assignment:
+      cluster_name: lore
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address: { address: vv-lore.internal, port_value: 41337 }
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        '@type': type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config: { http2_protocol_options: {} }
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        '@type': type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        sni: vv-lore.internal
+        common_tls_context:
+          alpn_protocols: [h2]
+          validation_context:
+            trusted_ca: { filename: /etc/envoy/ca/ca.crt }
+            match_typed_subject_alt_names:
+            - san_type: DNS
+              matcher: { exact: vv-lore.internal }

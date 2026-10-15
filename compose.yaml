@@ -82,6 +82,27 @@ x-development: &development
   restart: unless-stopped
 
 services:
+  # Human clients reach the live Lore server through this separate edge. It
+  # forwards the caller's bearer token; it never supplies an admin credential.
+  vv-desktop-edge:
+    container_name: vv-desktop-edge
+    profiles: [desktop]
+    image: envoyproxy/envoy:v1.40.0@sha256:459f2a6404c340fe6afccd69d85527012d47f3c036765493e6f8f3113fa384de
+    user: root
+    environment: { ENVOY_UID: "0" }
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    command: [-c, /etc/envoy/envoy.yaml, --log-level, warn]
+    networks: { vv-local: {}, vv-outside: {} }
+    ports:
+      - "127.0.0.1:7443:7443"
+    volumes:
+      - ./desktop/envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ./tls/desktop:/etc/envoy/tls:ro
+      - ./tls/ca:/etc/envoy/ca:ro
+    restart: unless-stopped
+
   vv-dev-gateway:
     <<: *development
     container_name: vv-dev-gateway

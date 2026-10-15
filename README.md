@@ -23,6 +23,7 @@ MiMo through Envoy and commits work with Lore. Secrets stay in trusted services.
 | `compose.yaml` | Infrastructure, trusted component containers under `runtime`, upstream Lore and isolated development/review under `autonomy`, and the optional `tunnel` |
 | `runtime/Dockerfile` | Trusted component tooling with the installation CA, no Lore client, and no privileged helpers |
 | `autonomy/` | Isolated dev images, pinned OpenCode v2, managed config, Envoy routes and credential provisioning |
+| `desktop/` | Live Desktop transport through a separate Envoy edge; human login integration is in progress |
 | `lore/Dockerfile`, `lore/server.toml` | Unmodified [EpicGames/lore](https://github.com/EpicGames/lore) v0.10.1 at its release commit, and the server's settings |
 | `egress/envoy.yaml`, `egress/render`, `egress/sds/` | The edge's configuration, the script that fills in the hosts `.env` names, and the files that point Envoy at its secrets |
 | `postgres/initdb/owner.sql` | Creates the installation owner `veoveo_owner` and its database `veoveo` when the data directory is new |
@@ -85,6 +86,35 @@ Each dev network selects its own repository credential; the separate review netw
 selects the admin credential. No Lore client reads a token. `main` stays protected:
 agents push task branches, and `vv-review` performs approved administrative merges.
 The installation builds directly from upstream Lore, without a fork or source patches.
+
+### Desktop Integration
+
+Lore Desktop is an acceptance client for the live installation. The intended flow is
+to add one remote, authenticate, discover authorized repositories, and browse current
+branches, revision graphs and diffs. Human login, session renewal and repository
+discovery must work through that interface before this integration is complete.
+
+The optional `desktop` profile currently provides the transport at
+`grpcs://localhost:7443`. It forwards the caller's bearer token to Lore over verified
+TLS and allows only explicitly listed read RPCs, including revision and notification
+streams. It mounts no token volume or client signing key. Lore still checks the
+caller's repository grants. Compose publishes the port only on the host's loopback
+interface; development containers share neither of the Desktop edge's networks.
+
+With the autonomy services running, provision and start the transport with:
+
+```sh
+python3 desktop/provision
+docker compose --profile desktop up -d vv-desktop-edge
+```
+
+Provisioning issues a localhost leaf certificate from the installation CA and changes
+no operating-system trust settings. This is **transport only**, not a completed
+Desktop setup: trusted Desktop TLS, human sign-in and permission-scoped repository
+listing remain to be integrated and verified in the actual client. Do not supply
+the reviewer's admin credential to fill that gap. Upstream Lore's current
+`baseline_access = "denied"` catalog lists no repositories even when a token grants
+access by ID; broadening that catalog without retaining isolation is not a fix.
 
 ## Isolated Coding Environments
 
