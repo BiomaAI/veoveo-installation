@@ -1,0 +1,37 @@
+{
+  "identityProviders": [{
+    "id": "entra",
+    "issuer": "https://login.microsoftonline.com/TENANT_ID/v2.0",
+    "jwks": {
+      "source": "remote",
+      "jwksUri": "https://login.microsoftonline.com/TENANT_ID/discovery/v2.0/keys"
+    },
+    "claimMapping": {
+      "subject": "oid",
+      "tenant": { "claim": "tid", "values": { "TENANT_ID": "local" } }
+    },
+    "authorizationEndpoint": "https://login.microsoftonline.com/TENANT_ID/oauth2/v2.0/authorize",
+    "tokenEndpoint": "https://login.microsoftonline.com/TENANT_ID/oauth2/v2.0/token",
+    "metadata": {}
+  }],
+  "oidcClients": [{
+    "id": "entra",
+    "identityProvider": "entra",
+    "authorizationServer": "local",
+    "allowedResources": ["https://veoveo.example.com/mcp/local"],
+    "clientId": "APPLICATION_CLIENT_ID",
+    "redirectUri": "https://veoveo.example.com/oauth/callback",
+    "authMethod": "client_secret_post",
+    "credentialSecret": "entra_client_secret",
+    "scopes": ["openid", "profile"],
+    "metadata": {}
+  }],
+  "secrets": [{
+    "id": "entra_client_secret",
+    "source": "env",
+    "purpose": "oauth_client_secret",
+    "locator": "VEOVEO_ENTRA_CLIENT_SECRET",
+    "owner": { "kind": "gateway" },
+    "metadata": {}
+  }]
+}

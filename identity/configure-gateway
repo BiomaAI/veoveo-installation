@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+"""Connect the existing local Gateway profile to persistent Keycloak."""
+import json
+import os
+from pathlib import Path
+import subprocess
+
+ROOT = Path(__file__).resolve().parent.parent
+CONTAINER = 'vv-srv-gateway'
+DIRECTORY = '/sandbox/state/gateway'
+ISSUER = 'https://auth.localhost:8443/realms/veoveo'
+BROWSER = 'local-browser'
+
+
+def execute(*args, data=None):
+    return subprocess.run(['docker', 'exec', '-i', CONTAINER, *args], input=data,
+                          capture_output=True, check=True).stdout
+
+
+def main():
+    os.umask(0o077)
+    credentials = json.loads((ROOT / 'state/identity/credentials.json').read_text())
+    config = json.loads(execute('cat', DIRECTORY + '/gateway.json'))
+    profile = next(p for p in config['profiles'] if p['id'] == 'local')
+    auth = next(a for a in config['authorizationServers'] if a['id'] == profile['authorizationServer'])
+    resource = profile['protectedResource']
+
+    def put(field, value):
+        config[field] = [v for v in config.get(field, []) if v['id'] != value['id']] + [value]
+
+    put('identityProviders', {
+        'id': 'keycloak', 'issuer': ISSUER,
+        'jwks': {'source': 'remote', 'jwksUri': ISSUER + '/protocol/openid-connect/certs'},
+        'claimMapping': {'subject': 'sub', 'tenant': {'claim': 'tenant'}},
+        'trustedCertificateAuthorities': [{'source': 'file', 'path': '/usr/local/share/ca-certificates/veoveo-installation.crt'}],
+        'authorizationEndpoint': ISSUER + '/protocol/openid-connect/auth',
+        'tokenEndpoint': ISSUER + '/protocol/openid-connect/token', 'metadata': {}})
+    auth['identityProvider'] = 'keycloak'
+    auth['authorizationEndpoint'] = 'https://gateway.localhost:8443/oauth/authorize'
+    # Keep the existing service issuer/resource stable while enabling human login.
+    profile['identityProvider'] = 'keycloak'
+    profile['authModes'] = ['oauth_client_credentials', 'oidc_authorization_code_pkce']
+    put('oauthClients', {
+        'id': BROWSER, 'authorizationServer': auth['id'], 'defaultWorkContext': 'local',
+        'invocationMode': 'direct', 'displayName': 'Local browser',
+        'allowedResources': [resource], 'grantTypes': ['authorization_code_pkce', 'refresh_token'],
+        'authMethods': ['none'], 'redirectUris': ['http://127.0.0.1:18555/callback'],
+        'allowedScopes': ['mcp'], 'metadata': {}})
+    put('oidcClients', {
+        'id': 'keycloak', 'identityProvider': 'keycloak', 'authorizationServer': auth['id'],
+        'allowedResources': [resource], 'clientId': 'veoveo-gateway',
+        'redirectUri': 'https://gateway.localhost:8443/oauth/callback',
+        'authMethod': 'client_secret_post', 'credentialSecret': 'keycloak_client_secret',
+        'scopes': ['openid'], 'metadata': {}})
+    put('secrets', {
+        'id': 'keycloak_client_secret', 'source': 'env', 'purpose': 'oauth_client_secret',
+        'locator': 'VEOVEO_KEYCLOAK_CLIENT_SECRET', 'owner': {'kind': 'gateway'}, 'metadata': {}})
+    principal = ISSUER + '#' + credentials['userId']
+    grant = {'role': 'member', 'subject': {'principal': principal}}
+    if grant not in config['authorization']['grants']:
+        config['authorization']['grants'].append(grant)
+    context = next(c for c in config['workContexts'] if c['id'] == 'local')
+    membership = next(m for m in context['memberships'] if m['level'] == 'contributor')
+    if BROWSER not in membership['oauthClients']:
+        membership['oauthClients'].append(BROWSER)
+    # All credential-bearing input crosses stdin into the trusted runtime only.
+    payload = {'config': config, 'clientSecret': credentials['clientSecret']}
+    execute('python3', '-c', r'''
+import json, os, pathlib, signal, sys, time
+p = json.load(sys.stdin)
+directory = pathlib.Path('/sandbox/state/gateway')
+os.umask(0o077)
+restart = None
+for process in pathlib.Path('/proc').iterdir():
+    if not process.name.isdigit(): continue
+    try:
+        args = (process / 'cmdline').read_bytes().split(b'\0')
+        if args[0] != b'/sandbox/target-serve/debug/veoveo-service-gateway': continue
+        env = dict(v.decode().split('=',1) for v in (process / 'environ').read_bytes().split(b'\0') if v)
+        env['VEOVEO_KEYCLOAK_CLIENT_SECRET'] = p['clientSecret']
+        for name in ['NO_PROXY', 'no_proxy']:
+            env[name] = env.get(name, '.internal,localhost,127.0.0.1') + ',.localhost'
+        restart = {'args': [v.decode() for v in args if v], 'env': env, 'cwd': str((process / 'cwd').resolve())}
+        pid = int(process.name)
+        break
+    except FileNotFoundError: continue
+environment_file = directory / 'gateway.env'
+lines = [line for line in environment_file.read_text().splitlines()
+         if not line.startswith(('VEOVEO_KEYCLOAK_CLIENT_SECRET=', 'NO_PROXY=', 'no_proxy='))]
+lines.extend(['VEOVEO_KEYCLOAK_CLIENT_SECRET=' + p['clientSecret'],
+              'NO_PROXY=.internal,.localhost,localhost,127.0.0.1',
+              'no_proxy=.internal,.localhost,localhost,127.0.0.1'])
+(directory / 'gateway.env.next').write_text('\n'.join(lines) + '\n')
+(directory / 'gateway.env.next').replace(environment_file)
+(directory / 'gateway.json.next').write_text(json.dumps(p['config'], indent=2) + '\n')
+(directory / 'gateway.json.next').replace(directory / 'gateway.json')
+if restart:
+    (directory / 'identity-restart.json').write_text(json.dumps(restart))
+    os.kill(pid, signal.SIGTERM)
+    for _ in range(100):
+        if not pathlib.Path('/proc', str(pid)).exists(): break
+        time.sleep(.1)
+    else: raise SystemExit('Gateway did not stop cleanly')
+print('restart' if restart else 'configured')
+''', data=json.dumps(payload).encode())
+    # Start only when a running Gateway was captured; otherwise the normal launch
+    # sources gateway.env together with database.env.
+    ready = subprocess.run(['docker', 'exec', CONTAINER, 'test', '-f', DIRECTORY + '/identity-restart.json']).returncode == 0
+    if ready:
+        subprocess.run(['docker', 'exec', '-d', CONTAINER, 'python3', '-c', r'''
+import json, os, pathlib
+p = pathlib.Path('/sandbox/state/gateway/identity-restart.json')
+config = json.loads(p.read_text())
+p.unlink()
+os.chdir(config['cwd'])
+f = os.open('/sandbox/state/gateway/identity-start.log', os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+os.dup2(f, 1); os.dup2(f, 2); os.close(f)
+os.execve(config['args'][0], config['args'], config['env'])
+'''], check=True, capture_output=True)
+    print('Gateway configured for Keycloak authorization code + PKCE; service identities retained.')
+    print('The existing gateway.env contains the OIDC secret for subsequent launches.')
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (OSError, ValueError, KeyError, StopIteration, subprocess.CalledProcessError) as error:
+        raise SystemExit('Gateway identity configuration failed (' + type(error).__name__ + '). No secrets were printed.') from None

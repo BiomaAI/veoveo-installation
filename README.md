@@ -14,6 +14,14 @@ agents in those containers.** The `autonomy` profile adds separate `vv-dev-*`
 containers, each with its own source volume and internal network. OpenCode v2 uses
 MiMo through Envoy and commits work with Lore. Secrets stay in trusted services.
 
+## Identity provider
+
+Use [persistent Keycloak for local development](identity/README.md). Run
+`./identity/provision` and `./identity/configure-gateway` after starting the local
+Gateway. Installers may keep Keycloak; the Linux reference instead uses Entra,
+configured through the same Gateway OIDC model. The identity guide covers initial
+credentials, TLS trust, persistence, backups and the Entra configuration fragment.
+
 ## Contents
 
 | Path | Purpose |
@@ -225,9 +233,11 @@ rev() { jq -er --arg name "$1" '.components[] | select(.name == $name) | .revisi
    mv .env.next .env
    ./egress/render
    mkdir -p tls/ca tls/private tls/lore tls/egress
-   openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 825 \
+   if [ ! -e tls/private/ca.key ] && [ ! -e tls/ca/ca.crt ]; then
+     openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 825 \
      -subj "/CN=Veoveo local installation CA" -keyout tls/private/ca.key -out tls/ca/ca.crt \
-     -addext basicConstraints=critical,CA:TRUE -addext keyUsage=critical,keyCertSign,cRLSign
+       -addext basicConstraints=critical,CA:TRUE -addext keyUsage=critical,keyCertSign,cRLSign
+   fi
    for name in lore/vv-lore.internal egress/media-provider.internal; do
      host=${name#*/}
      openssl req -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -subj "/CN=$host" \
@@ -578,7 +588,11 @@ their registrations when they receive SIGTERM.
 A server's key lives in its environment, and the Gateway pins a namespace to the first
 key that registers it. Recreating a container preserves its named volume and key. Deleting that volume
 creates a new key, so a fresh namespace claim then needs a database reset. After the steps in Stop,
-remove the containers and every volume, then start again from step 1. Compose reads
+remove the containers and component volumes, then start again from step 1.
+The external Keycloak database volume, `state/identity/` credentials and installation
+CA survive this reset. Keep them: identity is permanent even when component state is
+recreated. After the Gateway is running again, run `./identity/provision` and
+`./identity/configure-gateway`. Compose reads
 every variable `compose.yaml` requires even to remove the services, so an `.env` that
 holds no object store credential or admin password gets placeholders first; step 1
 writes new credentials and keeps the admin password:
@@ -587,7 +601,6 @@ writes new credentials and keeps the admin password:
 grep -q '^VEOVEO_STORAGE_SECRET_KEY=' .env || printf 'VEOVEO_STORAGE_ACCESS_KEY=reset\nVEOVEO_STORAGE_SECRET_KEY=reset\n' >> .env
 grep -q '^VEOVEO_SEAWEEDFS_ADMIN_PASSWORD=' .env || printf 'VEOVEO_SEAWEEDFS_ADMIN_PASSWORD=reset\n' >> .env
 docker compose --profile runtime --profile autonomy --profile tunnel down -v --remove-orphans
-rm -rf tls
 ```
 
 ## License

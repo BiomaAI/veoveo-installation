@@ -1,0 +1,78 @@
+node: { id: vv-identity-edge, cluster: vv-local }
+overload_manager:
+  resource_monitors:
+  - name: envoy.resource_monitors.global_downstream_max_connections
+    typed_config:
+      '@type': type.googleapis.com/envoy.extensions.resource_monitors.downstream_connections.v3.DownstreamConnectionsConfig
+      max_active_downstream_connections: 256
+static_resources:
+  listeners:
+  - name: identity
+    address:
+      socket_address: { address: 0.0.0.0, port_value: 8443 }
+    filter_chains:
+    - transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          '@type': type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+          common_tls_context:
+            tls_certificates:
+            - certificate_chain: { filename: /etc/envoy/tls/identity.crt }
+              private_key: { filename: /etc/envoy/tls/identity.key }
+            alpn_protocols: [h2, http/1.1]
+      filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: identity
+          use_remote_address: true
+          xff_num_trusted_hops: 0
+          request_headers_timeout: 15s
+          route_config:
+            request_headers_to_remove: [forwarded, x-forwarded-host, x-forwarded-port, x-forwarded-proto]
+            virtual_hosts:
+            - name: keycloak
+              domains: ["auth.localhost:8443", "auth.localhost"]
+              request_headers_to_add:
+              - header: { key: x-forwarded-host, value: "auth.localhost:8443" }
+                append_action: OVERWRITE_IF_EXISTS_OR_ADD
+              - header: { key: x-forwarded-port, value: "8443" }
+                append_action: OVERWRITE_IF_EXISTS_OR_ADD
+              - header: { key: x-forwarded-proto, value: https }
+                append_action: OVERWRITE_IF_EXISTS_OR_ADD
+              routes:
+              - match: { prefix: / }
+                route: { cluster: keycloak, timeout: 30s }
+            - name: gateway
+              domains: ["gateway.localhost:8443", "gateway.localhost"]
+              routes:
+              - match: { prefix: / }
+                route:
+                  cluster: gateway
+                  host_rewrite_literal: vv-gateway.internal:8080
+                  timeout: 60s
+          http_filters:
+          - name: envoy.filters.http.router
+            typed_config:
+              '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+  clusters:
+  - name: keycloak
+    type: STRICT_DNS
+    connect_timeout: 5s
+    load_assignment:
+      cluster_name: keycloak
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address: { address: vv-keycloak.internal, port_value: 8080 }
+  - name: gateway
+    type: STRICT_DNS
+    connect_timeout: 5s
+    load_assignment:
+      cluster_name: gateway
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address: { address: vv-srv-gateway.internal, port_value: 8080 }
