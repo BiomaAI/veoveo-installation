@@ -11,13 +11,15 @@
 - Use upstream images such as PostgreSQL, SeaweedFS and Envoy unmodified and pinned by
   digest, and Lore from `VeoveoAI/lore` pinned to one commit. Verify the latest stable
   release at its source when changing a pin.
-- Never commit credentials. Compose reads them from an uncommitted `.env` file. The
-  Envoy edge adds the secrets environments use to their requests, so an environment
-  holds only a placeholder, and the Lore token service keeps each environment's Lore
-  token readable only by the setgid Lore client. A component that signs or verifies
-  with a secret itself, such as Artifact with the object store's credential or Media
-  with the provider's webhook secret, receives only that secret as an owner-only file
-  piped in without printing it.
+- Never commit credentials. `.env` and private TLS/state files stay ignored and out of
+  build contexts. Coding agents run only in `vv-dev-*`, never in the trusted `envs`
+  containers. Dev volumes contain source, caches and disposable test state only.
+- Envoy authenticates development Lore and inference requests. Tokens, signing keys,
+  runtime volumes and the Docker socket never enter a dev container. Select each Lore
+  credential by the listener's private network and actual TCP peer, never by an
+  agent-controlled header. Keep `no-new-privileges` and all capabilities dropped in dev.
+- Legacy `envs` containers retain setgid Lore only for trusted bootstrap compatibility.
+  Do not use that mechanism for coding agents or disable their privilege restrictions.
 - Committed files name the installation's public origin only by the placeholder
   `https://veoveo.example.com`. The real origin and the tunnel's connector token live in
   the uncommitted `.env`.

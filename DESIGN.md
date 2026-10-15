@@ -2,8 +2,8 @@
 
 This template's defaults run a whole Veoveo installation on one workstation with
 Docker Compose: the infrastructure, an Envoy edge, a Lore server and one environment per
-component. An environment is the container where a component's source lives, builds,
-runs and passes its acceptance tests, and where a coding agent works on it. The design
+component. The original `envs` containers are trusted bootstrap/runtime tooling;
+coding agents run only in the separate `autonomy` profile described below. The design
 follows decisions D40 to D43 of the
 [repository split plan](https://github.com/VeoveoAI/veoveo-docs/blob/main/REPOSITORY_SPLIT_PLAN.md#decisions);
 [README.md](README.md) holds the commands.
@@ -127,15 +127,50 @@ exists, the environment replaces that checkout with its Lore clone of the same f
 
 ## Coding Agents
 
-An agent in an environment works in `/sandbox/src`, builds and tests with Cargo
-through the edge's proxy, and pushes branches with `lore`, which acts as the
-environment's Lore client. It reaches no credential: the Lore token, the registration
-secret and the provider key stay outside its reach, and it holds no GitHub credential.
+The `autonomy` profile separates source/build/test state from trusted runtime state.
+`vv-dev-*` never mounts a runtime volume, token file, host directory or Docker socket.
+Each runs as UID 1000, with every capability dropped and `no-new-privileges`, on a
+separate internal /29 network. The new environment layer strips all setuid/setgid
+bits. Existing `envs` containers keep their private state and legacy bootstrap tools;
+they are never agent environments, including the Gateway container holding signing keys.
 
-The installation does not yet run an agent. No image installs an agent CLI, the edge
-has no route to a model provider and adds no model API key, and the README describes no
-way to start or attach an agent. That route belongs at the edge like the provider's, a
-`.internal` name that adds the key, so the agent holds a placeholder.
+`vv-autonomy-edge` is an unmodified, digest-pinned Envoy. It joins the four development
+networks, a separate trusted review network, the backend and the outside network.
+Each Lore listener binds only its own network address and admits its single dev peer
+using `direct_remote_ip`. It injects that component's token regardless of supplied
+headers. The reviewer gets a separate admin route. Devs cannot reach the backend,
+other dev networks, the reviewer route or Envoy's loopback admin interface.
+
+Lore's existing `grpcs://` transport covers both storage and revisions. Envoy terminates
+TLS at `lore-proxy.internal:7443` and verifies `vv-lore.internal` over HTTP/2 TLS.
+Repository grants and protected branches are still enforced by the unchanged Lore
+server. No Lore repository operation, merge, revision or storage logic changes.
+The old setgid client remains available only in trusted bootstrap tooling.
+
+`autonomy/component-lock.json` pins the Gateway revision for the trusted refresher
+without changing the deployed component snapshots. Its `lore-tokens --format envoy-sds`
+command publishes each named generic secret
+as a complete filesystem SDS response, with a synced file and atomic rename. The
+trusted refresher owns the signing keys and mounts its output volume read-write;
+only Envoy mounts it read-only. Fifteen-minute tokens refresh every ten minutes.
+The existing raw-token output remains available for legacy trusted clients.
+
+`inference.internal:8443` accepts only POST `/v1/chat/completions` and forwards to
+`router.huggingface.co` with verified TLS and replaced authorization. Its sole key
+lives in an edge-only volume. Streaming responses and tool-call continuations use
+the same fixed route. Dependency CONNECT tunnels allow only explicit public
+Rust/crates.io/GitHub destinations. There is no general authenticated forward proxy.
+
+OpenCode v2.0.29 is pinned by npm integrity for both CPU architectures. Root-owned
+managed configuration selects MiMo V2.6 Pro RL through Novita/Hugging Face, disables
+updates and Git snapshots, and supplies only a placeholder credential. Lore provides
+checkpoints. OpenCode policy is guidance and configuration control; isolation does
+not depend on the model following instructions. Shell code still has only the dev
+container's filesystem, processes and network capabilities.
+
+Source acceptance and runtime promotion are separate. The reviewer inspects and tests
+agent work before merging a Lore task branch. No agent output automatically executes
+in a service holding keys. Runtime deployment remains an explicit trusted action.
 
 ## Qualification
 
@@ -149,14 +184,36 @@ token or the registration secret, apart from the Gateway's own state. The egress
 reached crates.io and GitHub and refused other hosts, and a Lore clone succeeded after
 the first token had expired.
 
+On October 15, the `autonomy` profile was qualified on Docker Desktop on macOS.
+All four dev containers cloned their own repository with `NoNewPrivs: 1`, no token
+files and no privileged executables. Cross-repository access failed. A forged admin
+JWT was overwritten: the same client could clone its own repository but could not
+clone another. A real update to a protected disposable branch was refused even with
+an admin author identity; the probe branch was then archived. Network probes refused
+other dev routes, the review route, backend services, direct internet access, the
+Envoy admin interface, unlisted CONNECT destinations and spoofed inference hosts/paths.
+All dev containers were recreated and retained their workspaces and OpenCode state.
+
+Envoy accepted filesystem SDS rotation with zero rejected updates. After the original
+15-minute credential expired, a fresh Time clone and repository integrity verification
+succeeded. The Gateway's complete Docker check gate passed all 199 tests. Time's stale
+local branch pointer was repaired with the existing reset/sync commands after backup;
+its original checkout now reports main synchronized and passes repository verification.
+
+OpenCode 2.0.29 and MiMo completed a streamed model/tool round trip that ran Lore status.
+A longer session created `agent/get-clock-20261015` and inspected the Time source, but
+Hugging Face returned HTTP 402 (no remaining inference credits) before code edits.
+The coding exercise, its independent review/merge and the separate Linux-host gates
+remain pending. Session state is preserved in the Time dev volume. No agent-produced
+code has been deployed or accepted into main.
+
 ## Gaps
 
-- Coding agents do not run yet, as [Coding Agents](#coding-agents) describes.
 - The real media provider through `media-provider.internal` is configured and was not
   qualified with a billed run; the egress tests qualified the route with a stand-in.
 - The Linux host has not run this installation, and GPU environments wait for the GPU
   components.
-- The Gateway environment holds every Lore client key, the admin's included, with the
-  installation's other secrets; an agent working there has the Gateway's authority.
+- Legacy bootstrap/runtime environments still hold private state and must never run
+  agents. Their existing setgid client is not the autonomy authentication path.
 - Lore's gRPC and QUIC verify the server against the installation CA by name; the
   client does not pin the server's certificate.

@@ -1,0 +1,10 @@
+{
+  "format": "https://veoveo.ai/formats/component-lock",
+  "components": [
+    {
+      "name": "veoveo-service-gateway",
+      "repository": "https://github.com/VeoveoAI/veoveo-service-gateway",
+      "revision": "6202e67fc41ce520e2702305fd7eb5e09102dc84"
+    }
+  ]
+}

@@ -1,11 +1,26 @@
 # The local installation on one workstation (D40 to D43). PostgreSQL, the SeaweedFS
 # object store and the Envoy edge start by default. The `envs` profile adds the Lore
 # server, the Lore token service, the Lore admin container and one environment per
-# component. Environments and Lore sit on internal networks; the edge is their only
-# path to the host and the internet. README.md builds the images this file names.
+# component as trusted bootstrap/runtime tooling. The `autonomy` profile adds isolated
+# coding sandboxes and their credential-injecting Envoy edge. README.md builds the images.
 name: vv-local
 
 networks:
+  vv-dev-gateway:
+    internal: true
+    ipam: { config: [{ subnet: 10.231.20.0/29 }] }
+  vv-dev-time:
+    internal: true
+    ipam: { config: [{ subnet: 10.231.21.0/29 }] }
+  vv-dev-artifact:
+    internal: true
+    ipam: { config: [{ subnet: 10.231.22.0/29 }] }
+  vv-dev-media:
+    internal: true
+    ipam: { config: [{ subnet: 10.231.23.0/29 }] }
+  vv-review:
+    internal: true
+    ipam: { config: [{ subnet: 10.231.24.0/29 }] }
   # Environments, Lore and the infrastructure they use. No route leaves it.
   vv-local:
     internal: true
@@ -41,7 +56,179 @@ x-environment-build: &environment-build
     lore: docker-image://vv-lore:local
     ca: ./tls/ca
 
+# Agent sandboxes have no runtime state, token files, host mounts or Docker socket.
+# Only Envoy joins these networks to the trusted installation and the internet.
+x-development: &development
+  profiles: [autonomy]
+  user: "1000:1000"
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  pids_limit: 512
+  mem_limit: 8g
+  cpus: 4
+  environment:
+    HTTPS_PROXY: http://dev-egress.internal:3128
+    HTTP_PROXY: http://dev-egress.internal:3128
+    https_proxy: http://dev-egress.internal:3128
+    http_proxy: http://dev-egress.internal:3128
+    NO_PROXY: .internal,localhost,127.0.0.1,::1
+    no_proxy: .internal,localhost,127.0.0.1,::1
+    NODE_EXTRA_CA_CERTS: /usr/local/share/ca-certificates/veoveo-installation.crt
+    VEOVEO_INFERENCE_TOKEN: replaced-by-the-edge
+    XDG_DATA_HOME: /sandbox/.local/share
+    XDG_CONFIG_HOME: /sandbox/.config
+    XDG_CACHE_HOME: /sandbox/.cache
+    LORE_GLOBAL_PATH: /sandbox/lore-global
+    CARGO_HOME: /sandbox/.cargo
+    CARGO_TARGET_DIR: /sandbox/target
+  command: [sleep, infinity]
+  restart: unless-stopped
+
 services:
+  vv-dev-gateway:
+    <<: *development
+    container_name: vv-dev-gateway
+    image: vv-dev-gateway:local
+    build:
+      context: ./autonomy
+      additional_contexts:
+        lore: docker-image://vv-lore:local
+        ca: ./tls/ca
+      args: { BASE: "veoveo-service-gateway:dev" }
+    networks:
+      vv-dev-gateway: { ipv4_address: 10.231.20.3 }
+    volumes:
+      - vv-dev-gateway:/sandbox
+
+  vv-dev-time:
+    <<: *development
+    container_name: vv-dev-time
+    image: vv-dev-time:local
+    build:
+      context: ./autonomy
+      additional_contexts:
+        lore: docker-image://vv-lore:local
+        ca: ./tls/ca
+      args: { BASE: "veoveo-mcp-time:dev" }
+    networks:
+      vv-dev-time: { ipv4_address: 10.231.21.3 }
+    volumes:
+      - vv-dev-time:/sandbox
+
+  vv-dev-artifact:
+    <<: *development
+    container_name: vv-dev-artifact
+    image: vv-dev-artifact:local
+    build:
+      context: ./autonomy
+      additional_contexts:
+        lore: docker-image://vv-lore:local
+        ca: ./tls/ca
+      args: { BASE: "veoveo-mcp-artifact:dev" }
+    networks:
+      vv-dev-artifact: { ipv4_address: 10.231.22.3 }
+    volumes:
+      - vv-dev-artifact:/sandbox
+
+  vv-dev-media:
+    <<: *development
+    container_name: vv-dev-media
+    image: vv-dev-media:local
+    build:
+      context: ./autonomy
+      additional_contexts:
+        lore: docker-image://vv-lore:local
+        ca: ./tls/ca
+      args: { BASE: "veoveo-mcp-media:dev" }
+    networks:
+      vv-dev-media: { ipv4_address: 10.231.23.3 }
+    volumes:
+      - vv-dev-media:/sandbox
+
+  vv-autonomy-edge:
+    container_name: vv-autonomy-edge
+    profiles: [autonomy]
+    image: envoyproxy/envoy:v1.40.0@sha256:459f2a6404c340fe6afccd69d85527012d47f3c036765493e6f8f3113fa384de
+    user: root
+    environment: { ENVOY_UID: "0" }
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    command: [-c, /etc/envoy/envoy.yaml, --log-level, warn]
+    networks:
+      vv-dev-gateway: { ipv4_address: 10.231.20.2, aliases: [lore-proxy.internal, inference.internal, dev-egress.internal] }
+      vv-dev-time: { ipv4_address: 10.231.21.2, aliases: [lore-proxy.internal, inference.internal, dev-egress.internal] }
+      vv-dev-artifact: { ipv4_address: 10.231.22.2, aliases: [lore-proxy.internal, inference.internal, dev-egress.internal] }
+      vv-dev-media: { ipv4_address: 10.231.23.2, aliases: [lore-proxy.internal, inference.internal, dev-egress.internal] }
+      vv-review: { ipv4_address: 10.231.24.2, aliases: [lore-proxy.internal] }
+      vv-local: {}
+      vv-outside: {}
+    volumes:
+      - ./autonomy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ./tls/autonomy:/etc/envoy/tls:ro
+      - ./tls/ca:/etc/envoy/ca:ro
+      - vv-autonomy-sds:/etc/envoy/lore:ro
+      - vv-autonomy-secrets:/etc/envoy/secrets:ro
+    restart: unless-stopped
+
+  vv-autonomy-tokens:
+    container_name: vv-autonomy-tokens
+    profiles: [autonomy]
+    image: veoveo-service-gateway:autonomy-runtime
+    user: root
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER, DAC_OVERRIDE]
+    command:
+      - lore-tokens
+      - --directory
+      - /gateway/state/gateway
+      - --token-endpoint
+      - http://vv-gateway.internal:8080/oauth/token
+      - --resource
+      - lores://vv-lore.internal:41337
+      - --group
+      - "0"
+      - --format
+      - envoy-sds
+      - --target
+      - lore-admin=/sds/lore-admin.json
+      - --target
+      - lore-vv-srv-gateway=/sds/lore-vv-srv-gateway.json
+      - --target
+      - lore-vv-mcp-time=/sds/lore-vv-mcp-time.json
+      - --target
+      - lore-vv-mcp-artifact=/sds/lore-vv-mcp-artifact.json
+      - --target
+      - lore-vv-mcp-media=/sds/lore-vv-mcp-media.json
+    environment: { RUST_LOG: info }
+    networks: { vv-local: {} }
+    volumes:
+      - vv-srv-gateway:/gateway:ro
+      - vv-autonomy-sds:/sds
+    restart: unless-stopped
+
+  vv-review:
+    container_name: vv-review
+    profiles: [autonomy]
+    image: vv-lore:local
+    user: "1000:1000"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    entrypoint: [sleep, infinity]
+    environment:
+      LORE_GLOBAL_PATH: /review/lore-global
+      XDG_CONFIG_HOME: /review/.config
+      XDG_DATA_HOME: /review/.local/share
+      XDG_CACHE_HOME: /review/.cache
+      SSL_CERT_FILE: /etc/ssl/certs/veoveo-ca.crt
+    networks:
+      vv-review: { ipv4_address: 10.231.24.3 }
+    volumes:
+      - vv-review:/review
+      - ./tls/ca/ca.crt:/etc/ssl/certs/veoveo-ca.crt:ro
+    working_dir: /review
+    restart: unless-stopped
+
   vv-postgres:
     container_name: vv-postgres
     image: postgres:18.6-trixie@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
@@ -286,6 +473,13 @@ services:
     restart: unless-stopped
 
 volumes:
+  vv-dev-gateway:
+  vv-dev-time:
+  vv-dev-artifact:
+  vv-dev-media:
+  vv-review:
+  vv-autonomy-sds:
+  vv-autonomy-secrets:
   vv-postgres:
   vv-seaweedfs:
   vv-lore:

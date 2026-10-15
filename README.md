@@ -8,13 +8,11 @@ named `veoveo-<installation>` in your organization, for example `BiomaAI/veoveo-
 Components register themselves with the Gateway and declare their own permissions, so
 an installation names no server's internals. It decides only who may do what.
 
-The defaults run a local installation on one workstation with Docker Compose:
-PostgreSQL, the SeaweedFS object store, an Envoy edge, a Lore server and one
-environment per component. An environment is a container where a component's source
-lives, builds, runs and passes its acceptance tests, and where a coding agent works on
-it. Environments take their source from the installation's Lore server and reach
-everything outside their network through the edge, which adds the secrets they use
-without handing them over.
+The defaults run the trusted local installation with Docker Compose. Its `envs`
+containers hold running components and private runtime state. **Never run coding
+agents in those containers.** The `autonomy` profile adds separate `vv-dev-*`
+containers, each with its own source volume and internal network. OpenCode v2 uses
+MiMo through Envoy and commits work with Lore. Secrets stay in trusted services.
 
 ## Contents
 
@@ -23,7 +21,8 @@ without handing them over.
 | `DESIGN.md` | How the installation's environments, edge and Lore fit together, and what remains open |
 | `component-lock.json` | The repository and Git revision of each component the installation runs, in core's [component lock](https://github.com/VeoveoAI/veoveo-core/blob/main/platform/installation/contract/DESIGN.md) format |
 | `compose.yaml` | PostgreSQL 18.6, SeaweedFS 4.48 (`weed mini`) and Envoy 1.40.0, each pinned by digest; the Lore server, the Lore token service, the Lore admin container and the environments under the `envs` profile; cloudflared 2026.10.0 under the `tunnel` profile |
-| `envs/Dockerfile` | The installation's layer over each environment image: the setgid Lore client, the installation CA, and no other setuid or setgid program |
+| `envs/Dockerfile` | Legacy trusted bootstrap/runtime tooling; never an agent sandbox |
+| `autonomy/` | Isolated dev images, pinned OpenCode v2, managed config, Envoy routes and credential provisioning |
 | `lore/Dockerfile`, `lore/server.toml` | Lore built from [VeoveoAI/lore](https://github.com/VeoveoAI/lore) at one commit, and the server's settings |
 | `egress/envoy.yaml`, `egress/render`, `egress/sds/` | The edge's configuration, the script that fills in the hosts `.env` names, and the files that point Envoy at its secrets |
 | `postgres/initdb/owner.sql` | Creates the installation owner `veoveo_owner` and its database `veoveo` when the data directory is new |
@@ -62,9 +61,10 @@ answers. The edge joins both and `vv-outside`, and it is the environments' only 
   `vv-gateway.internal`, and the media provider's key at `media-provider.internal`.
   An environment holds a placeholder and never reads either secret.
 
-Each environment runs as its non-root user with every capability dropped. A coding
-agent in an environment that sandboxes its own commands must leave `lore` outside that
-sandbox, because a process started with `no-new-privileges` cannot read the Lore token.
+The `envs` profile below is trusted bootstrap/runtime tooling. It retains the older
+setgid Lore client for compatibility. The `autonomy` profile uses ordinary mode-0755
+Lore over authenticated Envoy gRPC routes, with `no-new-privileges` enabled. Agents
+never share a filesystem, PID namespace or network with runtime services.
 
 PostgreSQL also publishes `127.0.0.1:5432`, and SeaweedFS `127.0.0.1:9000` and its
 admin UI at `http://127.0.0.1:23646`, user `admin`. Artifact signs its URLs for
@@ -86,6 +86,76 @@ which reaches only its component's repository. The file belongs to root and the
 token only to `vv-lore.internal`. `main` is protected in every repository, so an
 environment pushes branches, and the Lore admin client, a Lore service account,
 merges.
+
+## Isolated Coding Environments
+
+Complete the trusted installation below first. Keep its existing state volumes private;
+source for agents is cloned anew from Lore. The dev containers are `vv-dev-gateway`,
+`vv-dev-time`, `vv-dev-artifact` and `vv-dev-media`. `vv-review` is trusted Lore admin
+transport: do not execute repository code there. Review and test in dev before merging.
+
+1. `autonomy/component-lock.json` pins the Gateway revision used by the trusted SDS
+   refresher separately from the deployed runtime snapshot. With that revision present
+   in the sibling Gateway checkout, build its own `runtime` stage. Build the component
+   `dev` images and Lore as described below, then run:
+
+   ```sh
+   gateway_revision=$(jq -er '.components[] | select(.name == "veoveo-service-gateway") | .revision' autonomy/component-lock.json)
+   git -C ../veoveo-service-gateway archive "$gateway_revision" \
+     | docker build --target runtime -t veoveo-service-gateway:autonomy-runtime -
+   docker compose --profile autonomy build vv-dev-gateway vv-dev-time vv-dev-artifact vv-dev-media
+   python3 autonomy/provision
+   docker compose --profile autonomy up -d vv-autonomy-tokens
+   docker compose --profile autonomy up -d vv-autonomy-edge vv-review vv-dev-gateway vv-dev-time vv-dev-artifact vv-dev-media
+   ```
+
+   Provisioning reads `HF_TOKEN` from the ignored `.env`, sends it through stdin to
+   the edge-only volume and generates a TLS leaf from the existing installation CA.
+   It never prints the credential or puts it in a command argument. Envoy must be
+   restarted after replacing the inference key. Lore SDS tokens rotate automatically.
+   Keep `.env` owner-readable (`chmod 600 .env`); Git and Docker ignore it.
+
+2. Clone the component in each dev container, substituting its name:
+
+   ```sh
+   docker compose exec vv-dev-time lore -P clone grpcs://lore-proxy.internal:7443/veoveo-mcp-time /sandbox/src
+   docker compose exec -w /sandbox/src vv-dev-time lore -P status
+   docker compose exec -w /sandbox/src vv-dev-time opencode
+   ```
+
+   OpenCode 2.0.29 is pinned by npm package integrity for ARM64 and AMD64. Its managed
+   config selects `XiaomiMiMo/MiMo-V2.6-Pro-RL:novita` through
+   `https://inference.internal:8443/v1`. Only a public placeholder is in the process
+   environment. Automatic updates and Git snapshots are disabled; Lore checkpoints
+   and branches are the version history. For a bounded, logged headless task:
+
+   ```sh
+   docker compose exec -T -w /sandbox/src vv-dev-time timeout --kill-after=30s 1200 \
+     opencode run --standalone --auto --format json 'Implement the requested change on a Lore task branch, test it, and commit it. Await independent review before pushing.'
+   ```
+
+3. Review the branch and run the component's checks before accepting it. Use
+   `vv-review` only for Lore clone, inspection and merge commands. Dev credentials
+   cannot update protected `main`; the trusted reviewer can. Merging source does not
+   deploy it. Build and promote an approved runtime separately; never point a running
+   credential-bearing service at an agent's writable binary or source directory.
+
+Each dev network is internal, has one fixed dev peer and one Envoy peer, and carries
+no runtime service. Lore listener selection and RBAC use that actual network peer;
+`Authorization`, `Host` and forwarded-address headers cannot select another client.
+The review network has its own admin listener. TLS is verified on both Lore hops.
+Inference permits only POST `/v1/chat/completions` to the fixed Hugging Face host;
+Envoy replaces authorization and verifies upstream TLS. The dependency proxy permits
+only the listed Rust/crates.io/GitHub hosts. Envoy's admin interface is loopback-only.
+No dev container mounts a token volume, host directory, runtime state or Docker socket.
+These OS/network boundaries protect credentials even if an agent changes its own code
+or configuration. Model access remains a billed capability; use bounded tasks.
+
+The initial migration backup is a private named volume, never a dev mount. To repair
+an existing stale Time branch pointer, first preserve its `.lore` directory, verify
+working files match the intended remote revision, then use `lore branch reset REV
+--branch main`, `lore sync`, and `lore repository verify`. No Lore algorithm changes
+are needed for this repair.
 
 ## Local Installation
 

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "veoveo/XiaomiMiMo/MiMo-V2.6-Pro-RL:novita",
+  "default_agent": "build",
+  "update": "disable",
+  "snapshots": false,
+  "share": "disabled",
+  "warming": false,
+  "instructions": [
+    "/etc/opencode/instructions.txt"
+  ],
+  "providers": {
+    "veoveo": {
+      "name": "Veoveo inference",
+      "env": [
+        "VEOVEO_INFERENCE_TOKEN"
+      ],
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "baseURL": "https://inference.internal:8443/v1",
+        "timeout": 300000
+      },
+      "models": {
+        "XiaomiMiMo/MiMo-V2.6-Pro-RL:novita": {
+          "name": "MiMo V2.6 Pro RL",
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 196608,
+            "output": 16384
+          },
+          "compatibility": {
+            "reasoningField": "reasoning_content"
+          }
+        }
+      }
+    }
+  },
+  "policies": [
+    {
+      "action": "provider.use",
+      "resource": "*",
+      "effect": "deny"
+    },
+    {
+      "action": "provider.use",
+      "resource": "veoveo",
+      "effect": "allow"
+    },
+    {
+      "action": "integration.use",
+      "resource": "*",
+      "effect": "deny"
+    }
+  ],
+  "permissions": [
+    {
+      "action": "*",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "task",
+      "resource": "*",
+      "effect": "deny"
+    }
+  ]
+}
