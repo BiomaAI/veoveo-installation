@@ -30,7 +30,7 @@ def env_value(name):
 
 
 def main():
-    token = env_value("HF_TOKEN")
+    token = env_value("DEEPINFRA_API_TOKEN")
     (ROOT / ".env").chmod(0o600)
     config = json.loads(run(["docker", "compose", "--profile", "autonomy", "config", "--format", "json"]).stdout)
     project = config["name"]
@@ -43,7 +43,7 @@ def main():
     run(["docker", "run", "--rm", "-i", "--network", "none", "--user", "root",
          "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
          "-v", volumes["vv-autonomy-secrets"] + ":/secrets", "--entrypoint", "sh", "vv-lore:local",
-         "-ec", "umask 077; chmod 700 /secrets; cat > /secrets/.huggingface.next; mv /secrets/.huggingface.next /secrets/huggingface"],
+         "-ec", "umask 077; chmod 700 /secrets; cat > /secrets/.inference.next; mv /secrets/.inference.next /secrets/inference"],
         input=("Bearer " + token).encode())
     run(["docker", "run", "--rm", "--network", "none", "--user", "root",
          "--cap-drop", "ALL", "--cap-add", "CHOWN", "--security-opt", "no-new-privileges",

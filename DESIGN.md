@@ -156,13 +156,13 @@ only Envoy mounts it read-only. Fifteen-minute tokens refresh every ten minutes.
 The existing raw-token output remains available for legacy trusted clients.
 
 `inference.internal:8443` accepts only POST `/v1/chat/completions` and forwards to
-`router.huggingface.co` with verified TLS and replaced authorization. Its sole key
-lives in an edge-only volume. Streaming responses and tool-call continuations use
+`api.deepinfra.com/v1/openai/chat/completions` with verified TLS and replaced
+authorization. Its sole key lives in an edge-only volume. Streaming responses and tool-call continuations use
 the same fixed route. Dependency CONNECT tunnels allow only explicit public
 Rust/crates.io/GitHub destinations. There is no general authenticated forward proxy.
 
 OpenCode v2.0.29 is pinned by npm integrity for both CPU architectures. Root-owned
-managed configuration selects MiMo V2.6 Pro RL through Novita/Hugging Face, disables
+managed configuration selects MiMo V2.6 Pro through DeepInfra, disables
 updates and Git snapshots, and supplies only a placeholder credential. Lore provides
 checkpoints. OpenCode policy is guidance and configuration control; isolation does
 not depend on the model following instructions. Shell code still has only the dev
@@ -206,9 +206,15 @@ its original checkout now reports main synchronized and passes repository verifi
 OpenCode 2.0.29 and MiMo completed a streamed model/tool round trip that ran Lore status.
 A longer session created `agent/get-clock-20261015` and inspected the Time source, but
 Hugging Face returned HTTP 402 (no remaining inference credits) before code edits.
-The coding exercise, its independent review/merge and the separate Linux-host gates
-remain pending. Session state is preserved in the Time dev volume. No agent-produced
-code has been deployed or accepted into main.
+The user subsequently replaced the coding exercise with a command-only smoke test
+and selected DeepInfra. The original session and task branch remain preserved; no
+agent-produced code has been deployed or accepted into main. DeepInfra connectivity
+through Envoy passed with a 16-token request. A fresh OpenCode session then made
+exactly one shell call, `lore -P --repository /sandbox/src status`, which exited zero
+under `no-new-privileges`. Two model steps used 100 output tokens and no reasoning
+tokens. The command reported the existing local task branch at revision 9 with no
+remote branch; it made no source edits. Separate Linux-host gates remain required
+before publishing changes.
 
 ## Gaps
 

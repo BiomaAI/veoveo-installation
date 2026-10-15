@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "veoveo/XiaomiMiMo/MiMo-V2.6-Pro-RL:novita",
+  "model": "veoveo/XiaomiMiMo/MiMo-V2.6-Pro",
   "default_agent": "build",
   "update": "disable",
   "snapshots": false,
@@ -21,8 +21,8 @@
         "timeout": 300000
       },
       "models": {
-        "XiaomiMiMo/MiMo-V2.6-Pro-RL:novita": {
-          "name": "MiMo V2.6 Pro RL",
+        "XiaomiMiMo/MiMo-V2.6-Pro": {
+          "name": "MiMo V2.6 Pro",
           "capabilities": {
             "tools": true,
             "input": [
@@ -34,12 +34,16 @@
           },
           "limit": {
             "context": 196608,
-            "output": 16384
+            "output": 512
           },
           "compatibility": {
             "reasoningField": "reasoning_content"
           }
         }
+      },
+      "body": {
+        "max_tokens": 512,
+        "reasoning_effort": "none"
       }
     }
   },
@@ -67,9 +71,23 @@
       "effect": "allow"
     },
     {
-      "action": "task",
+      "action": "subagent",
       "resource": "*",
       "effect": "deny"
     }
-  ]
+  ],
+  "agents": {
+    "build": {
+      "steps": 2
+    },
+    "smoke": {
+      "mode": "primary",
+      "steps": 2,
+      "system": "Run only the user-requested local CLI command using shell. Report the result briefly. Do not inspect files, edit code, or invoke other agents."
+    }
+  },
+  "tool_output": {
+    "max_lines": 160,
+    "max_bytes": 10000
+  }
 }

@@ -109,7 +109,7 @@ transport: do not execute repository code there. Review and test in dev before m
    docker compose --profile autonomy up -d vv-autonomy-edge vv-review vv-dev-gateway vv-dev-time vv-dev-artifact vv-dev-media
    ```
 
-   Provisioning reads `HF_TOKEN` from the ignored `.env`, sends it through stdin to
+   Provisioning reads `DEEPINFRA_API_TOKEN` from the ignored `.env`, sends it through stdin to
    the edge-only volume and generates a TLS leaf from the existing installation CA.
    It never prints the credential or puts it in a command argument. Envoy must be
    restarted after replacing the inference key. Lore SDS tokens rotate automatically.
@@ -125,14 +125,17 @@ transport: do not execute repository code there. Review and test in dev before m
    ```
 
    OpenCode 2.0.29 is pinned by npm package integrity for ARM64 and AMD64. Its managed
-   config selects `XiaomiMiMo/MiMo-V2.6-Pro-RL:novita` through
+   config selects `XiaomiMiMo/MiMo-V2.6-Pro` through
    `https://inference.internal:8443/v1`. Only a public placeholder is in the process
    environment. Automatic updates and Git snapshots are disabled; Lore checkpoints
-   and branches are the version history. For a bounded, logged headless task:
+   and branches are the version history. The current test settings allow two model
+   steps, cap output at 512 tokens per request, and disable reasoning. Use a fresh
+   session outside the source directory for the inexpensive command-only smoke test:
 
    ```sh
-   docker compose exec -T -w /sandbox/src vv-dev-time timeout --kill-after=30s 1200 \
-     opencode run --standalone --auto --format json 'Implement the requested change on a Lore task branch, test it, and commit it. Await independent review before pushing.'
+   docker compose exec -T -w /sandbox vv-dev-time timeout --kill-after=5s 90 \
+     opencode run --standalone --auto --agent smoke --format json --title 'Lore smoke test' \
+       'Run lore -P --repository /sandbox/src status and report the result. Do nothing else.'
    ```
 
 3. Review the branch and run the component's checks before accepting it. Use
@@ -145,7 +148,7 @@ Each dev network is internal, has one fixed dev peer and one Envoy peer, and car
 no runtime service. Lore listener selection and RBAC use that actual network peer;
 `Authorization`, `Host` and forwarded-address headers cannot select another client.
 The review network has its own admin listener. TLS is verified on both Lore hops.
-Inference permits only POST `/v1/chat/completions` to the fixed Hugging Face host;
+Inference permits only POST `/v1/chat/completions` to the fixed DeepInfra host;
 Envoy replaces authorization and verifies upstream TLS. The dependency proxy permits
 only the listed Rust/crates.io/GitHub hosts. Envoy's admin interface is loopback-only.
 No dev container mounts a token volume, host directory, runtime state or Docker socket.

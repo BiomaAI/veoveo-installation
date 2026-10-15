@@ -374,9 +374,10 @@ static_resources:
                     string_match:
                       exact: POST
                 route:
-                  cluster: huggingface
-                  host_rewrite_literal: router.huggingface.co
+                  cluster: deepinfra
+                  host_rewrite_literal: api.deepinfra.com
                   timeout: 300s
+                  prefix_rewrite: /v1/openai/chat/completions
               - match:
                   prefix: /
                 direct_response:
@@ -413,7 +414,7 @@ static_resources:
                 typed_config:
                   '@type': type.googleapis.com/envoy.extensions.http.injected_credentials.generic.v3.Generic
                   credential:
-                    name: huggingface
+                    name: inference
                   header: Authorization
           - *id001
       transport_socket:
@@ -537,17 +538,17 @@ static_resources:
         '@type': type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
         explicit_http_config:
           http2_protocol_options: {}
-  - name: huggingface
+  - name: deepinfra
     type: STRICT_DNS
     connect_timeout: 10s
     load_assignment:
-      cluster_name: huggingface
+      cluster_name: deepinfra
       endpoints:
       - lb_endpoints:
         - endpoint:
             address:
               socket_address:
-                address: router.huggingface.co
+                address: api.deepinfra.com
                 port_value: 443
     transport_socket:
       name: envoy.transport_sockets.tls
@@ -560,8 +561,8 @@ static_resources:
             match_typed_subject_alt_names:
             - san_type: DNS
               matcher:
-                exact: router.huggingface.co
-        sni: router.huggingface.co
+                exact: api.deepinfra.com
+        sni: api.deepinfra.com
   - name: dependencies
     lb_policy: CLUSTER_PROVIDED
     cluster_type:
@@ -572,10 +573,10 @@ static_resources:
           name: dependencies
           dns_lookup_family: V4_ONLY
   secrets:
-  - name: huggingface
+  - name: inference
     generic_secret:
       secret:
-        filename: /etc/envoy/secrets/huggingface
+        filename: /etc/envoy/secrets/inference
 overload_manager:
   resource_monitors:
   - name: envoy.resource_monitors.global_downstream_max_connections
