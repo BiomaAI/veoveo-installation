@@ -193,6 +193,9 @@ an admin author identity; the probe branch was then archived. Network probes ref
 other dev routes, the review route, backend services, direct internet access, the
 Envoy admin interface, unlisted CONNECT destinations and spoofed inference hosts/paths.
 All dev containers were recreated and retained their workspaces and OpenCode state.
+Lore-specific ignore rules were then checked by staging a disposable clone: root and
+nested `.env` files and build output stayed excluded, while the three env template
+forms remained stageable. Git exclusions alone do not apply to Lore.
 
 Envoy accepted filesystem SDS rotation with zero rejected updates. After the original
 15-minute credential expired, a fresh Time clone and repository integrity verification

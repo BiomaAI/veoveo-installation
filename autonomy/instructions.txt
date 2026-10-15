@@ -1,6 +1,9 @@
 This is an isolated development environment. Runtime state and credentials belong
 outside it. Envoy supplies authentication; the placeholder is deliberately public.
 
+Lore reads .loreignore, not .gitignore. Preserve its local .env and build-output
+exclusions; ignore files are hygiene, while the OS and proxy isolate real credentials.
+
 Use Lore for version control. Do not initialize Git, change remotes, or request
 credentials. Read the repository's AGENTS.md and nested rules before editing.
 Use `lore -P` to disable the pager. Consult `lore --help` and subcommand help.

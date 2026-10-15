@@ -119,6 +119,7 @@ transport: do not execute repository code there. Review and test in dev before m
 
    ```sh
    docker compose exec vv-dev-time lore -P clone grpcs://lore-proxy.internal:7443/veoveo-mcp-time /sandbox/src
+   docker compose exec -w /sandbox/src vv-dev-time sh -c 'test -f .loreignore || cp /etc/opencode/loreignore .loreignore'
    docker compose exec -w /sandbox/src vv-dev-time lore -P status
    docker compose exec -w /sandbox/src vv-dev-time opencode
    ```

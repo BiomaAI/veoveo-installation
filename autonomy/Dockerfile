@@ -20,6 +20,7 @@ COPY --from=lore --chmod=0755 /usr/local/bin/lore /usr/local/bin/lore
 COPY --from=ca --chmod=0644 ca.crt /usr/local/share/ca-certificates/veoveo-installation.crt
 COPY --chmod=0644 opencode.json /etc/opencode/opencode.json
 COPY --chmod=0644 instructions.txt /etc/opencode/instructions.txt
+COPY --chmod=0644 loreignore /etc/opencode/loreignore
 RUN (id sandbox >/dev/null 2>&1 || useradd --create-home --uid 1000 --shell /bin/bash sandbox) \
     && chmod 0755 /etc/opencode \
     && find / -xdev -type f -perm /6000 -exec chmod ug-s {} + \
