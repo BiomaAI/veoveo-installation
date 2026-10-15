@@ -303,6 +303,29 @@ rev() { jq -er --arg name "$1" '.components[] | select(.name == $name) | .revisi
    done
    ```
 
+10. To call the installation from the host, install the SDK's
+    [Gateway client](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/0819575247c0bad93e5c43e6ff942f09a0138adf/crates/veoveo-sdk-rust-cli/DESIGN.md)
+    and copy the callers' keys into `state/callers`, which Git ignores:
+
+    ```sh
+    cargo install --locked --git https://github.com/VeoveoAI/veoveo-sdk-rust \
+      --rev 0819575247c0bad93e5c43e6ff942f09a0138adf veoveo-sdk-rust-cli
+    mkdir -p state/callers && chmod 700 state/callers
+    docker compose exec -T vv-srv-gateway tar -C /sandbox/state/gateway -cf - \
+        acceptance-member.pem acceptance-member.jwks.json acceptance-admin.pem acceptance-admin.jwks.json \
+      | tar -C state/callers -xf - && chmod 600 state/callers/*.pem
+    veoveo-sdk-rust-cli --connect 127.0.0.1:8080 --keys state/callers tools
+    ```
+
+    The client reaches the Gateway through the edge's published port, and its tokens
+    still name `vv-gateway.internal`. Its `ask` command lets a chat model work with the
+    caller's tools, and it reads the model endpoint's token from `HF_TOKEN` in `.env`:
+
+    ```sh
+    veoveo-sdk-rust-cli --connect 127.0.0.1:8080 --keys state/callers --caller acceptance-admin \
+      ask --env-file .env "Generate an image of a red circle with the fake text-to-image model."
+    ```
+
 Names follow the Veoveo
 [naming and format conventions](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/CONVENTIONS.md).
 
