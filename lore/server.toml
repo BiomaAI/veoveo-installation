@@ -18,9 +18,8 @@ endpoint = "http://vv-gateway.internal:8080/oauth/jwks.json"
 client_id = "lore-cli"
 resource_template = "lores://vv-lore.internal:41337/repositories/{id}"
 
-[server.quic.certificate]
-cert_file = "/etc/lore/tls/vv-lore.internal.crt"
-pkey_file = "/etc/lore/tls/vv-lore.internal.key"
+[server.quic]
+enabled = false
 
 [server.grpc.certificate]
 cert_file = "/etc/lore/tls/vv-lore.internal.crt"

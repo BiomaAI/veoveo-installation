@@ -24,7 +24,6 @@ COPY --chmod=0644 loreignore /etc/opencode/loreignore
 RUN (id sandbox >/dev/null 2>&1 || useradd --create-home --uid 1000 --shell /bin/bash sandbox) \
     && chmod 0755 /etc/opencode \
     && find / -xdev -type f -perm /6000 -exec chmod ug-s {} + \
-    && rm -f /etc/lore/sandbox.toml \
     && update-ca-certificates >/dev/null \
     && mkdir -p /sandbox && chown sandbox:sandbox /sandbox
 USER sandbox

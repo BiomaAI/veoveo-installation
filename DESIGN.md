@@ -2,7 +2,7 @@
 
 This template's defaults run a whole Veoveo installation on one workstation with
 Docker Compose: the infrastructure, an Envoy edge, a Lore server and one environment per
-component. The original `envs` containers are trusted bootstrap/runtime tooling;
+component. The `runtime` containers hold trusted component state and approved source snapshots;
 coding agents run only in the separate `autonomy` profile described below. The design
 follows decisions D40 to D43 of the
 [repository split plan](https://github.com/VeoveoAI/veoveo-docs/blob/main/REPOSITORY_SPLIT_PLAN.md#decisions);
@@ -12,20 +12,16 @@ follows decisions D40 to D43 of the
 
 | Standard or protocol | Use |
 |---|---|
-| Compose specification, Docker Compose 2.24 or newer | Services, the `envs` and `tunnel` profiles, internal networks with fixed subnets, named volumes and `additional_contexts` for the environment layer |
+| Compose specification, Docker Compose 2.24 or newer | Services, the `runtime`, `autonomy` and `tunnel` profiles, internal networks with fixed subnets, named volumes and `additional_contexts` for the environment layer |
 | Dockerfile syntax 1.27 with BuildKit | The environment layer over each component's `dev` image, and the Lore build, which fetches its source with `ADD` of a Git URL at one commit |
 | Envoy 1.40.0, v3 static bootstrap | The edge: TCP proxies for published ports, HTTP connection managers, RBAC on the source address, the generic credential injector reading SDS file secrets, `ExtensionWithMatcher` with `SkipFilter`, and the dynamic forward proxy |
 | HTTP CONNECT, RFC 9110 §9.3.6 | The edge's egress proxy at `vv-egress.internal:3128`, which opens tunnels only to allowlisted hosts on port 443 |
 | TLS 1.3 with X.509 certificates, RFC 5280 | The installation CA, an ECDSA P-256 key, and the certificates it signs for `vv-lore.internal` and `media-provider.internal`; every environment trusts the CA through its system store |
 | `.internal`, the top-level domain ICANN reserves for private networks | Every container's network name, where core's [conventions](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/CONVENTIONS.md#http-paths) allow plain HTTP |
-| Lore v0.10.1 from [VeoveoAI/lore](https://github.com/VeoveoAI/lore) at `36808dd` | Version control for environments over `lores://`: gRPC over TLS on TCP 41337 and Lore's storage protocol over QUIC, RFC 9000, on UDP 41337. The server runs as Epic ships it; the client carries the two patches of D41 |
+| Unmodified Lore v0.10.1 from [EpicGames/lore](https://github.com/EpicGames/lore) at `95a9a834` | Both client and server are upstream source. Clients use `grpcs://` through Envoy for revisions and storage; QUIC is disabled |
 | OAuth 2.0 client credentials, RFC 6749 §4.4, with RFC 7523 assertions and RFC 8707 resources | How the Lore token service obtains each environment's token from the Gateway |
 | JWT access tokens, RFC 9068 | Lore tokens with the `lore_resources` claim, profiled in the Gateway's [Lore tokens](https://github.com/VeoveoAI/veoveo-service-gateway/blob/main/crates/veoveo-service-gateway/DESIGN.md#lore-tokens) |
 | [Component lock](https://github.com/VeoveoAI/veoveo-core/blob/main/platform/installation/contract/DESIGN.md), `https://veoveo.ai/formats/component-lock` | `component-lock.json`, the revision of each component the installation builds and snapshots into Lore |
-
-Two interfaces are internal to this installation and carry no compatibility promise:
-the Lore token file, which the token service writes and the patched Lore client reads,
-and `/etc/lore/sandbox.toml`, which names the one server the client may reach.
 
 ## Services
 
@@ -35,35 +31,28 @@ and `/etc/lore/sandbox.toml`, which names the one server the client may reach.
 | `vv-seaweedfs` | SeaweedFS 4.48 by digest | `vv-local`, `vv-outside` | The object store |
 | `vv-egress` | Envoy 1.40.0 by digest | `vv-local`, `vv-media`, `vv-outside` | The edge |
 | `vv-lore` | built from `lore/Dockerfile` | `vv-local` | The Lore server, storing on its volume |
-| `vv-lore-tokens` | the Gateway's `runtime` image | `vv-local` | The Gateway's `lore-tokens` command, as root |
-| `vv-lore-admin` | the environment layer over Debian | `vv-local` | Creates repositories from snapshots, records later snapshots and merges, as Lore's service account |
+| `vv-autonomy-tokens` | the pinned Gateway refresher image | `vv-local` | Refreshes Envoy SDS credentials in trusted storage |
+| `vv-review` | the upstream Lore image | `vv-review` | Repository administration through the isolated Envoy admin listener; never executes repository code |
 | `vv-srv-gateway`, `vv-mcp-time`, `vv-mcp-artifact`, `vv-mcp-media` | the environment layer over each component's `dev` image | `vv-local`, and `vv-media` for Media | The environments |
 | `vv-tunnel` | cloudflared 2026.10.0 by digest | host | The public origin's tunnel, optional |
 
-PostgreSQL, SeaweedFS and the edge start by default. The `envs` profile adds Lore, its
-token service, its admin and the environments, all of which depend on the Gateway.
+PostgreSQL, SeaweedFS and the edge start by default. The `runtime` profile adds trusted component containers. The `autonomy` profile adds
+Lore, the SDS refresher, Envoy, the reviewer and development containers. Lore and token
+issuance need the Gateway to be running first.
 
 ## Environments
 
-The environment layer, `envs/Dockerfile`, turns a component's `dev` image into an
-environment. It installs the patched Lore client setgid to the `lore-cred` group, adds
-the installation CA to the system trust store, writes `/etc/lore/sandbox.toml` naming
-`lores://vv-lore.internal:41337`, creates `/sandbox` for the `sandbox` user, and removes
-the setuid and setgid bits of every other program. An environment runs as `sandbox`
-with every capability dropped, keeps `/sandbox` in a named volume and does nothing until
-a command runs in it.
+The runtime layer, `runtime/Dockerfile`, adds the installation CA to each component's
+`dev` image and strips all setuid/setgid bits. It installs no Lore client or token
+loader. Runtime containers run as `sandbox`, with all capabilities dropped and
+`no-new-privileges` enabled. Their named `/sandbox` volumes retain trusted component
+state and approved source snapshots. They never run coding agents.
 
-An environment compiles its component from its Lore working copy at `/sandbox/src`.
-The served binary builds into `/sandbox/target-serve` and runs from there, apart from
-`target/`, where acceptance builds enable test-only features. The volume keeps the
-working copy, both build directories and the component's state through a recreation.
-Images are built on the host, and no Docker socket enters an environment.
-
-Environments run without `no-new-privileges`, because the kernel ignores the Lore
-client's setgid bit under it. The layer's removal of every other setuid and setgid
-program keeps that from opening a path to root. A process started under
-`no-new-privileges` inside an environment, such as a coding agent's own command
-sandbox, cannot read the Lore token.
+A runtime compiles its approved snapshot at `/sandbox/src`. The served binary builds
+into `/sandbox/target-serve`, apart from test builds. Recreating the container preserves
+its volume, but component processes launched through `docker exec` must be restarted.
+Lore operations run only in the separate development and review containers. Deployment
+exports an approved snapshot through the reviewer; no runtime needs a Lore credential.
 
 ## Networks And Names
 
@@ -73,7 +62,7 @@ environments, Lore, PostgreSQL and SeaweedFS share it, and each answers under it
 internal and holds only Media's environment and the edge. `vv-outside` is an ordinary
 bridge network for the edge and the infrastructure's published ports.
 
-An environment reaches PostgreSQL, the object store, Lore and the other environments
+A runtime reaches PostgreSQL, the object store and the other runtime services
 directly on `vv-local`. It reaches the Gateway at `vv-gateway.internal`, which is the
 edge, and everything else only through the edge's proxy. `NO_PROXY` keeps every
 `.internal` name off the proxy, so signed object-store requests reach SeaweedFS
@@ -106,24 +95,14 @@ commit on `main`. Nothing in Lore returns to GitHub. An environment pushes its o
 branches; Lore refuses its pushes to the protected `main`, and the admin, a service
 account, merges.
 
-The Gateway issues Lore tokens. `generate-local-installation` writes a Lore client and
-key for each environment and for the admin into the Gateway environment's state, and the
-installation grants each environment's client its component's repository after the
-repositories exist. `vv-lore-tokens` mounts that state read-only and each environment's
-token volume, and every ten minutes writes a 15-minute token to `/run/lore/token`: owned
-by root, group `lore-cred`, mode 0640, in a directory of mode 0750. The environment
-mounts its token volume read-only.
+The Gateway issues Lore tokens. `generate-local-installation` creates clients and
+signing keys for each component and the reviewer in trusted Gateway state. Repository
+grants give each development client access to its own repository. The SDS refresher
+publishes those credentials to Envoy; no Lore client has a credential file.
 
-The patched client, run by any user in an environment, reads `/etc/lore/sandbox.toml`
-and the token while it holds `lore-cred`. It then drops the group for good, makes itself
-undumpable and clears every environment variable outside a short allowlist. It sends the
-token only to the configured server's scheme, host and port, and refuses token flags
-and Lore's service mode. A token file that the agent could read without the group stops
-the client.
-
-The Lore server reads the Gateway's keys at startup, so the Gateway runs before Lore,
-and the Gateway environment's first source is its GitHub snapshot. Once its repository
-exists, the environment replaces that checkout with its Lore clone of the same files.
+The Lore server reads the Gateway's keys at startup, so the Gateway starts first from
+its locked GitHub snapshot. Runtime source stays a trusted snapshot. `vv-review`
+creates repositories from host-exported snapshots and administers protected branches.
 
 ## Coding Agents
 
@@ -131,8 +110,8 @@ The `autonomy` profile separates source/build/test state from trusted runtime st
 `vv-dev-*` never mounts a runtime volume, token file, host directory or Docker socket.
 Each runs as UID 1000, with every capability dropped and `no-new-privileges`, on a
 separate internal /29 network. The new environment layer strips all setuid/setgid
-bits. Existing `envs` containers keep their private state and legacy bootstrap tools;
-they are never agent environments, including the Gateway container holding signing keys.
+bits. Runtime containers keep private service state and have no Lore tooling; they
+are never agent environments, including the Gateway container holding signing keys.
 
 `vv-autonomy-edge` is an unmodified, digest-pinned Envoy. It joins the four development
 networks, a separate trusted review network, the backend and the outside network.
@@ -145,15 +124,17 @@ Lore's existing `grpcs://` transport covers both storage and revisions. Envoy te
 TLS at `lore-proxy.internal:7443` and verifies `vv-lore.internal` over HTTP/2 TLS.
 Repository grants and protected branches are still enforced by the unchanged Lore
 server. No Lore repository operation, merge, revision or storage logic changes.
-The old setgid client remains available only in trusted bootstrap tooling.
+The installation carries no Lore source patches, privileged token loader, or direct
+client authentication fallback. The upstream server disables QUIC because all client
+operations use the authenticated gRPC route.
 
 `autonomy/component-lock.json` pins the Gateway revision for the trusted refresher
-without changing the deployed component snapshots. Its `lore-tokens --format envoy-sds`
+without changing the deployed component snapshots. Its `lore-tokens`
 command publishes each named generic secret
 as a complete filesystem SDS response, with a synced file and atomic rename. The
 trusted refresher owns the signing keys and mounts its output volume read-write;
 only Envoy mounts it read-only. Fifteen-minute tokens refresh every ten minutes.
-The existing raw-token output remains available for legacy trusted clients.
+The refresher emits SDS responses only; raw-token compatibility has been removed.
 
 `inference.internal:8443` accepts only POST `/v1/chat/completions` and forwards to
 `api.deepinfra.com/v1/openai/chat/completions` with verified TLS and replaced
@@ -207,8 +188,8 @@ OpenCode 2.0.29 and MiMo completed a streamed model/tool round trip that ran Lor
 A longer session created `agent/get-clock-20261015` and inspected the Time source, but
 Hugging Face returned HTTP 402 (no remaining inference credits) before code edits.
 The user subsequently replaced the coding exercise with a command-only smoke test
-and selected DeepInfra. The original session and task branch remain preserved; no
-agent-produced code has been deployed or accepted into main. DeepInfra connectivity
+and selected DeepInfra. The original session remains as an audit log; the unused task branch was archived
+during cleanup. No agent-produced code has been deployed or accepted into main. DeepInfra connectivity
 through Envoy passed with a 16-token request. A fresh OpenCode session then made
 exactly one shell call, `lore -P --repository /sandbox/src status`, which exited zero
 under `no-new-privileges`. Two model steps used 100 output tokens and no reasoning
@@ -216,13 +197,28 @@ tokens. The command reported the existing local task branch at revision 9 with n
 remote branch; it made no source edits. Separate Linux-host gates remain required
 before publishing changes.
 
+On October 15 the installation switched both Lore binaries to the unmodified
+upstream v0.10.1 release commit. A fresh Time clone and repository integrity check
+passed through Envoy. A committed text fixture pushed to a task branch and cloned
+correctly in the reviewer. After the reviewer protected that branch, another changed
+push was denied even with a claimed admin identity. A forged credential was replaced
+for the authorized repository and did not grant access to another repository. Main
+remained at revision 9. The test branches and earlier empty task branches were archived.
+
+All four runtime containers were rebuilt without Lore, token mounts or privileged
+helpers and restarted with `no-new-privileges`. Their existing service state and five
+running processes were preserved. The old admin and raw-token refresher containers,
+the old admin image, and their six obsolete volumes were removed after backing up the
+admin workspace. The Gateway's SDS-only refresher passed its full Docker check gate:
+199 tests, formatting, linting and dependency/feature checks. No inference call or
+coding-agent session was needed for this migration.
+
 ## Gaps
 
 - The real media provider through `media-provider.internal` is configured and was not
   qualified with a billed run; the egress tests qualified the route with a stand-in.
 - The Linux host has not run this installation, and GPU environments wait for the GPU
   components.
-- Legacy bootstrap/runtime environments still hold private state and must never run
-  agents. Their existing setgid client is not the autonomy authentication path.
-- Lore's gRPC and QUIC verify the server against the installation CA by name; the
+- Runtime services hold private state and must never run agents.
+- Lore's gRPC verifies the server against the installation CA by name; the
   client does not pin the server's certificate.

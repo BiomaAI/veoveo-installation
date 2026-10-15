@@ -1,8 +1,7 @@
-# The local installation on one workstation (D40 to D43). PostgreSQL, the SeaweedFS
-# object store and the Envoy edge start by default. The `envs` profile adds the Lore
-# server, the Lore token service, the Lore admin container and one environment per
-# component as trusted bootstrap/runtime tooling. The `autonomy` profile adds isolated
-# coding sandboxes and their credential-injecting Envoy edge. README.md builds the images.
+# The local installation on one workstation. Infrastructure starts by default.
+# The `runtime` profile adds trusted component containers without Lore credentials.
+# The `autonomy` profile adds upstream Lore, isolated development and review
+# containers, and the Envoy edge that authenticates every Lore client.
 name: vv-local
 
 networks:
@@ -42,18 +41,16 @@ x-environment-variables: &environment-variables
   VEOVEO_REGISTRATION_SECRET: replaced-by-the-edge
 
 x-environment: &environment
-  profiles: [envs]
-  # Every capability dropped. No no-new-privileges, so the setgid Lore client reads
-  # its token; the image carries no other setuid or setgid program.
+  profiles: [runtime]
   cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
   environment: *environment-variables
   command: [sleep, infinity]
   restart: unless-stopped
 
 x-environment-build: &environment-build
-  context: ./envs
+  context: ./runtime
   additional_contexts:
-    lore: docker-image://vv-lore:local
     ca: ./tls/ca
 
 # Agent sandboxes have no runtime state, token files, host mounts or Docker socket.
@@ -188,8 +185,6 @@ services:
       - lores://vv-lore.internal:41337
       - --group
       - "0"
-      - --format
-      - envoy-sds
       - --target
       - lore-admin=/sds/lore-admin.json
       - --target
@@ -327,8 +322,10 @@ services:
 
   vv-lore:
     container_name: vv-lore
-    profiles: [envs]
-    # Lore built from VeoveoAI/lore at its locked revision (D41). It reads the
+    profiles: [autonomy]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    # Unmodified upstream Lore at its release commit. It reads the
     # Gateway's keys at startup, so it restarts until the Gateway answers.
     image: vv-lore:local
     build: ./lore
@@ -339,65 +336,6 @@ services:
       - ./lore/server.toml:/etc/lore/config/local.toml:ro
       - ./tls/lore:/etc/lore/tls:ro
     restart: unless-stopped
-
-  vv-lore-tokens:
-    container_name: vv-lore-tokens
-    profiles: [envs]
-    # The Gateway's `lore-tokens` command as root: it keeps each environment's
-    # /run/lore/token current with the keys the Gateway environment generated, which
-    # no environment holds.
-    image: veoveo-service-gateway:runtime
-    user: root
-    entrypoint: [/usr/local/bin/veoveo-service-gateway]
-    command:
-      - lore-tokens
-      - --directory
-      - /gateway/state/gateway
-      - --token-endpoint
-      - http://vv-gateway.internal:8080/oauth/token
-      - --resource
-      - lores://vv-lore.internal:41337
-      - --group
-      - "990"
-      - --target
-      - lore-admin=/tokens/vv-lore-admin/token
-      - --target
-      - lore-vv-srv-gateway=/tokens/vv-srv-gateway/token
-      - --target
-      - lore-vv-mcp-time=/tokens/vv-mcp-time/token
-      - --target
-      - lore-vv-mcp-artifact=/tokens/vv-mcp-artifact/token
-      - --target
-      - lore-vv-mcp-media=/tokens/vv-mcp-media/token
-    environment:
-      RUST_LOG: info
-    networks:
-      vv-local: {}
-    volumes:
-      - vv-srv-gateway:/gateway:ro
-      - vv-lore-admin-token:/tokens/vv-lore-admin
-      - vv-srv-gateway-token:/tokens/vv-srv-gateway
-      - vv-mcp-time-token:/tokens/vv-mcp-time
-      - vv-mcp-artifact-token:/tokens/vv-mcp-artifact
-      - vv-mcp-media-token:/tokens/vv-mcp-media
-    restart: unless-stopped
-
-  vv-lore-admin:
-    <<: *environment
-    container_name: vv-lore-admin
-    # Creates each component's Lore repository from its locked GitHub snapshot, records
-    # later snapshots and merges into protected `main`, as Lore's service account.
-    image: vv-lore-admin:local
-    build:
-      <<: *environment-build
-      args:
-        BASE: debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f
-        PACKAGES: ca-certificates git
-    networks:
-      vv-local: {}
-    volumes:
-      - vv-lore-admin:/sandbox
-      - vv-lore-admin-token:/run/lore:ro
 
   vv-srv-gateway:
     <<: *environment
@@ -413,7 +351,6 @@ services:
       vv-local: { aliases: [vv-srv-gateway.internal] }
     volumes:
       - vv-srv-gateway:/sandbox
-      - vv-srv-gateway-token:/run/lore:ro
 
   vv-mcp-time:
     <<: *environment
@@ -426,7 +363,6 @@ services:
       vv-local: { aliases: [vv-mcp-time.internal] }
     volumes:
       - vv-mcp-time:/sandbox
-      - vv-mcp-time-token:/run/lore:ro
 
   vv-mcp-artifact:
     <<: *environment
@@ -439,7 +375,6 @@ services:
       vv-local: { aliases: [vv-mcp-artifact.internal] }
     volumes:
       - vv-mcp-artifact:/sandbox
-      - vv-mcp-artifact-token:/run/lore:ro
 
   vv-mcp-media:
     <<: *environment
@@ -453,7 +388,6 @@ services:
       vv-media: {}
     volumes:
       - vv-mcp-media:/sandbox
-      - vv-mcp-media-token:/run/lore:ro
 
   vv-tunnel:
     container_name: vv-tunnel
@@ -484,13 +418,7 @@ volumes:
   vv-seaweedfs:
   vv-lore:
   vv-egress-secrets:
-  vv-lore-admin:
   vv-srv-gateway:
   vv-mcp-time:
   vv-mcp-artifact:
   vv-mcp-media:
-  vv-lore-admin-token:
-  vv-srv-gateway-token:
-  vv-mcp-time-token:
-  vv-mcp-artifact-token:
-  vv-mcp-media-token:

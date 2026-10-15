@@ -8,7 +8,7 @@ named `veoveo-<installation>` in your organization, for example `BiomaAI/veoveo-
 Components register themselves with the Gateway and declare their own permissions, so
 an installation names no server's internals. It decides only who may do what.
 
-The defaults run the trusted local installation with Docker Compose. Its `envs`
+The defaults run the trusted local installation with Docker Compose. Its `runtime`
 containers hold running components and private runtime state. **Never run coding
 agents in those containers.** The `autonomy` profile adds separate `vv-dev-*`
 containers, each with its own source volume and internal network. OpenCode v2 uses
@@ -20,10 +20,10 @@ MiMo through Envoy and commits work with Lore. Secrets stay in trusted services.
 |---|---|
 | `DESIGN.md` | How the installation's environments, edge and Lore fit together, and what remains open |
 | `component-lock.json` | The repository and Git revision of each component the installation runs, in core's [component lock](https://github.com/VeoveoAI/veoveo-core/blob/main/platform/installation/contract/DESIGN.md) format |
-| `compose.yaml` | PostgreSQL 18.6, SeaweedFS 4.48 (`weed mini`) and Envoy 1.40.0, each pinned by digest; the Lore server, the Lore token service, the Lore admin container and the environments under the `envs` profile; cloudflared 2026.10.0 under the `tunnel` profile |
-| `envs/Dockerfile` | Legacy trusted bootstrap/runtime tooling; never an agent sandbox |
+| `compose.yaml` | Infrastructure, trusted component containers under `runtime`, upstream Lore and isolated development/review under `autonomy`, and the optional `tunnel` |
+| `runtime/Dockerfile` | Trusted component tooling with the installation CA, no Lore client, and no privileged helpers |
 | `autonomy/` | Isolated dev images, pinned OpenCode v2, managed config, Envoy routes and credential provisioning |
-| `lore/Dockerfile`, `lore/server.toml` | Lore built from [VeoveoAI/lore](https://github.com/VeoveoAI/lore) at one commit, and the server's settings |
+| `lore/Dockerfile`, `lore/server.toml` | Unmodified [EpicGames/lore](https://github.com/EpicGames/lore) v0.10.1 at its release commit, and the server's settings |
 | `egress/envoy.yaml`, `egress/render`, `egress/sds/` | The edge's configuration, the script that fills in the hosts `.env` names, and the files that point Envoy at its secrets |
 | `postgres/initdb/owner.sql` | Creates the installation owner `veoveo_owner` and its database `veoveo` when the data directory is new |
 
@@ -42,12 +42,12 @@ private networks, where a local installation may use plain HTTP:
 |---|---|
 | `vv-gateway.internal:8080` | The edge, in front of the Gateway |
 | `vv-egress.internal:3128` | The edge's HTTPS proxy |
-| `vv-lore.internal:41337` | The Lore server, over `lores://` with the installation CA |
+| `lore-proxy.internal:7443` | Envoy-authenticated Lore over `grpcs://`, available only on dev/review networks |
 | `vv-postgres.internal:5432`, `vv-seaweedfs.internal:9000` | PostgreSQL and the object store |
 | `vv-srv-gateway.internal:8080`, `vv-mcp-time.internal:8800`, `vv-mcp-artifact.internal:8801`, `vv-mcp-media.internal:8802` | The Gateway and each server in its environment |
 | `media-provider.internal` | The edge's route to the media provider's API, on Media's network only |
 
-Environments, Lore and the infrastructure share `vv-local`, an internal network that no
+Runtime services, Lore and the infrastructure share `vv-local`, an internal network that no
 route leaves. Media's environment also joins `vv-media`, where the provider's route
 answers. The edge joins both and `vv-outside`, and it is the environments' only way out:
 
@@ -61,9 +61,9 @@ answers. The edge joins both and `vv-outside`, and it is the environments' only 
   `vv-gateway.internal`, and the media provider's key at `media-provider.internal`.
   An environment holds a placeholder and never reads either secret.
 
-The `envs` profile below is trusted bootstrap/runtime tooling. It retains the older
-setgid Lore client for compatibility. The `autonomy` profile uses ordinary mode-0755
-Lore over authenticated Envoy gRPC routes, with `no-new-privileges` enabled. Agents
+The `runtime` profile holds trusted component state and has no Lore client or token
+mounts. The `autonomy` profile uses upstream Lore over authenticated Envoy gRPC
+routes. Both profiles drop every capability and enable `no-new-privileges`. Agents
 never share a filesystem, PID namespace or network with runtime services.
 
 PostgreSQL also publishes `127.0.0.1:5432`, and SeaweedFS `127.0.0.1:9000` and its
@@ -79,17 +79,17 @@ repository, which starts from a snapshot of its locked GitHub revision. A compon
 update arrives as a new snapshot commit on `main`, and nothing in Lore returns to
 GitHub.
 
-The Gateway issues Lore tokens (D43). `vv-lore-tokens` keeps each environment's
-`/run/lore/token` current with a 15-minute token for that environment's Lore client,
-which reaches only its component's repository. The file belongs to root and the
-`lore-cred` group, and only the setgid `lore` client reads it. The client sends the
-token only to `vv-lore.internal`. `main` is protected in every repository, so an
-environment pushes branches, and the Lore admin client, a Lore service account,
-merges.
+The Gateway issues 15-minute Lore tokens. `vv-autonomy-tokens` refreshes Envoy SDS
+secrets every ten minutes in a volume only the trusted refresher and proxy mount.
+Each dev network selects its own repository credential; the separate review network
+selects the admin credential. No Lore client reads a token. `main` stays protected:
+agents push task branches, and `vv-review` performs approved administrative merges.
+The installation builds directly from upstream Lore, without a fork or source patches.
 
 ## Isolated Coding Environments
 
-Complete the trusted installation below first. Keep its existing state volumes private;
+After the Gateway is running (local installation step 4), provision this profile.
+Keep runtime state volumes private;
 source for agents is cloned anew from Lore. The dev containers are `vv-dev-gateway`,
 `vv-dev-time`, `vv-dev-artifact` and `vv-dev-media`. `vv-review` is trusted Lore admin
 transport: do not execute repository code there. Review and test in dev before merging.
@@ -106,7 +106,7 @@ transport: do not execute repository code there. Review and test in dev before m
    docker compose --profile autonomy build vv-dev-gateway vv-dev-time vv-dev-artifact vv-dev-media
    python3 autonomy/provision
    docker compose --profile autonomy up -d vv-autonomy-tokens
-   docker compose --profile autonomy up -d vv-autonomy-edge vv-review vv-dev-gateway vv-dev-time vv-dev-artifact vv-dev-media
+   docker compose --profile autonomy up -d vv-lore vv-autonomy-edge vv-review vv-dev-gateway vv-dev-time vv-dev-artifact vv-dev-media
    ```
 
    Provisioning reads `DEEPINFRA_API_TOKEN` from the ignored `.env`, sends it through stdin to
@@ -209,18 +209,15 @@ rev() { jq -er --arg name "$1" '.components[] | select(.name == $name) | .revisi
    done
    ```
 
-2. Build the images. Each component's `dev` image comes from its repository at its
-   locked revision, the Gateway's `runtime` image runs the Lore token service, and
-   Compose builds Lore and the installation's layer over each `dev` image:
+2. Build each component's `dev` image from its locked revision, upstream Lore,
+   and the trusted runtime layer:
 
    ```sh
    for c in veoveo-service-gateway veoveo-mcp-time veoveo-mcp-artifact veoveo-mcp-media; do
      docker build --target dev -t "$c:dev" "https://github.com/VeoveoAI/$c.git#$(rev $c)"
    done
-   docker build --target runtime -t veoveo-service-gateway:runtime \
-     "https://github.com/VeoveoAI/veoveo-service-gateway.git#$(rev veoveo-service-gateway)"
-   docker compose --profile envs build vv-lore
-   docker compose --profile envs build
+   docker compose --profile autonomy build vv-lore
+   docker compose --profile runtime build
    ```
 
 3. Give the edge placeholder secrets and start PostgreSQL, SeaweedFS and the edge:
@@ -232,12 +229,13 @@ rev() { jq -er --arg name "$1" '.components[] | select(.name == $name) | .revisi
    ```
 
 4. Start the Gateway environment. Its first source is its locked GitHub snapshot,
-   because Lore starts only once the Gateway serves its keys; step 5 moves it to Lore.
+   because Lore starts only once the Gateway serves its keys. Runtime source stays a
+   trusted snapshot; agents work in the separate dev clones.
    Give it the installation owner's password, and only that one, then generate the
    installation once with a Lore client for each environment:
 
    ```sh
-   docker compose --profile envs up -d vv-srv-gateway
+   docker compose --profile runtime up -d vv-srv-gateway
    docker compose exec vv-srv-gateway bash -c "git clone --quiet https://github.com/VeoveoAI/veoveo-service-gateway /sandbox/src \
      && git -C /sandbox/src checkout --quiet --detach $(rev veoveo-service-gateway)"
    grep '^VEOVEO_DATABASE_PASSWORD=' .env | docker compose exec -T vv-srv-gateway sh -c \
@@ -271,22 +269,22 @@ rev() { jq -er --arg name "$1" '.components[] | select(.name == $name) | .revisi
    Then start the Gateway in its own terminal, as its README's Local Launch section
    shows.
 
-5. Start Lore and create each component's repository from its locked snapshot as the
-   Lore admin. The admin protects `main` in each, and its output names each repository's
-   ID:
+5. Build and provision the [isolated coding profile](#isolated-coding-environments),
+   then create each component's Lore repository through `vv-review`. Snapshot Git
+   repositories on the host; the reviewer receives files and never executes their code:
 
    ```sh
-   docker compose --profile envs up -d vv-lore vv-lore-tokens vv-lore-admin
-   until docker compose exec vv-lore-admin lore repository list lores://vv-lore.internal:41337 >/dev/null 2>&1; do sleep 2; done
+   until docker compose exec vv-review lore -P repository list grpcs://lore-proxy.internal:7443 >/dev/null 2>&1; do sleep 2; done
+   mkdir -p state/snapshots
    for c in $(jq -r '.components[].name' component-lock.json); do
-     docker compose exec -T vv-lore-admin bash -ec "
-       git clone --quiet https://github.com/VeoveoAI/$c /sandbox/git/$c
-       git -C /sandbox/git/$c checkout --quiet --detach $(rev $c)
-       mkdir -p /sandbox/lore/$c && git -C /sandbox/git/$c archive HEAD | tar -x -C /sandbox/lore/$c
-       cd /sandbox/lore/$c
-       lore repository create lores://vv-lore.internal:41337/$c | sed -n 's/.* with ID \([0-9a-f]*\)$/\1/p' > /sandbox/lore/$c.id
-       lore dirty . >/dev/null && lore stage . >/dev/null
-       lore commit '$c $(rev $c)' >/dev/null && lore push >/dev/null && lore branch protect main >/dev/null"
+     git clone --quiet "https://github.com/VeoveoAI/$c" "state/snapshots/$c"
+     git -C "state/snapshots/$c" checkout --quiet --detach "$(rev "$c")"
+     docker compose exec vv-review mkdir -p "/review/$c"
+     git -C "state/snapshots/$c" archive HEAD | docker compose exec -T vv-review tar -x -C "/review/$c"
+     docker compose exec -T -w "/review/$c" vv-review sh -ec "
+       lore -P repository create grpcs://lore-proxy.internal:7443/$c | sed -n 's/.* with ID \([0-9a-f]*\)$/\1/p' > /review/$c.id
+       lore -P dirty . >/dev/null && lore -P stage . >/dev/null
+       lore -P commit '$c $(rev "$c")' >/dev/null && lore -P push >/dev/null && lore -P branch protect main >/dev/null"
    done
    ```
 
@@ -297,7 +295,7 @@ rev() { jq -er --arg name "$1" '.components[] | select(.name == $name) | .revisi
    ids=$(for pair in vv-srv-gateway:veoveo-service-gateway vv-mcp-time:veoveo-mcp-time \
          vv-mcp-artifact:veoveo-mcp-artifact vv-mcp-media:veoveo-mcp-media; do
      printf '{"client":"lore-%s","id":"%s"}\n' "${pair%%:*}" \
-       "$(docker compose exec -T vv-lore-admin cat /sandbox/lore/${pair#*:}.id)"
+       "$(docker compose exec -T vv-review cat /review/${pair#*:}.id)"
    done | jq -s .)
    docker compose exec -T vv-srv-gateway cat /sandbox/state/gateway/gateway.json \
      | jq --argjson ids "$ids" '.lore.grants |= map(.client as $c
@@ -308,33 +306,30 @@ rev() { jq -er --arg name "$1" '.components[] | select(.name == $name) | .revisi
    docker compose exec vv-srv-gateway pkill -TERM -f '^/sandbox/target-serve/debug/veoveo-service-gateway serve'
    ```
 
-   After the Gateway runs again:
+   After the Gateway runs again, refresh Envoy credentials and clone into the dev
+   containers as described above:
 
    ```sh
-   docker compose restart vv-lore-tokens
-   docker compose exec vv-srv-gateway bash -c 'mv /sandbox/src /sandbox/src-github \
-     && lore clone lores://vv-lore.internal:41337/veoveo-service-gateway /sandbox/src \
-     && rm -rf /sandbox/src-github'
+   docker compose restart vv-autonomy-tokens
    ```
 
-   The Gateway environment now works in Lore. The running Gateway was built from the
-   same files.
-
-6. Start the Time environment, clone Time from Lore, then start Time in its own
+6. Start the Time runtime with its locked snapshot, then start Time in its own
    terminal as its README shows. Time registers itself with the Gateway at startup:
 
    ```sh
-   docker compose --profile envs up -d vv-mcp-time
-   docker compose exec vv-mcp-time lore clone lores://vv-lore.internal:41337/veoveo-mcp-time /sandbox/src
+   docker compose --profile runtime up -d vv-mcp-time
+   docker compose exec vv-mcp-time sh -ec "git clone --quiet https://github.com/VeoveoAI/veoveo-mcp-time /sandbox/src \
+     && git -C /sandbox/src checkout --quiet --detach $(rev veoveo-mcp-time)"
    ```
 
-7. Start the Artifact environment and clone Artifact. Artifact signs transfers with the
+7. Start the Artifact runtime with its locked snapshot. Artifact signs transfers with the
    object store's credential itself, so it receives that credential, and only that one,
    as an owner-only file:
 
    ```sh
-   docker compose --profile envs up -d vv-mcp-artifact
-   docker compose exec vv-mcp-artifact lore clone lores://vv-lore.internal:41337/veoveo-mcp-artifact /sandbox/src
+   docker compose --profile runtime up -d vv-mcp-artifact
+   docker compose exec vv-mcp-artifact sh -ec "git clone --quiet https://github.com/VeoveoAI/veoveo-mcp-artifact /sandbox/src \
+     && git -C /sandbox/src checkout --quiet --detach $(rev veoveo-mcp-artifact)"
    grep -E '^VEOVEO_STORAGE_(ACCESS|SECRET)_KEY=' .env | docker compose exec -T vv-mcp-artifact sh -c \
      'mkdir -p /sandbox/state && umask 077 && cat > /sandbox/state/storage.env'
    ```
@@ -344,13 +339,14 @@ rev() { jq -er --arg name "$1" '.components[] | select(.name == $name) | .revisi
    With a [public origin](#public-origin), start it with `VEOVEO_PUBLIC_ORIGIN` set to
    that origin, so share links name it.
 
-8. Start the Media environment and clone Media. The local installation runs Media
+8. Start the Media runtime with its locked snapshot. The local installation runs Media
    against its fake provider, which shares a webhook secret with Media. Both values live
    in an owner-only file the environment generates:
 
    ```sh
-   docker compose --profile envs up -d vv-mcp-media
-   docker compose exec vv-mcp-media lore clone lores://vv-lore.internal:41337/veoveo-mcp-media /sandbox/src
+   docker compose --profile runtime up -d vv-mcp-media
+   docker compose exec vv-mcp-media sh -ec "git clone --quiet https://github.com/VeoveoAI/veoveo-mcp-media /sandbox/src \
+     && git -C /sandbox/src checkout --quiet --detach $(rev veoveo-mcp-media)"
    docker compose exec vv-mcp-media bash -c 'mkdir -p /sandbox/state && umask 077 \
      && printf "MEDIA_PROVIDER_API_KEY=fake\nMEDIA_PROVIDER_WEBHOOK_SECRET=whsec_%s\n" \
           "$(head -c 24 /dev/urandom | od -An -tx1 | tr -d " \n")" > /sandbox/state/media.env'
@@ -405,43 +401,33 @@ Names follow the Veoveo
 
 ## Working In Lore
 
-An environment edits its working copy at `/sandbox/src` and pushes its own branch:
+Coding happens only in `vv-dev-*`. OpenCode is installed and preconfigured there;
+starting a container does not start an agent session. The small smoke-test limits
+remain enabled until a larger task is explicitly configured.
 
 ```sh
-docker compose exec vv-mcp-time bash -c 'cd /sandbox/src \
-  && lore branch create agent/fix-schedule && lore dirty . && lore stage . \
-  && lore commit "Fix the schedule Task" && lore push'
+docker compose exec -w /sandbox/src vv-dev-time sh -ec 'lore -P branch create agent/fix-schedule \
+  && lore -P dirty . && lore -P stage . && lore -P commit "Fix the schedule Task" && lore -P push'
 ```
 
-The Lore admin merges a branch into `main` from its own working copy of the repository
-and pushes it. A merge with conflicts stops for `lore branch merge resolve` after the
-admin settles each file:
+After review and tests in dev, use the isolated reviewer to merge the approved branch.
+Clone a reviewer checkout first if needed; no repository code runs there:
 
 ```sh
-docker compose exec vv-lore-admin bash -c 'cd /sandbox/lore/veoveo-mcp-time \
-  && lore sync main@LATEST && lore branch merge agent/fix-schedule && lore push'
+docker compose exec vv-review lore -P clone grpcs://lore-proxy.internal:7443/veoveo-mcp-time /review/veoveo-mcp-time
+docker compose exec -w /review/veoveo-mcp-time vv-review sh -ec 'lore -P sync main@LATEST \
+  && lore -P branch merge agent/fix-schedule && lore -P push'
 ```
 
-To move a component to a new revision, change it in `component-lock.json`, commit, and
-record its snapshot in Lore as a new commit on `main`:
+An approved deployment exports the reviewed snapshot through the reviewer into the
+trusted runtime source directory, then follows the component's build/restart procedure.
+Keep runtime state and `/sandbox/target-serve` outside that source directory. Runtime
+containers have no Lore binary, token volume, or agent. Recreating them preserves their
+named state volumes, but separately launched component processes must be restarted.
 
-```sh
-c=veoveo-mcp-time
-docker compose exec -T vv-lore-admin bash -ec "
-  git -C /sandbox/git/$c fetch --quiet && git -C /sandbox/git/$c checkout --quiet --detach $(rev $c)
-  cd /sandbox/lore/$c && lore sync main@LATEST >/dev/null
-  find . -mindepth 1 -maxdepth 1 ! -name .lore -exec rm -rf {} +
-  git -C /sandbox/git/$c archive HEAD | tar -x -C /sandbox/lore/$c
-  lore dirty . >/dev/null && lore stage . >/dev/null
-  lore commit '$c $(rev $c)' >/dev/null && lore push >/dev/null"
-```
-
-The environment then runs `lore sync main@LATEST` in `/sandbox/src`, and its component restarts
-as its README shows. A new `dev` image, from step 2, needs the environment recreated:
-stop the component, run `docker compose --profile envs up -d --build`, and start the
-component again. `/sandbox` is the environment's volume, so its working copy, builds and
-state stay: the Gateway's configuration, secrets and callers' keys in `/sandbox/state`,
-and the key each server's namespace is pinned to. Registered servers stay registered.
+GitHub component updates are recorded as snapshot commits through `vv-review` using
+host-side `git archive`, as in bootstrap step 5. Update `component-lock.json` for the
+approved deployed revision. There is no direct runtime Lore path or setgid fallback.
 
 ## Public Origin
 
@@ -551,7 +537,7 @@ docker compose exec vv-mcp-media pkill -TERM -f '^/sandbox/target-serve/debug/ve
 docker compose exec vv-mcp-artifact pkill -TERM -f '^/sandbox/target-serve/debug/veoveo-mcp-artifact'
 docker compose exec vv-mcp-time pkill -TERM -f '^/sandbox/target-serve/debug/veoveo-mcp-time'
 docker compose exec vv-srv-gateway pkill -TERM -f '^/sandbox/target-serve/debug/veoveo-service-gateway'
-docker compose --profile envs --profile tunnel stop
+docker compose --profile runtime --profile autonomy --profile tunnel stop
 ```
 
 The first command stops Media and its fake provider. Time, Artifact and Media remove
@@ -560,8 +546,8 @@ their registrations when they receive SIGTERM.
 ## Reset
 
 A server's key lives in its environment, and the Gateway pins a namespace to the first
-key that registers it. A recreated environment has a new key, so its server needs a
-fresh namespace claim, which a reset of the database provides. After the steps in Stop,
+key that registers it. Recreating a container preserves its named volume and key. Deleting that volume
+creates a new key, so a fresh namespace claim then needs a database reset. After the steps in Stop,
 remove the containers and every volume, then start again from step 1. Compose reads
 every variable `compose.yaml` requires even to remove the services, so an `.env` that
 holds no object store credential or admin password gets placeholders first; step 1
@@ -570,7 +556,7 @@ writes new credentials and keeps the admin password:
 ```sh
 grep -q '^VEOVEO_STORAGE_SECRET_KEY=' .env || printf 'VEOVEO_STORAGE_ACCESS_KEY=reset\nVEOVEO_STORAGE_SECRET_KEY=reset\n' >> .env
 grep -q '^VEOVEO_SEAWEEDFS_ADMIN_PASSWORD=' .env || printf 'VEOVEO_SEAWEEDFS_ADMIN_PASSWORD=reset\n' >> .env
-docker compose --profile envs --profile tunnel down -v --remove-orphans
+docker compose --profile runtime --profile autonomy --profile tunnel down -v --remove-orphans
 rm -rf tls
 ```
 
