@@ -304,12 +304,12 @@ rev() { jq -er --arg name "$1" '.components[] | select(.name == $name) | .revisi
    ```
 
 10. To call the installation from the host, install the SDK's
-    [Gateway client](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/0819575247c0bad93e5c43e6ff942f09a0138adf/crates/veoveo-sdk-rust-cli/DESIGN.md)
+    [Gateway client](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/e8b2dcc88985f29fc82f5b5c634d24f3142577c5/crates/veoveo-sdk-rust-cli/DESIGN.md)
     and copy the callers' keys into `state/callers`, which Git ignores:
 
     ```sh
     cargo install --locked --git https://github.com/VeoveoAI/veoveo-sdk-rust \
-      --rev 0819575247c0bad93e5c43e6ff942f09a0138adf veoveo-sdk-rust-cli
+      --rev e8b2dcc88985f29fc82f5b5c634d24f3142577c5 veoveo-sdk-rust-cli
     mkdir -p state/callers && chmod 700 state/callers
     docker compose exec -T vv-srv-gateway tar -C /sandbox/state/gateway -cf - \
         acceptance-member.pem acceptance-member.jwks.json acceptance-admin.pem acceptance-admin.jwks.json \
