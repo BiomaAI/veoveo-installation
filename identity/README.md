@@ -61,7 +61,11 @@ environment credential are removed after setup.
 The confidential `veoveo-gateway` client uses authorization code + S256 PKCE, an
 exact callback URI, and no password or service-account grants. Human membership
 uses the stable `sub`, not the username. No email or personal profile fields are
-required. The local browser client has an exact loopback callback at
+required. Imported users receive Keycloak's standard default roles for managing
+their own account; Veoveo resource membership is granted separately. Validate the
+actual account console as well as the Gateway flow: browser requests carry an
+`Origin` header, and the console requires these account permissions.
+The local browser client has an exact loopback callback at
 `http://127.0.0.1:18555/callback`; it is an integration client, not a shipped UI.
 The configuration helper writes the OIDC secret into the existing trusted
 `gateway.env`, so the normal Gateway launch continues to work. It restarts a running
@@ -74,6 +78,9 @@ superuser/create-role/create-database privileges. Only the trusted Gateway gets
 the confidential OIDC client secret. Coding containers receive no identity
 credentials, runtime mounts or route to the identity network. Environment files,
 private keys and provisioning state remain ignored and outside build contexts.
+Envoy removes caller-supplied forwarding headers before adding the configured
+HTTPS origin. Preserve that mutation order; removing those headers afterwards
+causes Keycloak to reject the browser's token exchange with `Invalid origin`.
 
 Back up the identity database independently of component databases. For example,
 run `docker compose exec -T vv-keycloak-db pg_dump -U postgres -Fc keycloak` into an

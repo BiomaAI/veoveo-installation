@@ -155,7 +155,11 @@ def main():
                         'config': {'claim.name': 'tenant', 'claim.value': 'local',
                                    'jsonType.label': 'String', 'id.token.claim': 'true',
                                    'access.token.claim': 'false', 'userinfo.token.claim': 'false'}}]}],
+                # Realm imports do not automatically assign the default roles to
+                # imported users. These include the account console's self-service
+                # permissions; Veoveo resource membership is granted separately.
                 'users': [{'id': config['userId'], 'username': config['username'], 'enabled': True,
+                           'realmRoles': ['default-roles-veoveo'],
                            'credentials': [{'type': 'password', 'value': config['password'], 'temporary': False}]}]
             }, token)
         profile = request('/admin/realms/veoveo/users/profile', token=token)

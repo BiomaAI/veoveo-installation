@@ -29,6 +29,10 @@ static_resources:
           xff_num_trusted_hops: 0
           request_headers_timeout: 15s
           route_config:
+            # Strip caller-supplied forwarding headers before the virtual host
+            # supplies the verified HTTPS origin. The default order removes our
+            # own headers last and makes Keycloak reject browser token exchanges.
+            most_specific_header_mutations_wins: true
             request_headers_to_remove: [forwarded, x-forwarded-host, x-forwarded-port, x-forwarded-proto]
             virtual_hosts:
             - name: keycloak
