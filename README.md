@@ -31,7 +31,7 @@ credentials, TLS trust, persistence, backups and the Entra configuration fragmen
 | `compose.yaml` | Infrastructure, trusted component containers under `runtime`, upstream Lore and isolated development/review under `autonomy`, and the optional `tunnel` |
 | `runtime/Dockerfile` | Trusted component tooling with the installation CA, no Lore client, and no privileged helpers |
 | `autonomy/` | Isolated dev images, pinned OpenCode v2, managed config, Envoy routes and credential provisioning |
-| `desktop/` | Live Desktop transport through a separate Envoy edge; human login integration is in progress |
+| `desktop/` | Live Desktop TLS edge and OIDC client/credential provisioning; the separate `veoveo-service-lore` component implements authentication and catalog filtering |
 | `lore/Dockerfile`, `lore/server.toml` | Unmodified [EpicGames/lore](https://github.com/EpicGames/lore) v0.10.1 at its release commit, and the server's settings |
 | `egress/envoy.yaml`, `egress/render`, `egress/sds/` | The edge's configuration, the script that fills in the hosts `.env` names, and the files that point Envoy at its secrets |
 | `postgres/initdb/owner.sql` | Creates the installation owner `veoveo_owner` and its database `veoveo` when the data directory is new |
@@ -102,18 +102,25 @@ to add one remote, authenticate, discover authorized repositories, and browse cu
 branches, revision graphs and diffs. Human login, session renewal and repository
 discovery must work through that interface before this integration is complete.
 
-The optional `desktop` profile currently provides the transport at
+The optional `desktop` profile provides the human endpoint at
 `grpcs://localhost:7443`. It forwards the caller's bearer token to Lore over verified
 TLS and allows only explicitly listed read RPCs, including revision and notification
 streams. It mounts no token volume or client signing key. Lore still checks the
 caller's repository grants. Compose publishes the port only on the host's loopback
 interface; development containers share neither of the Desktop edge's networks.
 
-With the autonomy services running, provision and start the transport with:
+`desktop/component-lock.json` pins the separate adapter. Its repository is currently
+an adjacent local checkout, pending Linux validation and publication. With permanent
+Keycloak and the Gateway running, build and start the integration with:
 
 ```sh
+lore_identity_revision=$(jq -er '.components[] | select(.name == "veoveo-service-lore") | .revision' desktop/component-lock.json)
+git -C ../veoveo-service-lore archive "$lore_identity_revision" \
+  | docker build --target runtime -t veoveo-service-lore:local -
 python3 desktop/provision
-docker compose --profile desktop up -d vv-desktop-edge
+python3 desktop/configure-identity
+docker compose --profile desktop up -d vv-srv-lore vv-desktop-edge
+docker compose restart vv-lore
 ```
 
 Provisioning issues a self-signed localhost leaf (`CA:FALSE`) and changes no
@@ -131,12 +138,38 @@ replacing the former CA-issued leaf or renewing it; update certificate trust and
 restart `vv-desktop-edge` after replacement. The edge logs only status codes and
 response flags, never request headers, tokens or query strings.
 
-This is **transport only**, not a completed
-Desktop setup: trusted Desktop TLS, human sign-in and permission-scoped repository
-listing remain to be integrated and verified in the actual client. Do not supply
-the reviewer's admin credential to fill that gap. Upstream Lore's current
-`baseline_access = "denied"` catalog lists no repositories even when a token grants
-access by ID; broadening that catalog without retaining isolation is not a fix.
+In Desktop, select **Remote**, add **Veoveo** with URL `grpcs://localhost:7443`, and
+confirm the signed-in account in the browser. No local checkout or token copy is
+needed. The separate identity service translates Desktop's published authentication
+API to OIDC; upstream Lore is still unmodified. The browser page has an explicit
+confirmation so a login initiated by someone else does not silently receive access.
+The separate macOS `org.lore` Keychain prompt controls access to Lore's stored-token
+encryption key. **Allow** is temporary; **Always Allow** remembers this helper's
+access to that item. It does not grant a coding container access to the Keychain.
+
+`desktop/configure-identity` initially grants the permanent local user's stable
+Keycloak subject the existing component repositories. Later invocations preserve
+explicit grants in the ignored `state/desktop/identity/config.json`; edit that file
+deliberately and rerun the helper/recreate the service when grants change. The
+service exposes only those repositories and exchanges two-minute read-access tokens.
+Envoy enforces the read RPC allowlist. It never supplies the reviewer's credential.
+
+OIDC refresh tokens and the signing key belong to private external Docker volumes,
+`vv-local_vv-lore-identity` and `vv-local_vv-lore-identity-secrets`, and survive Compose
+recreation. Back these up with the installation's private state. Development
+containers mount neither volume and cannot reach the service or the host edge.
+The identity service is also in the autonomy profile because Lore uses its catalog
+and combined public JWKS endpoint for both service and human tokens. Keep it running
+with Lore. Provision identity before starting an installation with this configuration.
+
+Desktop 0.10.100 has no native OIDC refresh flow. The bridge renews repository access
+inside an eight-hour session, after which a fresh browser sign-in is required.
+The human session remains tied to the provider's renewable session. On macOS,
+Desktop 0.10.100 has passed browser login, discovery of four authorized repositories,
+provider renewal and catalog reconnect after an adapter restart and Desktop relaunch.
+The remote screen has not exposed a working graph/diff navigation path; those
+acceptance requirements remain open. Blank revision counts and zero branch counts
+in that screen are not verified repository statistics. No local clone was created.
 
 ## Isolated Coding Environments
 
@@ -158,6 +191,15 @@ transport: do not execute repository code there. Review and test in dev before m
    docker compose --profile autonomy build vv-dev-gateway vv-dev-time vv-dev-artifact vv-dev-media
    python3 autonomy/provision
    docker compose --profile autonomy up -d vv-autonomy-tokens
+   ```
+
+   Provision permanent [local identity](identity/README.md), then build the pinned
+   adapter and run `python3 desktop/configure-identity` as described above. The
+   adapter is required for Lore's JWKS and repository catalog even when the Desktop
+   edge is not enabled. Start it before Lore:
+
+   ```sh
+   docker compose --profile autonomy up -d vv-srv-lore
    docker compose --profile autonomy up -d vv-lore vv-autonomy-edge vv-review vv-dev-gateway vv-dev-time vv-dev-artifact vv-dev-media
    ```
 
@@ -366,6 +408,13 @@ rev() { jq -er --arg name "$1" '.components[] | select(.name == $name) | .revisi
    ```sh
    docker compose restart vv-autonomy-tokens
    ```
+
+   On a fresh installation, the identity adapter starts with an empty human catalog.
+   After creating the repositories, put their IDs in `repositories` and in the local
+   user's explicit `grants` entry in `state/desktop/identity/config.json`. Rerun
+   `python3 desktop/configure-identity` and recreate `vv-srv-lore`. The helper preserves
+   these grants on subsequent runs and never turns a bootstrap wildcard into human
+   access.
 
 6. Start the Time runtime with its locked snapshot, then start Time in its own
    terminal as its README shows. Time registers itself with the Gateway at startup:

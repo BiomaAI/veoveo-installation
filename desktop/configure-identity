@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+"""Configure the local Desktop OIDC client and its protected service credentials."""
+import io
+import json
+import os
+from pathlib import Path
+import re
+import runpy
+import secrets
+import subprocess
+import tarfile
+
+ROOT = Path(__file__).resolve().parent.parent
+STATE = ROOT / 'state/desktop/identity'
+IMAGE = 'debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f'
+
+
+def run(args, **kwargs):
+    return subprocess.run(args, cwd=ROOT, capture_output=True, check=True, **kwargs)
+
+
+def main():
+    os.umask(0o077)
+    STATE.mkdir(parents=True, exist_ok=True)
+    identity = json.loads((ROOT / 'state/identity/credentials.json').read_text())
+    request = runpy.run_path(str(ROOT / 'identity/provision'))['request']
+    token = request('/realms/master/protocol/openid-connect/token', 'POST', {
+        'grant_type': 'password', 'client_id': 'admin-cli', 'username': identity['adminUsername'],
+        'password': identity['adminPassword']}, form=True)['access_token']
+    secret_path = STATE / 'oidc.secret'
+    if not secret_path.exists():
+        secret_path.write_text(secrets.token_urlsafe(36))
+    secret = secret_path.read_text().strip()
+    clients = request('/admin/realms/veoveo/clients?clientId=veoveo-lore', token=token)
+    client = {
+        'clientId': 'veoveo-lore', 'name': 'Veoveo Lore Desktop', 'protocol': 'openid-connect',
+        'enabled': True, 'publicClient': False, 'secret': secret,
+        'standardFlowEnabled': True, 'directAccessGrantsEnabled': False,
+        'serviceAccountsEnabled': False, 'implicitFlowEnabled': False,
+        'redirectUris': ['https://localhost:7443/oauth/callback'],
+        'webOrigins': ['https://localhost:7443'],
+        'defaultClientScopes': ['profile'],
+        'attributes': {'pkce.code.challenge.method': 'S256', 'access.token.lifespan': '120'},
+    }
+    if clients:
+        request('/admin/realms/veoveo/clients/' + clients[0]['id'], 'PUT', client, token)
+    else:
+        request('/admin/realms/veoveo/clients', 'POST', client, token)
+    key = STATE / 'signing.key'
+    if not key.exists():
+        run(['openssl', 'genpkey', '-algorithm', 'RSA', '-pkeyopt', 'rsa_keygen_bits:3072', '-out', str(key)])
+    gateway = json.loads(run(['docker', 'exec', 'vv-srv-gateway', 'cat', '/sandbox/state/gateway/gateway.json']).stdout)
+    # A fresh Gateway has wildcard bootstrap grants. They are never human grants
+    # or repository IDs; start with an empty catalog until repositories exist.
+    repos = sorted({repo for grant in gateway['lore']['grants']
+                    for repo in grant.get('repositories', [])
+                    if re.fullmatch(r'[0-9a-f]{32}', repo)})
+    config_path = STATE / 'config.json'
+    # Seed only the operator's stable local user. Subsequent invocations preserve
+    # explicit operator edits; never broaden grants during routine provisioning.
+    if config_path.exists():
+        config = json.loads(config_path.read_text())
+    else:
+        config = {
+            'publicOrigin': 'https://localhost:7443',
+            'oidcIssuer': 'https://auth.localhost:8443/realms/veoveo',
+            'clientId': 'veoveo-lore', 'clientSecretFile': '/etc/veoveo/oidc.secret',
+            'signingKeyFile': '/etc/veoveo/signing.key', 'stateFile': '/var/lib/veoveo/sessions.json',
+            'caFile': '/etc/veoveo-ca.crt', 'resource': gateway['lore']['resource'],
+            'gatewayIssuer': 'http://vv-gateway.internal:8080/oauth',
+            'gatewayJwksUrl': 'http://vv-gateway.internal:8080/oauth/jwks.json',
+            'repositories': repos, 'grants': {identity['userId']: repos},
+        }
+        config_path.write_text(json.dumps(config, indent=2) + '\n')
+    for path in [key, secret_path, config_path]:
+        path.chmod(0o600)
+    for name in ['vv-local_vv-lore-identity-secrets', 'vv-local_vv-lore-identity']:
+        run(['docker', 'volume', 'create', name])
+    archive = io.BytesIO()
+    with tarfile.open(fileobj=archive, mode='w') as tar:
+        for path in [key, secret_path, config_path]:
+            info = tarfile.TarInfo(path.name)
+            data = path.read_bytes()
+            info.size = len(data)
+            info.uid = info.gid = 10001
+            info.mode = 0o400
+            tar.addfile(info, io.BytesIO(data))
+    run(['docker', 'run', '--rm', '-i', '--network', 'none', '--cap-drop', 'ALL', '--cap-add', 'CHOWN',
+         '--cap-add', 'DAC_OVERRIDE', '--security-opt', 'no-new-privileges:true',
+         '-v', 'vv-local_vv-lore-identity-secrets:/secrets', IMAGE, 'tar', '-xf', '-', '-C', '/secrets'], input=archive.getvalue())
+    print('Configured the Desktop OIDC client and private credentials; existing user grants preserved.')
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as error:
+        raise SystemExit(f'Desktop identity configuration failed ({type(error).__name__}); credentials were not printed.') from None

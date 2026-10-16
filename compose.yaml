@@ -166,6 +166,23 @@ services:
 
   # Human clients reach the live Lore server through this separate edge. It
   # forwards the caller's bearer token; it never supplies an admin credential.
+  vv-srv-lore:
+    container_name: vv-srv-lore
+    profiles: [autonomy, desktop]
+    image: veoveo-service-lore:local
+    user: "10001:10001"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    pids_limit: 128
+    mem_limit: 256m
+    networks: { vv-local: { aliases: [vv-srv-lore.internal] } }
+    volumes:
+      - vv-lore-identity-secrets:/etc/veoveo:ro
+      - vv-lore-identity:/var/lib/veoveo
+      - ./tls/ca/ca.crt:/etc/veoveo-ca.crt:ro
+    restart: unless-stopped
+
   vv-desktop-edge:
     container_name: vv-desktop-edge
     profiles: [desktop]
@@ -510,6 +527,12 @@ services:
     restart: unless-stopped
 
 volumes:
+  vv-lore-identity-secrets:
+    external: true
+    name: vv-local_vv-lore-identity-secrets
+  vv-lore-identity:
+    external: true
+    name: vv-local_vv-lore-identity
   # Operator-owned identity state survives even `docker compose down -v`.
   vv-keycloak-db:
     external: true

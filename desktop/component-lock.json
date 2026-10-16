@@ -1,0 +1,10 @@
+{
+  "format": "https://veoveo.ai/formats/component-lock",
+  "components": [
+    {
+      "name": "veoveo-service-lore",
+      "repository": "../veoveo-service-lore",
+      "revision": "cb31c30948fc1a0bac0c75191bab7f5eabafa78e"
+    }
+  ]
+}

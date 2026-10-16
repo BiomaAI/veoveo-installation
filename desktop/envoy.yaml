@@ -24,13 +24,13 @@ static_resources:
             tls_certificates:
             - certificate_chain: { filename: /etc/envoy/tls/localhost.crt }
               private_key: { filename: /etc/envoy/tls/localhost.key }
-            alpn_protocols: [h2]
+            alpn_protocols: [h2, http/1.1]
       filters:
       - name: envoy.filters.network.http_connection_manager
         typed_config:
           '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
           stat_prefix: desktop
-          codec_type: HTTP2
+          codec_type: AUTO
           stream_idle_timeout: 0s
           access_log:
           - name: envoy.access_loggers.stdout
@@ -46,6 +46,16 @@ static_resources:
             - name: desktop
               domains: ["localhost", "localhost:7443", "127.0.0.1", "127.0.0.1:7443"]
               routes:
+              - match: { path: /lore.environment.v1.EnvironmentService/EnvironmentGet, grpc: {} }
+                route: { cluster: identity_grpc, timeout: 20s }
+              - match: { path: /urc.rpc.EnvironmentService/Get, grpc: {} }
+                route: { cluster: identity_grpc, timeout: 20s }
+              - match: { prefix: /epic_urc.UrcAuthApi/, grpc: {} }
+                route: { cluster: identity_grpc, timeout: 20s }
+              - match: { prefix: /login/ }
+                route: { cluster: identity_http, timeout: 20s }
+              - match: { prefix: /oauth/ }
+                route: { cluster: identity_http, timeout: 20s }
               - match: { prefix: /, grpc: {} }
                 route: { cluster: lore, timeout: 0s }
           http_filters:
@@ -58,6 +68,15 @@ static_resources:
                   read:
                     principals: [{ any: true }]
                     permissions:
+                    - url_path: { path: { exact: /epic_urc.UrcAuthApi/StartAuthSession } }
+                    - url_path: { path: { exact: /epic_urc.UrcAuthApi/GetAuthSession } }
+                    - url_path: { path: { exact: /epic_urc.UrcAuthApi/RefreshAuthSession } }
+                    - url_path: { path: { exact: /epic_urc.UrcAuthApi/ExchangeUserTokenForMultiresourceToken } }
+                    - url_path: { path: { exact: /epic_urc.UrcAuthApi/GetUserInfo } }
+                    - url_path: { path: { safe_regex: { regex: '/login/[0-9a-f-]+' } } }
+                    - url_path: { path: { exact: /oauth/callback } }
+                    - url_path: { path: { exact: /oauth/confirm } }
+                    - url_path: { path: { exact: /oauth/jwks.json } }
                     - url_path: { path: { exact: /lore.environment.v1.EnvironmentService/EnvironmentGet } }
                     - url_path: { path: { exact: /urc.rpc.EnvironmentService/Get } }
                     - url_path: { path: { exact: /lore.repository.v1.RepositoryService/RepositoryGet } }
@@ -83,6 +102,30 @@ static_resources:
             typed_config:
               '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
   clusters:
+  - name: identity_grpc
+    type: STRICT_DNS
+    connect_timeout: 5s
+    load_assignment:
+      cluster_name: identity_grpc
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address: { address: vv-srv-lore.internal, port_value: 8081 }
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        '@type': type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config: { http2_protocol_options: {} }
+  - name: identity_http
+    type: STRICT_DNS
+    connect_timeout: 5s
+    load_assignment:
+      cluster_name: identity_http
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address: { address: vv-srv-lore.internal, port_value: 8080 }
   - name: lore
     type: STRICT_DNS
     connect_timeout: 5s

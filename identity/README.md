@@ -123,11 +123,13 @@ local setup does not create those or modify the remote deployment.
 
 ## Desktop acceptance remains separate
 
-The local Gateway now has real human OIDC login alongside its existing service
-issuer and resource identifiers. Keycloak does not make stable Lore Desktop's
-`UrcAuthApi` login into OIDC, expose a permission-filtered repository catalog, or
-complete the Desktop UI. Gateway's externally discoverable OAuth metadata still
-uses the existing internal service issuer/token URLs; the local browser integration
-uses explicit HTTPS endpoints. A canonical human-facing discovery contract and
-the Desktop adapter remain required. No local checkout or token-pasting workaround
-counts as that acceptance.
+The separate `veoveo-service-lore` adapter now translates stable Desktop's published
+`UrcAuthApi` login to this provider's OIDC flow, filters its repository catalog, and
+keeps provider refresh credentials outside coding containers. The actual macOS
+Desktop has passed browser login, catalog discovery and reconnect. Remote graph and
+diff browsing remain open; no local checkout or token-pasting workaround counts as
+that acceptance. See [Desktop integration](../README.md#desktop-integration).
+
+Gateway's externally discoverable OAuth metadata still uses the existing internal
+service issuer/token URLs; browser integrations use explicit HTTPS endpoints. Its
+canonical human-facing discovery contract remains separate work.
