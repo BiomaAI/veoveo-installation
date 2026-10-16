@@ -130,6 +130,19 @@ Desktop has passed browser login, catalog discovery and reconnect. Remote graph 
 diff browsing remain open; no local checkout or token-pasting workaround counts as
 that acceptance. See [Desktop integration](../README.md#desktop-integration).
 
+Provider-expiry recovery is also open: after Keycloak rejected an expired refresh
+token, Desktop showed an authentication error and did not reopen sign-in. Restarting
+Desktop and recreating its remote entry did not recover it. The OIDC portability
+update passes protocol-fixture tests; fresh Desktop login after this expiry has not
+been verified on that revision.
+
+The adapter selects its provider through OIDC issuer/client/scopes configuration.
+Only `identity/configure-lore-client` calls Keycloak administration APIs for local
+development. The generic `desktop/configure-identity` deploys operator-supplied OIDC
+configuration and credentials without Keycloak. The reference uses
+`desktop/entra.example.json`; customers use `desktop/oidc.example.json`. These are
+separate from the Gateway's `identity/entra.example.json` client registration.
+
 Gateway's externally discoverable OAuth metadata still uses the existing internal
 service issuer/token URLs; browser integrations use explicit HTTPS endpoints. Its
 canonical human-facing discovery contract remains separate work.

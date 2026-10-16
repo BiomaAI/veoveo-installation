@@ -6,6 +6,9 @@
   declare themselves.
 - Its defaults run a local installation on one workstation. Keep them working, because
   every installation starts from them.
+- Identity providers are installation choices: permanent Keycloak for local development,
+  Entra for the Linux reference, and each customer's own OIDC provider. Generic deployment
+  must not invoke Keycloak provisioning or require its administration credentials.
 - Build, check and repair logic belongs to each component's own repository and
   environment. Planning documents belong in `veoveo-docs`.
 - Use upstream images such as PostgreSQL, SeaweedFS and Envoy unmodified and pinned by

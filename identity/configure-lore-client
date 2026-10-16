@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""Register the local Keycloak client; external OIDC installations do not run this."""
+import json
+import os
+from pathlib import Path
+import runpy
+import re
+import secrets
+import subprocess
+
+ROOT = Path(__file__).resolve().parent.parent
+STATE = ROOT / 'state/desktop/identity'
+
+
+def run(args, **kwargs):
+    return subprocess.run(args, cwd=ROOT, capture_output=True, check=True, **kwargs)
+
+
+def main():
+    os.umask(0o077)
+    STATE.mkdir(parents=True, exist_ok=True)
+    existing = STATE / 'config.json'
+    if existing.exists() and json.loads(existing.read_text())['oidcIssuer'] != 'https://auth.localhost:8443/realms/veoveo':
+        raise ValueError('Local Keycloak provisioning cannot modify another provider configuration')
+    identity = json.loads((ROOT / 'state/identity/credentials.json').read_text())
+    request = runpy.run_path(str(ROOT / 'identity/provision'))['request']
+    token = request('/realms/master/protocol/openid-connect/token', 'POST', {
+        'grant_type': 'password', 'client_id': 'admin-cli', 'username': identity['adminUsername'],
+        'password': identity['adminPassword']}, form=True)['access_token']
+    secret_path = STATE / 'oidc.secret'
+    if not secret_path.exists():
+        secret_path.write_text(secrets.token_urlsafe(36))
+    secret = secret_path.read_text().strip()
+    clients = request('/admin/realms/veoveo/clients?clientId=veoveo-lore', token=token)
+    client = {
+        'clientId': 'veoveo-lore', 'name': 'Veoveo Lore Desktop', 'protocol': 'openid-connect',
+        'enabled': True, 'publicClient': False, 'secret': secret,
+        'standardFlowEnabled': True, 'directAccessGrantsEnabled': False,
+        'serviceAccountsEnabled': False, 'implicitFlowEnabled': False,
+        'redirectUris': ['https://localhost:7443/oauth/callback'],
+        'webOrigins': ['https://localhost:7443'],
+        'defaultClientScopes': ['profile'],
+        'attributes': {'pkce.code.challenge.method': 'S256', 'access.token.lifespan': '120'},
+    }
+    if clients:
+        request('/admin/realms/veoveo/clients/' + clients[0]['id'], 'PUT', client, token)
+    else:
+        request('/admin/realms/veoveo/clients', 'POST', client, token)
+    gateway = json.loads(run(['docker', 'exec', 'vv-srv-gateway', 'cat', '/sandbox/state/gateway/gateway.json']).stdout)
+    # A fresh Gateway has wildcard bootstrap grants. They are never human grants
+    # or repository IDs; start with an empty catalog until repositories exist.
+    repos = sorted({repo for grant in gateway['lore']['grants']
+                    for repo in grant.get('repositories', [])
+                    if re.fullmatch(r'[0-9a-f]{32}', repo)})
+    config_path = STATE / 'config.json'
+    # Seed only the operator's stable local user. Subsequent invocations preserve
+    # explicit operator edits; never broaden grants during routine provisioning.
+    if config_path.exists():
+        config = json.loads(config_path.read_text())
+        if config['oidcIssuer'] != 'https://auth.localhost:8443/realms/veoveo':
+            raise ValueError('This helper only provisions the local Keycloak installation')
+    else:
+        config = {
+            'publicOrigin': 'https://localhost:7443',
+            'oidcIssuer': 'https://auth.localhost:8443/realms/veoveo',
+            'clientId': 'veoveo-lore', 'clientSecretFile': '/etc/veoveo/oidc.secret',
+            'signingKeyFile': '/etc/veoveo/signing.key', 'stateFile': '/var/lib/veoveo/sessions.json',
+            'caFile': '/etc/veoveo-ca.crt', 'resource': gateway['lore']['resource'],
+            'gatewayIssuer': 'http://vv-gateway.internal:8080/oauth',
+            'gatewayJwksUrl': 'http://vv-gateway.internal:8080/oauth/jwks.json',
+            'repositories': repos, 'grants': {identity['userId']: repos},
+        }
+    config.setdefault('oidcScopes', ['openid', 'profile'])
+    config.setdefault('oidcClientAuthMethod', 'client_secret_post')
+    config.setdefault('oidcIdTokenAlgorithms', ['RS256'])
+    config_path.write_text(json.dumps(config, indent=2) + '\n')
+    for path in [config_path, secret_path]:
+        path.chmod(0o600)
+    print('Configured the local Keycloak client; existing grants preserved.')
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as error:
+        raise SystemExit(f'Local Keycloak client configuration failed ({type(error).__name__}); credentials were not printed.') from None

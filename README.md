@@ -110,8 +110,33 @@ caller's repository grants. Compose publishes the port only on the host's loopba
 interface; development containers share neither of the Desktop edge's networks.
 
 `desktop/component-lock.json` pins the separate adapter. Its repository is currently
-an adjacent local checkout, pending Linux validation and publication. With permanent
-Keycloak and the Gateway running, build and start the integration with:
+an adjacent local checkout, pending Linux validation and publication. The local Mac
+uses permanent Keycloak; the Linux reference uses Entra, and customers select their
+own OIDC provider. Provider choice belongs to installation configuration.
+
+For local Keycloak only, run `python3 identity/configure-lore-client` with Keycloak and
+the Gateway running. That helper registers the client and seeds the private OIDC
+configuration. It refuses to overwrite an external provider configuration.
+
+For Entra or a customer provider, register a confidential OIDC client with the exact
+`<publicOrigin>/oauth/callback` redirect, prepare the private configuration from
+[entra.example.json](desktop/entra.example.json) or
+[oidc.example.json](desktop/oidc.example.json), and save it as
+`state/desktop/identity/config.json`. Put the client secret in the adjacent
+`oidc.secret` file (both owner-readable only). Explicitly configure issuer, client ID,
+scopes, client authentication method, signing algorithms and repository grants.
+The Entra example uses a tenant-specific v2 issuer and requests `offline_access` for
+refresh tokens. Customers do not need Keycloak or its admin credentials.
+
+External issuers use the trusted Envoy CONNECT proxy. Set `OIDC_EGRESS_HOSTS` in the
+ignored `.env` to the comma-separated discovery, token and JWKS DNS hosts (for Entra,
+`login.microsoftonline.com`), run `./egress/render`, then restart `vv-egress`.
+Allow only the required hosts. Dev network isolation is unchanged. Public HTTPS
+providers need no `caFile`; private issuers can use the mounted installation CA.
+The sample public origin also requires matching Envoy ingress, TLS and Lore issuer
+configuration in the target installation; it does not publish this Mac's loopback edge.
+
+Build and start the integration with:
 
 ```sh
 lore_identity_revision=$(jq -er '.components[] | select(.name == "veoveo-service-lore") | .revision' desktop/component-lock.json)
@@ -147,9 +172,11 @@ The separate macOS `org.lore` Keychain prompt controls access to Lore's stored-t
 encryption key. **Allow** is temporary; **Always Allow** remembers this helper's
 access to that item. It does not grant a coding container access to the Keychain.
 
-`desktop/configure-identity` initially grants the permanent local user's stable
-Keycloak subject the existing component repositories. Later invocations preserve
-explicit grants in the ignored `state/desktop/identity/config.json`; edit that file
+`identity/configure-lore-client` initially grants the permanent local user's stable
+Keycloak subject the existing component repositories. The provider-independent
+`desktop/configure-identity` deploys an existing configuration and secret without
+calling any provider administration API. It preserves explicit grants in the ignored
+`state/desktop/identity/config.json`; edit that file
 deliberately and rerun the helper/recreate the service when grants change. The
 service exposes only those repositories and exchanges two-minute read-access tokens.
 Envoy enforces the read RPC allowlist. It never supplies the reviewer's credential.
@@ -194,7 +221,9 @@ transport: do not execute repository code there. Review and test in dev before m
    ```
 
    Provision permanent [local identity](identity/README.md), then build the pinned
-   adapter and run `python3 desktop/configure-identity` as described above. The
+   adapter, run the local `python3 identity/configure-lore-client` helper, then run
+   `python3 desktop/configure-identity` as described above. External installations
+   supply their own OIDC configuration instead of running the local helper. The
    adapter is required for Lore's JWKS and repository catalog even when the Desktop
    edge is not enabled. Start it before Lore:
 

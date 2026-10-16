@@ -1,0 +1,22 @@
+{
+  "publicOrigin": "https://veoveo.example.com",
+  "oidcIssuer": "https://identity.example.com",
+  "clientId": "APPLICATION_CLIENT_ID",
+  "oidcScopes": [
+    "openid",
+    "profile",
+    "offline_access"
+  ],
+  "oidcClientAuthMethod": "client_secret_basic",
+  "oidcIdTokenAlgorithms": [
+    "RS256"
+  ],
+  "clientSecretFile": "/etc/veoveo/oidc.secret",
+  "signingKeyFile": "/etc/veoveo/signing.key",
+  "stateFile": "/var/lib/veoveo/sessions.json",
+  "resource": "lores://vv-lore.internal:41337",
+  "gatewayIssuer": "http://vv-gateway.internal:8080/oauth",
+  "gatewayJwksUrl": "http://vv-gateway.internal:8080/oauth/jwks.json",
+  "repositories": [],
+  "grants": {}
+}

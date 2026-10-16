@@ -1,6 +1,6 @@
 # The installation's Envoy edge (D42): the only path into and out of environments.
 # egress/render writes egress/envoy.local.yaml from this file, filling the hosts .env
-# names: the public origin, the media provider's API and its output hosts.
+# names: the public origin, media API/output hosts and OIDC provider hosts.
 node: { id: vv-egress, cluster: vv-local }
 admin:
   address: { socket_address: { address: 127.0.0.1, port_value: 9901 } }

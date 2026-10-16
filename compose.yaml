@@ -170,6 +170,9 @@ services:
     container_name: vv-srv-lore
     profiles: [autonomy, desktop]
     image: veoveo-service-lore:local
+    environment:
+      HTTPS_PROXY: http://vv-egress.internal:3128
+      NO_PROXY: .internal,.localhost,localhost,127.0.0.1
     user: "10001:10001"
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
