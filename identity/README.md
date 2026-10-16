@@ -130,11 +130,13 @@ Desktop has passed browser login, catalog discovery and reconnect. Remote graph 
 diff browsing remain open; no local checkout or token-pasting workaround counts as
 that acceptance. See [Desktop integration](../README.md#desktop-integration).
 
-Provider-expiry recovery is also open: after Keycloak rejected an expired refresh
-token, Desktop showed an authentication error and did not reopen sign-in. Restarting
-Desktop and recreating its remote entry did not recover it. The OIDC portability
-update passes protocol-fixture tests; fresh Desktop login after this expiry has not
-been verified on that revision.
+Automatic provider-expiry recovery is also open: after Keycloak rejected an expired
+refresh token, Desktop showed an authentication error and did not reopen sign-in.
+The official CLI's browser login renewed the shared credential, and restarting
+Desktop restored the four-repository catalog. Provider refresh and reload after
+adapter restart passed on the OIDC portability revision. The tested manual recovery
+procedure is in the installation README; a seamless Desktop recovery flow is still
+required.
 
 The adapter selects its provider through OIDC issuer/client/scopes configuration.
 Only `identity/configure-lore-client` calls Keycloak administration APIs for local

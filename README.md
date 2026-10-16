@@ -191,7 +191,23 @@ with Lore. Provision identity before starting an installation with this configur
 
 Desktop 0.10.100 has no native OIDC refresh flow. The bridge renews repository access
 inside an eight-hour session, after which a fresh browser sign-in is required.
-The human session remains tied to the provider's renewable session. On macOS,
+The human session remains tied to the provider's renewable session, which may end
+earlier (local Keycloak expires an idle session after 30 minutes). Desktop currently
+retains its cached credential and shows an authentication error rather than reopening
+sign-in. For recovery, use the official Lore CLI on the operator's workstation:
+
+```sh
+lore auth login grpcs://localhost:7443
+```
+
+Complete the browser sign-in and account confirmation, then quit and reopen Desktop
+and select **Remote → Veoveo**. Login replaces the credential in Lore's normal
+encrypted store; it does not clone a repository or require copying a token. Removing
+and re-adding the remote alone does not clear that credential. This procedure passed
+with official CLI 0.10.1 and Desktop 0.10.100. Automatic recovery inside Desktop is
+still required before the overall Desktop integration is accepted.
+
+On macOS,
 Desktop 0.10.100 has passed browser login, discovery of four authorized repositories,
 provider renewal and catalog reconnect after an adapter restart and Desktop relaunch.
 The remote screen has not exposed a working graph/diff navigation path; those
