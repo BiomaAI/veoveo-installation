@@ -116,8 +116,22 @@ python3 desktop/provision
 docker compose --profile desktop up -d vv-desktop-edge
 ```
 
-Provisioning issues a localhost leaf certificate from the installation CA and changes
-no operating-system trust settings. This is **transport only**, not a completed
+Provisioning issues a self-signed localhost leaf (`CA:FALSE`) and changes no
+operating-system trust settings. On macOS, trust this specific certificate in the
+user's keychain, then restart Desktop so its native TLS library reloads trust:
+
+```sh
+security add-trusted-cert -r trustRoot -p ssl \
+  -k "$HOME/Library/Keychains/login.keychain-db" tls/desktop/localhost.crt
+```
+
+macOS may require the user's approval. This trusts the leaf without trusting the
+installation CA for other services. Use `python3 desktop/provision --renew` when
+replacing the former CA-issued leaf or renewing it; update certificate trust and
+restart `vv-desktop-edge` after replacement. The edge logs only status codes and
+response flags, never request headers, tokens or query strings.
+
+This is **transport only**, not a completed
 Desktop setup: trusted Desktop TLS, human sign-in and permission-scoped repository
 listing remain to be integrated and verified in the actual client. Do not supply
 the reviewer's admin credential to fill that gap. Upstream Lore's current

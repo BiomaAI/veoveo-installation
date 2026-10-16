@@ -32,6 +32,15 @@ static_resources:
           stat_prefix: desktop
           codec_type: HTTP2
           stream_idle_timeout: 0s
+          access_log:
+          - name: envoy.access_loggers.stdout
+            typed_config:
+              '@type': type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+              log_format:
+                json_format:
+                  status: '%RESPONSE_CODE%'
+                  grpc_status: '%GRPC_STATUS%'
+                  flags: '%RESPONSE_FLAGS%'
           route_config:
             virtual_hosts:
             - name: desktop
