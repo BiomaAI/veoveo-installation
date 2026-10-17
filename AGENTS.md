@@ -12,7 +12,10 @@
   OpenShell credential mediation. Unsupported enforcement fails closed.
 - Prefer upstream configuration and extension points. Maintained, revision-pinned
   VeoveoAI security/transport patches are allowed by the accepted architecture.
-  Preserve ordinary Lore operations and upstream security boundaries.
+  Preserve ordinary Lore operations and upstream security boundaries. The factory
+  branch guard belongs in Lore's existing pre-push hook and trusted configuration;
+  it is not a comprehensive branch authorization or transport-expiry system.
+  Credential lifecycle qualification stays separate in native OpenShell controls.
 - Never commit credentials. `.env`, TLS/private state and local backups remain
   ignored and excluded from build contexts. Protect durable data independently of
   disposable sandbox lifecycle.

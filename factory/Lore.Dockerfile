@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.27@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
-# Lore v0.10.1 with the reviewed opaque-access-token auth extension.
+# Lore v0.10.1 with reviewed CLI auth fixes and the factory pre-push hook.
 # Every host builds from source, because Lore's arm64 release
 # binaries carry a Neoverse tuning that Apple Silicon does not run.
 FROM rust:1.99.0-trixie@sha256:6ff07edce8775d0f64be7aba9197229407301bddf2054d62c27b541a6238a181 AS build
@@ -14,7 +14,17 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     cargo build --release --locked --bin lore --bin loreserver \
     && install -D -m 0755 target/release/lore target/release/loreserver -t /out
 
-FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f
+FROM build AS fixture-build
+RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
+    --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
+    --mount=type=cache,target=/build/target,sharing=locked \
+    cargo build --release --locked -p lore-server --example factory_branch_fixture \
+    && install -D -m 0755 target/release/examples/factory_branch_fixture /out/factory-branch-fixture
+
+FROM scratch AS fixture
+COPY --from=fixture-build /out/factory-branch-fixture /factory-branch-fixture
+
+FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f AS runtime
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/* /var/log/apt /var/log/dpkg.log \

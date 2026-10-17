@@ -282,7 +282,12 @@ services:
     security_opt:
     - no-new-privileges:true
     image: vv-lore:local
-    build: ./lore
+    build:
+      context: .
+      dockerfile: factory/Lore.Dockerfile
+      target: runtime
+      additional_contexts:
+        lore-source: ./state/openshell/lore-hook-source
     networks:
       vv-local:
         ipv4_address: 10.231.10.10

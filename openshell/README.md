@@ -7,7 +7,9 @@ credential path; no second gateway or application launcher is required.
 `component-lock.json` records source revisions and the images used for local
 acceptance. Machine-local image IDs are evidence, not portable registry releases.
 The factory CLI uses the maintained sibling `lore/` checkout's auth-only patches;
-the running Lore server is the pinned upstream release. Fork changes have not yet
+the running Lore server is a pinned v0.10.1 extension build with a small native
+pre-push hook. The broad authoring-authorization patch was reverted; no custom
+claims, RPC middleware or stream-expiry behavior remain. Changes have not yet
 been published as an upstream PR or portable image release.
 
 ## Operator State And Identity
@@ -75,6 +77,18 @@ docker build --build-context lore=docker-image://veoveo/lore-client:local \
   --build-context ca=./tls/ca -t veoveo/factory:local factory
 ```
 
+The server uses the same `factory/Lore.Dockerfile` recipe, with the exact locked
+server revision archived in `state/openshell/lore-hook-source/`. Compose builds
+its `runtime` target from this separate source snapshot. The older client snapshot
+keeps the accepted factory CLI/image unchanged. To export the optional operator-only
+disposable fixture seeder (not shipped in the server image):
+
+```sh
+docker build -f factory/Lore.Dockerfile --target fixture \
+  --build-context lore-source=./state/openshell/lore-hook-source \
+  --output type=local,dest=./state/openshell/factory-hook-bin .
+```
+
 The factory starts from a pinned Rust image and contains OpenCode 2.0.29. Its
 DeepInfra/MiMo settings are present; the first Lore-only fixture deliberately has
 no inference provider attached and makes no model requests.
@@ -116,3 +130,42 @@ authentication. A nonmember gets the native `NOT_FOUND` concealment response.
 Full branch/revision deployment, arbitrary composition, infrastructure migration,
 Linux/CUDA and Desktop graph/session recovery are tracked in the
 [hard-cut plan](../../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md).
+
+## Normal Lore Push Guard
+
+`lore/server.toml` enables the existing `factory_branch` pre-push hook with an empty
+assignment map. The trusted installation/integration fills it with designated
+factories' **verified** identity claims and stable repository/branch IDs. The agent
+cannot edit this server configuration. See the [hook contract and configuration](../../lore/docs/reference/factory-branch-hook.md).
+Unassigned humans retain ordinary permissions. Issue ordinary repository credentials
+with `is_service_account = false`; automation alone never grants a protection bypass.
+The existing hook calls cover both push APIs. Wrong-branch pushes use the existing
+`FailedPrecondition` workflow rejection so normal clients display both branch IDs.
+
+For the disposable acceptance fixture, stop the owning Lore server and take a
+consistent private backup of its data volume before opening its stores. Run the
+exported `factory-branch-fixture /data` with that volume mounted in an isolated
+operator container, never in an agent workload. It creates fresh repository/branch
+IDs, valid empty revision heads, and native protected `main`. Save its final JSON
+line privately as `state/openshell/factory-hook-fixture.json`. Configure
+`veoveo-hook-factory` to its `assigned` ID and `veoveo-hook-protected` to its `main`
+ID before restarting Lore. Do not expose the seeder as a server API or add these
+test repositories to the Desktop catalog.
+
+Run `first-path --installation INSTALLATION factory-hook --image FACTORY_IMAGE`.
+It uses an ordinary short-lived repository grant in a temporary native provider,
+clones, commits a tiny edit, pushes and verifies content in an independent clone.
+It prepares a real commit on `other-author` before asserting the explicit hook
+rejection. It also checks native protected-branch behavior and an unassigned human
+push. The stock CLI renders native protected-branch denial as a generic authorization
+error; the fixture reads the protection metadata and verifies unchanged remote
+content. Native push-handler tests independently check the `protected` status.
+Temporary workload/provider/profile/workspace setup and the workflow share cleanup;
+only admitted resources from this run are removed. A pre-existing workspace is refused.
+Restore the empty trusted assignment map after qualification and restart Lore.
+
+The run writes a private `state/openshell/factory-hook-result.json` only after all
+checks and cleanup pass. It makes no inference calls and leaves the original smoke
+grant read-only. This is a normal-push workflow guard, not complete isolation against
+all storage or administration APIs. Manual test-provider updates do **not** qualify
+automatic renewal or revocation; those remain separate OpenShell lifecycle gates.

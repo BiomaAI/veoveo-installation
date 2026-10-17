@@ -29,7 +29,9 @@ networks or mounts their state.
 ## Factories and services
 
 `factory/` packages OpenCode v2, the Lore CLI with narrow auth-only patches, and a
-pinned Rust toolchain for OpenShell. The Lore server remains upstream. DeepInfra
+pinned Rust toolchain for OpenShell. The Lore server is an extension build with a
+small existing pre-push hook for trusted factory assignments. Ordinary Lore
+repository authorization, storage, branch protection and transport are unchanged. DeepInfra
 model settings are present; this first Lore-only factory has no inference provider
 attached and makes no model requests.
 

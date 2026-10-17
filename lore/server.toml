@@ -1,4 +1,11 @@
-# Upstream Lore. The Desktop adapter signs tokens using the native resources claim.
+# Lore with the existing factory pre-push hook. Ordinary authorization is upstream.
+# The Desktop adapter signs tokens using the native resources claim.
+
+[hooks.factory_branch]
+enabled = true
+# Trusted installation/integration fills assignments before authoring starts.
+# Identities without an assignment keep normal Lore behavior.
+assignments = {}
 
 [server.auth]
 jwt_issuer = ["https://localhost:7443/oauth"]

@@ -8,11 +8,15 @@
     "sourcePublication": "local commits; no upstream PR"
   },
   "lore": {
-    "serverSource": "https://github.com/EpicGames/lore",
-    "serverRevision": "95a9a834f18402cbacf43d43518c0ac771e029eb",
+    "serverSource": "https://github.com/VeoveoAI/lore",
+    "serverRevision": "cb2c191feb2d317f989af40be287c2d6acb7fb4f",
     "clientSource": "https://github.com/VeoveoAI/lore",
     "clientRevision": "162df649366fe6b4c1b10240acf420a8e5ec0822",
-    "clientSourcePublication": "local commits"
+    "clientSourcePublication": "local commits",
+    "upstreamRevision": "95a9a834f18402cbacf43d43518c0ac771e029eb",
+    "serverExtension": "existing factory_branch pre-push hook; ordinary authorization and transport unchanged",
+    "serverSourcePublication": "local commits",
+    "supersededAuthoringPatch": "068cf857 reverted by cb56081e"
   },
   "opencode": {
     "version": "2.0.29",
@@ -20,13 +24,13 @@
   },
   "localValidation": {
     "platform": "linux/arm64 on macOS Docker Desktop",
-    "qualificationRevision": "b51b64dc15d3979517a3398a0bc3cde67b678b7f",
+    "qualificationRevision": "2021ddb158034a8e9ed37824c76d4272ec833ef1",
     "images": {
       "veoveo/supervisor:local": "sha256:5fe868bd00ab8e9b1aa3a95eb5d39fc3eb0d5c9fc57c23dd20f0c2f0b27fca55",
       "veoveo/factory:local": "sha256:5089169cc1cc48f2d802756d84090461f393cd5d350c47504ea6d95b944f233e",
       "veoveo/lore-client:local": "sha256:f8f6f72239b100419a4c6df4dd65054466e318af9171a1a3c42c26d8e50a0860",
       "veoveo/mcp-fixture:local": "sha256:a4194be71dec16107e7ba344a49f22f99f50334f6bcccc19fc71a317844ae4ba",
-      "vv-lore:local": "sha256:9ad9fbe3bcdb545e79650c4b9688bc3fcf79ab48d616ea01a92499ce7d121dea"
+      "vv-lore:local": "sha256:a6c1efaa03cd70f5343817e5b53db2a05319db725b862365e08b7eaf50ee81db"
     },
     "acceptance": {
       "nativeSdkTlsOidc": "pass",
@@ -53,7 +57,29 @@
         "passed": 11
       },
       "inferenceRequests": 0,
-      "linux": "out of scope"
+      "linux": "out of scope",
+      "factoryNormalPushHook": {
+        "scope": "normal push workflow guard; not complete low-level branch isolation",
+        "cloneEditPushAndIndependentContent": "pass",
+        "wrongBranchCommittedChangeAndExplicitRejection": "pass",
+        "nativeProtectedBranch": "pass; CLI generic denial, protection metadata and unchanged content verified",
+        "unassignedHumanPush": "pass",
+        "existingPushApiHookCalls": 2,
+        "hookTestsPassed": 7,
+        "factoryIsServiceAccount": false,
+        "trackedFileBytes": 7,
+        "operationTimeoutSeconds": 20,
+        "workflowTimeoutSeconds": 120,
+        "setupAndWorkflowTimeoutSeconds": 180,
+        "nativeTemporaryWorkspaceCleaned": true
+      },
+      "factoryHookPartialSetupCleanup": {
+        "nativeRegression": "pass",
+        "injectedSetupFailures": 4,
+        "preExistingWorkspacePreserved": true
+      },
+      "automaticLoreCredentialRenewal": "not qualified; separate native OpenShell lifecycle gate",
+      "nativeLoreAccessRemoval": "not qualified; separate from the push hook"
     }
   }
 }
