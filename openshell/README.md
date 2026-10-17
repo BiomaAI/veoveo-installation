@@ -7,8 +7,9 @@ refresh daemon or secret store is required.
 
 The direct Lore path is **IdP issuance → OpenShell renewal/injection → Lore native
 authorization**. Veoveo supplies trusted configuration and branch assignments.
-Exact source revisions, machine-local images and measured results are in
-[component-lock.json](component-lock.json). These local images are not registry releases.
+The build commands below select the patched sources directly. Native OpenShell
+configuration selects runtime images; the [execution checklist](../../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md)
+records current acceptance. Local image tags are not registry releases.
 
 ## Operator identity and trust
 
@@ -42,10 +43,14 @@ Agents cannot edit this state. The tracked `lore/server.toml` is the public temp
 
 ## Build and provision
 
-Keep the source revisions in the component lock. Archive the exact server revision
-into ignored `state/openshell/lore-hook-source/` and build its `runtime` target:
+Run from the installation root with the maintained `../lore` and `../openshell`
+repositories available. Export into empty source directories so removed source
+files cannot survive a rebuild. Build the server from its hook-enabled revision:
 
 ```sh
+mkdir -p state/openshell/lore-hook-source
+git -C ../lore archive cb2c191feb2d317f989af40be287c2d6acb7fb4f \
+  | tar -x -C state/openshell/lore-hook-source
 docker build -f factory/Lore.Dockerfile --target runtime \
   --build-context lore-source=./state/openshell/lore-hook-source \
   --build-context ca=./tls/ca -t vv-lore:local .
@@ -57,12 +62,38 @@ auth-service URL or custom catalog. Keep its private gRPC address, certificate I
 SAN and approved policy endpoint aligned (`grpcs://10.231.10.10:41337` locally).
 Native denied-baseline catalog listing is empty; provide known assigned URLs.
 
-The accepted factory image keeps OpenCode 2.0.29, a pinned Rust toolchain and the
-existing Lore CLI auth-only fixes. To rebuild from its separately locked client
-snapshot, use the same recipe and public CA context, then `factory/Dockerfile`.
+Build the Lore CLI with the existing auth-only fixes, then package it with OpenCode
+and the Rust toolchain selected by `factory/Dockerfile`:
+
+```sh
+mkdir -p state/openshell/lore-client-source
+git -C ../lore archive 162df649366fe6b4c1b10240acf420a8e5ec0822 \
+  | tar -x -C state/openshell/lore-client-source
+docker build -f factory/Lore.Dockerfile --target runtime \
+  --build-context lore-source=./state/openshell/lore-client-source \
+  --build-context ca=./tls/ca -t veoveo/lore-client:local .
+docker build -f factory/Dockerfile \
+  --build-context lore=docker-image://veoveo/lore-client:local \
+  --build-context ca=./tls/ca -t veoveo/factory:local factory
+```
+
+Build the patched supervisor using OpenShell's native prebuilt workflow, then add
+only the public installation CA. Install its native build prerequisites from
+`CONTRIBUTING.md` before running the build. Use a fresh worktree; do not reuse
+partial cross-build outputs:
+
+```sh
+git -C ../openshell worktree add --detach "$PWD/state/openshell/supervisor-source" \
+  162dad88473def11d69a2867832c10342e54248b
+(
+  cd state/openshell/supervisor-source
+  IMAGE_REGISTRY=veoveo IMAGE_TAG=veoveo-grpc mise run build:docker:supervisor
+)
+docker build -f openshell/Supervisor.Dockerfile \
+  --build-context ca=./tls/ca -t veoveo/supervisor:local .
+```
+
 The first factory has no inference provider and makes no model calls.
-The supervisor uses `openshell/Supervisor.Dockerfile` over the reviewed OpenShell
-prebuilt workflow. Do not reuse partial cross-build outputs.
 
 For disposable qualification only, export the offline seeder:
 
@@ -92,13 +123,21 @@ receive an identity-bound `openshell:resolve:` reference, never client secrets o
 
 In `veoveo-qualify-openshell`, build `first-path` with
 `cargo build --locked --features first-path --bin first-path`.
-Pass `--installation` with this installation's absolute path:
+Provision the disposable smoke factory with the image you built:
+
+```sh
+target/debug/first-path --installation /absolute/path/to/veoveo-template-installation \
+  factory --image veoveo/factory:local --replace
+```
+
+Other checks use the same `--installation` argument:
 
 - `lore-preflight` verifies signatures, type/audience/subject, bounded grant shape,
   lifetime and omitted/unlinked scope denial without storing token bytes.
-- `sync-factory` provisions the native smoke provider and replaces the disposable
-  smoke factory using its locked image and read-only RPC policy. It is a setup action,
-  not automatic renewal evidence. Ordinary renewal needs no manual token file.
+- `factory --image IMAGE --replace` provisions the native smoke provider and replaces
+  the disposable smoke factory using the supplied image and read-only RPC policy.
+  It is a setup action, not automatic renewal evidence. Ordinary renewal needs no
+  manual token file.
 - `lore --repository ID --forbidden ID` and `boundaries` check the smoke path,
   custody, inaccessible operator files and denied direct egress.
 - `lore-direct --image IMAGE_ID` runs the disposable direct-issuer workflow and
@@ -108,9 +147,7 @@ Pass `--installation` with this installation's absolute path:
   selects only the workflow and renewal gate; `--phase remaining`
   and `--phase recovery` select independent gates; they do not imply renewal passed.
 - `lore-negative` checks a valid direct grant against a management bearer. The
-  optional `--legacy-token-file PATH` is solely a historical operator probe; it
-  requires an unexpired former token and public recovery JWKS for signature verification,
-  not an active signer.
+  probe runs only on the trusted host and does not expose credentials to workloads.
 - `service --image IMAGE --reuse` checks the existing native private MCP fixture.
 
 The lifecycle workload captures its opaque reference once and checks a random
@@ -134,8 +171,8 @@ and await stopped state when execution must end. Disabling an IdP client alone
 cannot revoke existing JWTs immediately, and removal alone does not promise to
 cancel requests already forwarded. No Lore transport changes manufacture a cutoff.
 
-Reports remain private under `state/openshell/lore-direct/`; the component lock
-records sanitized acceptance. Temporary resources have ownership-aware cleanup,
+Reports remain private under `state/openshell/lore-direct/`; the execution checklist
+records current acceptance. Temporary resources have ownership-aware cleanup,
 including partial setup. Existing workspaces are refused. Preserve unrelated
 workspaces/providers and durable Lore/identity data.
 

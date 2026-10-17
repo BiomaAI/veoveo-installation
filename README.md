@@ -27,14 +27,15 @@ No agent joins bootstrap networks, mounts operator state or accesses Docker.
 `factory/` packages OpenCode 2.0.29, the existing Lore CLI auth fixes and a pinned
 Rust toolchain. The server uses native OIDC with its public CA trust and the
 existing hook extension. The first smoke factory's RPC policy is read-only and
-has no inference provider. The component lock records exact images and acceptance.
+has no inference provider. Build commands select the required patched sources;
+the [execution checklist](../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md) records current acceptance.
 
 ## Scope and recovery
 
 Desktop acceptance was withdrawn. Its adapter, signing/manual-token helpers and
 Desktop-only ingress are retired; `grpcs://localhost:7443` is no longer an active
 endpoint. Private signing/session recovery state and durable Lore/identity data
-are preserved. Historical results retain their former issuer designation.
+are preserved.
 
 The local direct-issuer path has focused qualification. Entra/customer issuers,
 interactive human Lore login, Linux/CUDA, general builds and environment composition
