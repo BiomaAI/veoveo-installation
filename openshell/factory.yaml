@@ -11,7 +11,7 @@ network_policies:
         allowed_ips: [10.231.10.10]
         protocol: rest
         enforcement: enforce
-        credential_binding: {provider: vv-lore}
+        credential_binding: {provider: vv-lore-direct}
         rules:
           - allow: {method: POST, path: /lore.environment.v1.EnvironmentService/EnvironmentGet}
           - allow: {method: POST, path: /urc.rpc.EnvironmentService/Get}

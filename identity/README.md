@@ -149,38 +149,16 @@ and [authorization code flow](https://learn.microsoft.com/en-us/entra/identity-p
 documentation. Entra requires the reference tenant and app registration; this
 local setup does not create those or modify the remote deployment.
 
-## Desktop integration (pending retirement)
+## Direct Lore factory credentials
 
-The user withdrew Desktop acceptance on 2026-10-17. The results below are historical,
-and the adapter remains deployed only until the
-[direct Lore credential path](../../veoveo-docs/LORE_DIRECT_OIDC_PLAN.md) qualifies.
-That plan uses built-in local IdP mappings, native OpenShell refresh and native Lore
-authorization. Generic runtime code remains provider-independent; external issuer
-claim/refresh compatibility requires separate acceptance. No factory token endpoint
-will be added to the Desktop adapter.
+`configure-lore` provisions ordinary optional repository scopes and confidential
+factory clients using built-in Keycloak mappers. It keeps stable subjects/secrets
+in private operator state and renders trusted hook assignments. Native OpenShell
+client-credentials refresh holds their secrets; Lore directly discovers/verifies
+this issuer's JWKS. See [native setup](../openshell/README.md).
 
-The separate `veoveo-service-lore` adapter now translates stable Desktop's published
-`UrcAuthApi` login to this provider's OIDC flow, filters its repository catalog, and
-keeps provider refresh credentials outside coding containers. The actual macOS
-Desktop has passed browser login, catalog discovery and reconnect. Remote graph and
-diff browsing were not completed and are now withdrawn requirements. See
-[the current runtime](../README.md#lore-desktop-pending-retirement).
-
-Automatic provider-expiry recovery was also incomplete: after Keycloak rejected an expired
-refresh token, Desktop showed an authentication error and did not reopen sign-in.
-The official CLI's browser login renewed the shared credential, and restarting
-Desktop restored the four-repository catalog. Provider refresh and reload after
-adapter restart passed on the OIDC portability revision. The tested manual recovery
-procedure belonged to the former Desktop workflow. Seamless Desktop recovery no
-longer blocks acceptance and must not justify retaining the adapter.
-
-The adapter selects its provider through OIDC issuer/client/scopes configuration.
-Only `identity/configure-lore-client` calls Keycloak administration APIs for local
-development. The generic `desktop/configure-identity` deploys operator-supplied OIDC
-configuration and credentials without Keycloak. The reference uses
-`desktop/entra.example.json`; customers use `desktop/oidc.example.json`. These are
-separate from the Gateway's `identity/entra.example.json` client registration.
-
-Gateway's externally discoverable OAuth metadata still uses the existing internal
-service issuer/token URLs; browser integrations use explicit HTTPS endpoints. Its
-canonical human-facing discovery contract remains separate work.
+The former `veoveo-lore` Desktop registration is disabled. Its adapter/ingress and
+manual signing helpers are retired. Native `openshell-cli`, `veoveo-controller`
+and `lore-cli` registrations remain separate and enabled. Preserve the private
+recovery checkpoint and durable identity database. Do not restore Desktop-specific
+bootstrap merely to implement factory token renewal.

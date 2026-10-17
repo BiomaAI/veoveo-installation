@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+"""Provision local direct Lore OIDC clients; secrets stay in private operator state."""
+import argparse
+import json
+import os
+from pathlib import Path
+import re
+import runpy
+import secrets
+
+ROOT = Path(__file__).resolve().parent.parent
+ISSUER = 'https://auth.localhost:8443/realms/veoveo'
+AUDIENCE = 'lores://vv-lore.internal:41337'
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--fixture', default='state/openshell/factory-hook-fixture.json')
+    options = parser.parse_args()
+    os.umask(0o077)
+    request = runpy.run_path(str(ROOT / 'identity/provision'))['request']
+    identity = json.loads((ROOT / 'state/identity/credentials.json').read_text())
+    token = request('/realms/master/protocol/openid-connect/token', 'POST', {
+        'grant_type': 'password', 'client_id': 'admin-cli',
+        'username': identity['adminUsername'], 'password': identity['adminPassword']}, form=True)['access_token']
+    fixture = json.loads((ROOT / options.fixture).read_text())
+    smoke_repo = '01a13b791bca7fe182896b5cbc1b56a5'
+    for value in [fixture[key] for key in ['repository', 'assigned', 'main', 'other', 'forbidden']] + [smoke_repo]:
+        if not re.fullmatch('[0-9a-f]{32}', value):
+            raise ValueError('canonical IDs required')
+    base = '/admin/realms/veoveo'
+    scopes = request(base + '/client-scopes', token=token)
+    basic = next(scope for scope in scopes if scope['name'] == 'basic')
+    scope_ids = {}
+    for repository in [fixture['repository'], smoke_repo]:
+        name = 'lore-repo-' + repository
+        scope = next((scope for scope in scopes if scope['name'] == name), None)
+        if scope is None:
+            request(base + '/client-scopes', 'POST', {'name': name, 'protocol': 'openid-connect',
+                    'attributes': {'include.in.token.scope': 'true'}}, token)
+            scope = next(scope for scope in request(base + '/client-scopes', token=token) if scope['name'] == name)
+        scope_ids[repository] = scope['id']
+        desired = [
+            {'name': 'lore-audience', 'protocol': 'openid-connect', 'protocolMapper': 'oidc-audience-mapper',
+             'config': {'included.custom.audience': AUDIENCE, 'access.token.claim': 'true', 'id.token.claim': 'false', 'userinfo.token.claim': 'false'}},
+            {'name': 'lore-repository', 'protocol': 'openid-connect', 'protocolMapper': 'oidc-hardcoded-claim-mapper',
+             'config': {'claim.name': 'resources', 'claim.value': json.dumps([{'resource_id': 'urc-' + repository, 'permission': []}]),
+                        'jsonType.label': 'JSON', 'access.token.claim': 'true', 'id.token.claim': 'false', 'userinfo.token.claim': 'false', 'access.tokenResponse.claim': 'false'}}]
+        mapper_path = base + '/client-scopes/' + scope['id'] + '/protocol-mappers/models'
+        existing = request(mapper_path, token=token)
+        for mapper in desired:
+            previous = next((item for item in existing if item['name'] == mapper['name']), None)
+            if previous:
+                request(mapper_path + '/' + previous['id'], 'PUT', mapper, token)
+            else:
+                request(mapper_path, 'POST', mapper, token)
+    directory = ROOT / 'state/openshell/lore-direct'
+    directory.mkdir(mode=0o700, exist_ok=True)
+    directory.chmod(0o700)
+    clients = {}
+    roles = [('smoke', smoke_repo, None), ('a', fixture['repository'], fixture['assigned']),
+             ('b', fixture['repository'], fixture['other']), ('detach', fixture['repository'], fixture['assigned']),
+             ('protected', fixture['repository'], fixture['main']), ('human', fixture['repository'], None)]
+    for role, repository, branch in roles + [('public', None, None)]:
+        public = role == 'public'
+        client_id = 'lore-cli' if public else 'vv-lore-' + role
+        matches = request(base + '/clients?clientId=' + client_id, token=token)
+        path = directory / (role + '.secret')
+        if not public and not path.exists():
+            # Preserve the native existing client secret when adopting a registration.
+            value = request(base + '/clients/' + matches[0]['id'] + '/client-secret', token=token)['value'] if matches else secrets.token_urlsafe(36)
+            path.write_text(value + '\n')
+            path.chmod(0o600)
+        client = {'clientId': client_id, 'protocol': 'openid-connect', 'enabled': True, 'publicClient': public,
+                  'standardFlowEnabled': public, 'serviceAccountsEnabled': not public,
+                  'directAccessGrantsEnabled': False, 'implicitFlowEnabled': False, 'fullScopeAllowed': False,
+                  'redirectUris': ['http://127.0.0.1/callback'] if public else [],
+                  'attributes': {'access.token.lifespan': '300', 'access.token.header.type.rfc9068': 'true',
+                                 'client_credentials.use_refresh_token': 'false', 'pkce.code.challenge.method': 'S256'}}
+        if not public:
+            path.chmod(0o600)
+            client['secret'] = path.read_text().strip()
+        if matches:
+            key = matches[0]['id']
+            request(base + '/clients/' + key, 'PUT', client, token)
+        else:
+            request(base + '/clients', 'POST', client, token)
+            key = request(base + '/clients?clientId=' + client_id, token=token)[0]['id']
+        # Explicit links: no realm-default claims, roles, offline access or other repos.
+        desired = {'default': {basic['id']}, 'optional': set() if public else {scope_ids[repository]}}
+        for kind, wanted in desired.items():
+            link = base + '/clients/' + key + '/' + kind + '-client-scopes'
+            current = {scope['id'] for scope in request(link, token=token)}
+            for scope_id in current - wanted:
+                request(link + '/' + scope_id, 'DELETE', token=token)
+            for scope_id in wanted - current:
+                request(link + '/' + scope_id, 'PUT', token=token)
+        if not public:
+            subject = request(base + '/clients/' + key + '/service-account-user', token=token)['id']
+            clients[role] = {'clientId': client_id, 'clientKey': key, 'subject': subject, 'secretFile': str(path),
+                             'repository': repository, 'branch': branch, 'scope': 'lore-repo-' + repository}
+    config = {'issuer': ISSUER, 'audience': AUDIENCE, 'tokenUrl': ISSUER + '/protocol/openid-connect/token',
+              'clients': clients, 'fixture': fixture, 'tokenLifetimeSeconds': 300, 'refreshBeforeSeconds': 180,
+              'verifierLeewaySeconds': 60}
+    (directory / 'config.json').write_text(json.dumps(config, indent=2) + '\n')
+    (directory / 'config.json').chmod(0o600)
+    server = (ROOT / 'lore/server.toml').read_text().replace('assignments = {}\n', '')
+    for role, identity in clients.items():
+        if identity['branch'] is not None:
+            server += f'\n[hooks.factory_branch.assignments."{identity["subject"]}"]\nrepository = "{identity["repository"]}"\nbranch = "{identity["branch"]}"\n'
+    (directory / 'server.toml').write_text(server)
+    print('Configured direct Lore OIDC clients, optional repository scopes and trusted subjects; no secrets printed')
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as error:
+        raise SystemExit(f'Lore OIDC provisioning failed ({type(error).__name__}); credentials were not printed') from None

@@ -1,58 +1,41 @@
 # veoveo-template-installation
 
-A Veoveo installation records its identity provider, permissions, component revisions
-and environment compositions. Lore owns source; OpenShell executes factory and MCP
-workloads through its native Docker driver.
+A Veoveo installation records approved identity, component revisions and environment
+configuration. Lore owns source/revisions; native OpenShell executes factories and
+managed MCP workloads through its Docker driver.
 
-The old `autonomy` and `runtime` launchers have been removed. `compose.yaml` contains
-trusted bootstrap only: Lore, local identity, PostgreSQL, SeaweedFS and the existing
-Lore Desktop authentication/TLS integration. Their named data volumes are external
-and survive bootstrap removal. OpenShell runs as the native macOS gateway service.
-
-Desktop acceptance was withdrawn on 2026-10-17. The next implementation uses
-[direct IdP-issued Lore credentials and native OpenShell renewal](../veoveo-docs/LORE_DIRECT_OIDC_PLAN.md),
-then retires the Desktop adapter and ingress. The bootstrap commands below describe
-the still-deployed configuration until that cutover is qualified.
+Factory credentials follow one path: **IdP issuance → native OpenShell renewal and
+injection → native Lore authorization**. Veoveo supplies trusted configuration and
+branch assignments. There is no Veoveo token service, refresh daemon or signer.
+The existing small pre-push hook guards normal factory pushes; native branch
+protection remains effective. It is not complete isolation against storage APIs.
 
 ## Local bootstrap
 
-Keep the ignored `.env`, installation CA and existing operator state. For an existing
-installation, run `./egress/render` and `docker compose --profile keycloak --profile
-desktop up -d`. A fresh installation must provision the identity credentials and the
-external data volumes first. See [identity](identity/README.md) and [the infrastructure
-plan](../veoveo-docs/INFRASTRUCTURE_CANDIDATE.md).
+Keep the ignored `.env`, installation CA and private operator state. Local Keycloak
+and its dedicated PostgreSQL are permanent bootstrap, alongside Lore, PostgreSQL,
+SeaweedFS and trusted identity ingress/egress. Their external data volumes survive
+Compose cleanup. The native OpenShell gateway runs as the macOS service.
 
-On macOS, complete the one-time [installation CA trust setup](identity/README.md#macos-certificate-trust)
-in the user's login keychain before OpenShell login. This is an installation step;
-ordinary CLI use needs no certificate environment exports. Then follow the
-[native OpenShell commands](openshell/README.md#operator-state-and-identity).
+Complete the one-time [CA trust setup](identity/README.md#macos-certificate-trust),
+then follow [native OpenShell setup](openshell/README.md). Existing installations
+render egress with `./egress/render`, provision approved Lore identities with
+`./identity/configure-lore`, and use `docker compose --profile keycloak up -d`.
+A fresh installation must first provision identity credentials and external volumes.
+No agent joins bootstrap networks, mounts operator state or accesses Docker.
 
-`vv-egress` permits only configured OIDC hosts for trusted bootstrap authentication.
-OpenShell owns factory/model/API credential mediation. No agent joins bootstrap
-networks or mounts their state.
+`factory/` packages OpenCode 2.0.29, the existing Lore CLI auth fixes and a pinned
+Rust toolchain. The server uses native OIDC with its public CA trust and the
+existing hook extension. The first smoke factory's RPC policy is read-only and
+has no inference provider. The component lock records exact images and acceptance.
 
-## Factories and services
+## Scope and recovery
 
-`factory/` packages OpenCode v2, the Lore CLI with narrow auth-only patches, and a
-pinned Rust toolchain for OpenShell. The Lore server is an extension build with a
-small existing pre-push hook for trusted factory assignments. Ordinary Lore
-repository authorization, storage, branch protection and transport are unchanged. DeepInfra
-model settings are present; this first Lore-only factory has no inference provider
-attached and makes no model requests.
+Desktop acceptance was withdrawn. Its adapter, signing/manual-token helpers and
+Desktop-only ingress are retired; `grpcs://localhost:7443` is no longer an active
+endpoint. Private signing/session recovery state and durable Lore/identity data
+are preserved. Historical results retain their former issuer designation.
 
-Native workload definitions, provider profiles and operator setup live under
-`openshell/`. Use the same runtime interface for authoring, checks and deployed MCP
-services. Source revisions and runtime image digests identify the deployed version.
-
-## Lore Desktop (pending retirement)
-
-The existing remote remains `grpcs://localhost:7443`. The Desktop edge forwards
-user credentials to upstream Lore, and `veoveo-service-lore` adapts its published
-Desktop authentication/catalog protocol to the configured OIDC provider. That
-adaptation serves the withdrawn Desktop requirement; it is not a required factory
-service. Do not extend it with token issuance for OpenShell. Local Keycloak stays;
-the direct replacement uses native Lore resource grants and OpenShell providers.
-
-The old runtime was removed on macOS. The native Lore and private MCP path has focused acceptance; exact operating
-commands are in [OpenShell setup](openshell/README.md). Compatible infrastructure
-migration and full application composition remain subsequent work. See [the hard-cut record](../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md).
+The local direct-issuer path has focused qualification. Entra/customer issuers,
+interactive human Lore login, Linux/CUDA, general builds and environment composition
+remain separate work in the [execution plan](../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md).

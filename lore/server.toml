@@ -1,28 +1,24 @@
-# Lore with the existing factory pre-push hook. Ordinary authorization is upstream.
-# The Desktop adapter signs tokens using the native resources claim.
-
+# Direct IdP grants validated by native Lore. Factory assignments are trusted.
 [hooks.factory_branch]
 enabled = true
-# Trusted installation/integration fills assignments before authoring starts.
-# Identities without an assignment keep normal Lore behavior.
 assignments = {}
 
 [server.auth]
-jwt_issuer = ["https://localhost:7443/oauth"]
+jwt_issuer = "https://auth.localhost:8443/realms/veoveo"
 jwt_audience = ["lores://vv-lore.internal:41337"]
 jwt_typ = "at+jwt"
-# `lore repository list` names no repository; a client reaches the ones it is granted.
+identity_claim = "sub"
+resource_claim = "resources"
+resource_id_claim = "resource_id"
+permission_claim = "permission"
+resource_id_template = "urc-{id}"
 baseline_access = "denied"
-repository_catalog = "auth_service"
-repository_catalog_url = "http://vv-srv-lore.internal:8081"
+repository_catalog = "baseline"
 
-[server.auth.jwk]
-endpoint = "http://vv-srv-lore.internal:8080/oauth/jwks.json"
-
-# Use Lore's native auth-service contract for Desktop and repository-scoped
-# access tokens. No dependency on the removed Veoveo gateway's OAuth discovery.
-[environment.endpoint]
-auth_url = "http://vv-srv-lore.internal:8081"
+[server.auth.oidc]
+client_id = "lore-cli"
+scopes = ["openid"]
+scope_template = "lore-repo-{id}"
 
 [server.quic]
 enabled = false

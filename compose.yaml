@@ -130,57 +130,6 @@ services:
     - ./identity/envoy.yaml:/etc/envoy/envoy.yaml:ro
     - ./tls/identity:/etc/envoy/tls:ro
     restart: unless-stopped
-  vv-srv-lore:
-    container_name: vv-srv-lore
-    image: veoveo-service-lore:local
-    environment:
-      HTTPS_PROXY: http://vv-egress.internal:3128
-      NO_PROXY: .internal,.localhost,localhost,127.0.0.1
-    user: 10001:10001
-    cap_drop:
-    - ALL
-    security_opt:
-    - no-new-privileges:true
-    read_only: true
-    pids_limit: 128
-    mem_limit: 256m
-    networks:
-      vv-local:
-        aliases:
-        - vv-srv-lore.internal
-    volumes:
-    - vv-lore-identity-secrets:/etc/veoveo:ro
-    - vv-lore-identity:/var/lib/veoveo
-    - ./tls/ca/ca.crt:/etc/veoveo-ca.crt:ro
-    restart: unless-stopped
-  vv-desktop-edge:
-    container_name: vv-desktop-edge
-    profiles:
-    - desktop
-    image: envoyproxy/envoy:v1.40.0@sha256:459f2a6404c340fe6afccd69d85527012d47f3c036765493e6f8f3113fa384de
-    user: root
-    environment:
-      ENVOY_UID: '0'
-    cap_drop:
-    - ALL
-    security_opt:
-    - no-new-privileges:true
-    read_only: true
-    command:
-    - -c
-    - /etc/envoy/envoy.yaml
-    - --log-level
-    - warn
-    networks:
-      vv-local: {}
-      vv-outside: {}
-    ports:
-    - 127.0.0.1:7443:7443
-    volumes:
-    - ./desktop/envoy.yaml:/etc/envoy/envoy.yaml:ro
-    - ./tls/desktop:/etc/envoy/tls:ro
-    - ./tls/ca:/etc/envoy/ca:ro
-    restart: unless-stopped
   vv-postgres:
     container_name: vv-postgres
     image: postgres:18.6-trixie@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
@@ -288,6 +237,7 @@ services:
       target: runtime
       additional_contexts:
         lore-source: ./state/openshell/lore-hook-source
+        ca: ./tls/ca
     networks:
       vv-local:
         ipv4_address: 10.231.10.10
@@ -295,16 +245,10 @@ services:
         - vv-lore.internal
     volumes:
     - vv-lore:/data
-    - ./lore/server.toml:/etc/lore/config/local.toml:ro
+    - ./state/openshell/lore-direct/server.toml:/etc/lore/config/local.toml:ro
     - ./tls/lore:/etc/lore/tls:ro
     restart: unless-stopped
 volumes:
-  vv-lore-identity-secrets:
-    external: true
-    name: vv-local_vv-lore-identity-secrets
-  vv-lore-identity:
-    external: true
-    name: vv-local_vv-lore-identity
   vv-keycloak-db:
     external: true
     name: vv-local_vv-keycloak-db

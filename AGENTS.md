@@ -19,9 +19,9 @@
 - The user withdrew Desktop acceptance on 2026-10-17. Follow
   [the direct Lore credential plan](../veoveo-docs/LORE_DIRECT_OIDC_PLAN.md): IdP
   issuance, native OpenShell renewal/injection and native Lore resource grants.
-  Retire the Desktop adapter after this path qualifies; do not add a machine-token
-  endpoint, new signer or refresh daemon. Existing Desktop instructions describe
-  the pre-cutover runtime and do not impose a completion gate.
+  The Desktop adapter, signer and ingress are retired. Do not restore them or add
+  a machine-token endpoint, new signer or refresh daemon. Historical Desktop results
+  are not active operator instructions or completion gates.
 - Never commit credentials. `.env`, TLS/private state and local backups remain
   ignored and excluded from build contexts. Protect durable data independently of
   disposable sandbox lifecycle.
