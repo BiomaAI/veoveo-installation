@@ -43,17 +43,22 @@ Agents cannot edit this state. The tracked `lore/server.toml` is the public temp
 
 ## Build and provision
 
-Run from the installation root with the maintained `../lore` and `../openshell`
-repositories available. Export into empty source directories so removed source
-files cannot survive a rebuild. Build the server from its hook-enabled revision:
+Run the following blocks in Bash from the installation root with the maintained
+`../lore` and `../openshell` repositories available. Each block refuses an existing
+source destination and stops on export or build failure. Existing source exports
+are left untouched. Build the server from its hook-enabled revision:
 
-```sh
-mkdir -p state/openshell/lore-hook-source
+```bash
+(
+set -euo pipefail
+mkdir -p state/openshell
+mkdir state/openshell/lore-hook-source
 git -C ../lore archive cb2c191feb2d317f989af40be287c2d6acb7fb4f \
   | tar -x -C state/openshell/lore-hook-source
 docker build -f factory/Lore.Dockerfile --target runtime \
   --build-context lore-source=./state/openshell/lore-hook-source \
   --build-context ca=./tls/ca -t vv-lore:local .
+)
 ```
 
 This adds only the public installation CA to the normal trust store. Lore discovers
@@ -65,8 +70,11 @@ Native denied-baseline catalog listing is empty; provide known assigned URLs.
 Build the Lore CLI with the existing auth-only fixes, then package it with OpenCode
 and the Rust toolchain selected by `factory/Dockerfile`:
 
-```sh
-mkdir -p state/openshell/lore-client-source
+```bash
+(
+set -euo pipefail
+mkdir -p state/openshell
+mkdir state/openshell/lore-client-source
 git -C ../lore archive 162df649366fe6b4c1b10240acf420a8e5ec0822 \
   | tar -x -C state/openshell/lore-client-source
 docker build -f factory/Lore.Dockerfile --target runtime \
@@ -75,6 +83,7 @@ docker build -f factory/Lore.Dockerfile --target runtime \
 docker build -f factory/Dockerfile \
   --build-context lore=docker-image://veoveo/lore-client:local \
   --build-context ca=./tls/ca -t veoveo/factory:local factory
+)
 ```
 
 Build the patched supervisor using OpenShell's native prebuilt workflow, then add
@@ -82,7 +91,10 @@ only the public installation CA. Install its native build prerequisites from
 `CONTRIBUTING.md` before running the build. Use a fresh worktree; do not reuse
 partial cross-build outputs:
 
-```sh
+```bash
+(
+set -euo pipefail
+test ! -e state/openshell/supervisor-source
 git -C ../openshell worktree add --detach "$PWD/state/openshell/supervisor-source" \
   162dad88473def11d69a2867832c10342e54248b
 (
@@ -91,6 +103,7 @@ git -C ../openshell worktree add --detach "$PWD/state/openshell/supervisor-sourc
 )
 docker build -f openshell/Supervisor.Dockerfile \
   --build-context ca=./tls/ca -t veoveo/supervisor:local .
+)
 ```
 
 The first factory has no inference provider and makes no model calls.
