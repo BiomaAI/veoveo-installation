@@ -15,8 +15,6 @@
   "signingKeyFile": "/etc/veoveo/signing.key",
   "stateFile": "/var/lib/veoveo/sessions.json",
   "resource": "lores://vv-lore.internal:41337",
-  "gatewayIssuer": "http://vv-gateway.internal:8080/oauth",
-  "gatewayJwksUrl": "http://vv-gateway.internal:8080/oauth/jwks.json",
   "repositories": [],
   "grants": {}
 }

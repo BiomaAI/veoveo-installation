@@ -1,0 +1,59 @@
+{
+  "openshell": {
+    "version": "0.1.4",
+    "upstreamRevision": "5a7728c304b5528e954e9ae900cf21f84e1a12b1",
+    "supervisorSource": "https://github.com/VeoveoAI/OpenShell",
+    "supervisorRevision": "162dad88473def11d69a2867832c10342e54248b",
+    "sandboxRuntimeImage": "ghcr.io/nvidia/openshell/sandbox@sha256:ca00c094aeaa60681b8196cda18ab3c5dd5f7d782d4c36798256427b67599070",
+    "sourcePublication": "local commits; no upstream PR"
+  },
+  "lore": {
+    "serverSource": "https://github.com/EpicGames/lore",
+    "serverRevision": "95a9a834f18402cbacf43d43518c0ac771e029eb",
+    "clientSource": "https://github.com/VeoveoAI/lore",
+    "clientRevision": "162df649366fe6b4c1b10240acf420a8e5ec0822",
+    "clientSourcePublication": "local commits"
+  },
+  "opencode": {
+    "version": "2.0.29",
+    "integrity": "per-platform SHA-512 values in factory/Dockerfile"
+  },
+  "localValidation": {
+    "platform": "linux/arm64 on macOS Docker Desktop",
+    "qualificationRevision": "b51b64dc15d3979517a3398a0bc3cde67b678b7f",
+    "images": {
+      "veoveo/supervisor:local": "sha256:5fe868bd00ab8e9b1aa3a95eb5d39fc3eb0d5c9fc57c23dd20f0c2f0b27fca55",
+      "veoveo/factory:local": "sha256:5089169cc1cc48f2d802756d84090461f393cd5d350c47504ea6d95b944f233e",
+      "veoveo/lore-client:local": "sha256:f8f6f72239b100419a4c6df4dd65054466e318af9171a1a3c42c26d8e50a0860",
+      "veoveo/mcp-fixture:local": "sha256:a4194be71dec16107e7ba344a49f22f99f50334f6bcccc19fc71a317844ae4ba",
+      "vv-lore:local": "sha256:9ad9fbe3bcdb545e79650c4b9688bc3fcf79ab48d616ea01a92499ce7d121dea"
+    },
+    "acceptance": {
+      "nativeSdkTlsOidc": "pass",
+      "loreAssignedAndForbiddenRepositories": "pass",
+      "nativeCredentialRotationWithoutFactoryRestart": "pass",
+      "factorySecretAndRawTcpBoundaries": "pass",
+      "privateMcpInitializeDiscoverAndEcho": "pass",
+      "missingApplicationCredential": "denied",
+      "oidcWorkspaceNonmember": "not_found",
+      "privateRecreationPreservesDefaultSentinel": "pass",
+      "nativeGatewayRestartRecovery": "pass",
+      "homebrewCliPkceLoginAndWorkspaceLists": "pass",
+      "supervisorHttp2Regressions": {
+        "passed": 6,
+        "cancellationReproducedBeforeFix": true
+      },
+      "loreTransportAuthRegressions": {
+        "passed": 8
+      },
+      "loreInterfaceRegressions": {
+        "passed": 39
+      },
+      "desktopAdapterTests": {
+        "passed": 11
+      },
+      "inferenceRequests": 0,
+      "linux": "out of scope"
+    }
+  }
+}

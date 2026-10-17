@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1.27@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
-ARG BASE
+ARG BASE=rust:1.99.0-trixie@sha256:6ff07edce8775d0f64be7aba9197229407301bddf2054d62c27b541a6238a181
 FROM ${BASE}
 USER root
 ARG TARGETARCH
 # OpenCode v2's standalone binary, verified against the published npm integrity.
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates protobuf-compiler libprotobuf-dev \
     && rm -rf /var/lib/apt/lists/* /var/log/apt /var/log/dpkg.log
 RUN case "${TARGETARCH}" in \
       arm64) package=arm64; digest=EsCnvp5lMJNem0YoQJM9PkXY0KrkiugL55M9J2JlImQzKdQnZ4CKutrPAXOnsa889qHhY5tjRpAnD/ZYFzhkRA== ;; \

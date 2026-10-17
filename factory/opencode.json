@@ -17,7 +17,7 @@
       ],
       "package": "@opencode/ai/providers/openai-compatible",
       "settings": {
-        "baseURL": "https://inference.internal:8443/v1",
+        "baseURL": "https://api.deepinfra.com/v1/openai",
         "timeout": 300000
       },
       "models": {

@@ -1,138 +1,88 @@
-# The local installation on one workstation. Infrastructure starts by default.
-# The `runtime` profile adds trusted component containers without Lore credentials.
-# The `autonomy` profile adds upstream Lore, isolated development and review
-# containers, and the Envoy edge that authenticates every Lore client.
+# Trusted bootstrap only. All factory and MCP workloads run through OpenShell.
 name: vv-local
-
 networks:
-  # Persistent identity service: no development sandbox joins this network.
   vv-identity:
     internal: true
-    ipam: { config: [{ subnet: 10.231.12.0/29 }] }
-  vv-dev-gateway:
-    internal: true
-    ipam: { config: [{ subnet: 10.231.20.0/29 }] }
-  vv-dev-time:
-    internal: true
-    ipam: { config: [{ subnet: 10.231.21.0/29 }] }
-  vv-dev-artifact:
-    internal: true
-    ipam: { config: [{ subnet: 10.231.22.0/29 }] }
-  vv-dev-media:
-    internal: true
-    ipam: { config: [{ subnet: 10.231.23.0/29 }] }
-  vv-review:
-    internal: true
-    ipam: { config: [{ subnet: 10.231.24.0/29 }] }
-  # Environments, Lore and the infrastructure they use. No route leaves it.
+    ipam:
+      config:
+      - subnet: 10.231.12.0/29
   vv-local:
     internal: true
-    ipam: { config: [{ subnet: 10.231.10.0/24 }] }
-  # Media's network: only its environment reaches the media provider's route.
-  vv-media:
-    internal: true
-    ipam: { config: [{ subnet: 10.231.11.0/24 }] }
-  # The edge's and the infrastructure's way to the host and the internet.
+    ipam:
+      config:
+      - subnet: 10.231.10.0/24
   vv-outside: {}
-
-x-environment-variables: &environment-variables
-  HTTPS_PROXY: http://vv-egress.internal:3128
-  https_proxy: http://vv-egress.internal:3128
-  NO_PROXY: .internal,.localhost,localhost,127.0.0.1
-  no_proxy: .internal,.localhost,localhost,127.0.0.1
-  # A server registers with this placeholder; the edge replaces it with the
-  # registration secret on POST /oauth/register only.
-  VEOVEO_REGISTRATION_SECRET: replaced-by-the-edge
-
-x-environment: &environment
-  profiles: [runtime]
-  cap_drop: [ALL]
-  security_opt: [no-new-privileges:true]
-  environment: *environment-variables
-  command: [sleep, infinity]
-  restart: unless-stopped
-
-x-environment-build: &environment-build
-  context: ./runtime
-  additional_contexts:
-    ca: ./tls/ca
-
-# Agent sandboxes have no runtime state, token files, host mounts or Docker socket.
-# Only Envoy joins these networks to the trusted installation and the internet.
-x-development: &development
-  profiles: [autonomy]
-  user: "1000:1000"
-  cap_drop: [ALL]
-  security_opt: [no-new-privileges:true]
-  pids_limit: 512
-  mem_limit: 8g
-  cpus: 4
-  environment:
-    HTTPS_PROXY: http://dev-egress.internal:3128
-    HTTP_PROXY: http://dev-egress.internal:3128
-    https_proxy: http://dev-egress.internal:3128
-    http_proxy: http://dev-egress.internal:3128
-    NO_PROXY: .internal,localhost,127.0.0.1,::1
-    no_proxy: .internal,localhost,127.0.0.1,::1
-    NODE_EXTRA_CA_CERTS: /usr/local/share/ca-certificates/veoveo-installation.crt
-    VEOVEO_INFERENCE_TOKEN: replaced-by-the-edge
-    XDG_DATA_HOME: /sandbox/.local/share
-    XDG_CONFIG_HOME: /sandbox/.config
-    XDG_CACHE_HOME: /sandbox/.cache
-    LORE_GLOBAL_PATH: /sandbox/lore-global
-    CARGO_HOME: /sandbox/.cargo
-    CARGO_TARGET_DIR: /sandbox/target
-  command: [sleep, infinity]
-  restart: unless-stopped
-
 services:
-  # Enable with identity/provision; external OIDC installations omit this profile.
   vv-keycloak-db:
     container_name: vv-keycloak-db
-    profiles: [keycloak]
+    profiles:
+    - keycloak
     image: postgres:18.6-trixie@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
     user: postgres
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    cap_drop:
+    - ALL
+    security_opt:
+    - no-new-privileges:true
     env_file:
-      - path: ./state/identity/database.env
-        required: false
-    environment: { POSTGRES_DB: keycloak }
-    networks: { vv-identity: { ipv4_address: 10.231.12.4, aliases: [vv-keycloak-db.internal] } }
+    - path: ./state/identity/database.env
+      required: false
+    environment:
+      POSTGRES_DB: keycloak
+    networks:
+      vv-identity:
+        ipv4_address: 10.231.12.4
+        aliases:
+        - vv-keycloak-db.internal
     volumes:
-      - vv-keycloak-db:/var/lib/postgresql
-      - ./identity/initdb:/docker-entrypoint-initdb.d:ro
+    - vv-keycloak-db:/var/lib/postgresql
+    - ./identity/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: [CMD, pg_isready, --host, 127.0.0.1, --username, postgres, --dbname, keycloak]
+      test:
+      - CMD
+      - pg_isready
+      - --host
+      - 127.0.0.1
+      - --username
+      - postgres
+      - --dbname
+      - keycloak
       interval: 5s
       timeout: 5s
       retries: 12
     restart: unless-stopped
-
   vv-keycloak:
     container_name: vv-keycloak
-    profiles: [keycloak]
+    profiles:
+    - keycloak
     image: quay.io/keycloak/keycloak:26.8.1@sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    cap_drop:
+    - ALL
+    security_opt:
+    - no-new-privileges:true
     env_file:
-      - path: ./state/identity/keycloak.env
-        required: false
+    - path: ./state/identity/keycloak.env
+      required: false
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://vv-keycloak-db.internal:5432/keycloak
       KC_DB_USERNAME: keycloak
       KC_HOSTNAME: https://auth.localhost:8443
-      KC_HOSTNAME_STRICT: "true"
-      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: 'true'
+      KC_HTTP_ENABLED: 'true'
       KC_PROXY_HEADERS: xforwarded
       KC_PROXY_TRUSTED_ADDRESSES: 10.231.12.2
-      KC_HEALTH_ENABLED: "true"
+      KC_HEALTH_ENABLED: 'true'
       KC_CACHE: local
-      KC_HTTP_POOL_MAX_THREADS: "50"
-    command: [start]
+      KC_HTTP_POOL_MAX_THREADS: '50'
+    command:
+    - start
     healthcheck:
-      test: [CMD, bash, -ec, 'exec 3<>/dev/tcp/127.0.0.1/9000; printf "GET /health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n" >&3; read -r status <&3; [[ "$$status" == *" 200 "* ]]']
+      test:
+      - CMD
+      - bash
+      - -ec
+      - 'exec 3<>/dev/tcp/127.0.0.1/9000; printf "GET /health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n" >&3; read
+        -r status <&3; [[ "$$status" == *" 200 "* ]]'
       start_period: 60s
       interval: 10s
       timeout: 5s
@@ -140,395 +90,209 @@ services:
     mem_limit: 2g
     pids_limit: 256
     depends_on:
-      vv-keycloak-db: { condition: service_healthy }
-    networks: { vv-identity: { ipv4_address: 10.231.12.3, aliases: [vv-keycloak.internal] } }
+      vv-keycloak-db:
+        condition: service_healthy
+    networks:
+      vv-identity:
+        ipv4_address: 10.231.12.3
+        aliases:
+        - vv-keycloak.internal
     restart: unless-stopped
-
   vv-identity-edge:
     container_name: vv-identity-edge
-    profiles: [keycloak]
+    profiles:
+    - keycloak
     image: envoyproxy/envoy:v1.40.0@sha256:459f2a6404c340fe6afccd69d85527012d47f3c036765493e6f8f3113fa384de
     user: root
-    environment: { ENVOY_UID: "0" }
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    environment:
+      ENVOY_UID: '0'
+    cap_drop:
+    - ALL
+    security_opt:
+    - no-new-privileges:true
     read_only: true
-    command: [-c, /etc/envoy/envoy.yaml, --log-level, warn]
+    command:
+    - -c
+    - /etc/envoy/envoy.yaml
+    - --log-level
+    - warn
     networks:
-      vv-identity: { ipv4_address: 10.231.12.2 }
-      vv-local: { aliases: [auth.localhost, gateway.localhost] }
+      vv-identity:
+        ipv4_address: 10.231.12.2
+      vv-local:
+        aliases:
+        - auth.localhost
+        - gateway.localhost
       vv-outside: {}
-    ports: ["127.0.0.1:8443:8443"]
+    ports:
+    - 127.0.0.1:8443:8443
     volumes:
-      - ./identity/envoy.yaml:/etc/envoy/envoy.yaml:ro
-      - ./tls/identity:/etc/envoy/tls:ro
+    - ./identity/envoy.yaml:/etc/envoy/envoy.yaml:ro
+    - ./tls/identity:/etc/envoy/tls:ro
     restart: unless-stopped
-
-  # Human clients reach the live Lore server through this separate edge. It
-  # forwards the caller's bearer token; it never supplies an admin credential.
   vv-srv-lore:
     container_name: vv-srv-lore
-    profiles: [autonomy, desktop]
     image: veoveo-service-lore:local
     environment:
       HTTPS_PROXY: http://vv-egress.internal:3128
       NO_PROXY: .internal,.localhost,localhost,127.0.0.1
-    user: "10001:10001"
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    user: 10001:10001
+    cap_drop:
+    - ALL
+    security_opt:
+    - no-new-privileges:true
     read_only: true
     pids_limit: 128
     mem_limit: 256m
-    networks: { vv-local: { aliases: [vv-srv-lore.internal] } }
+    networks:
+      vv-local:
+        aliases:
+        - vv-srv-lore.internal
     volumes:
-      - vv-lore-identity-secrets:/etc/veoveo:ro
-      - vv-lore-identity:/var/lib/veoveo
-      - ./tls/ca/ca.crt:/etc/veoveo-ca.crt:ro
+    - vv-lore-identity-secrets:/etc/veoveo:ro
+    - vv-lore-identity:/var/lib/veoveo
+    - ./tls/ca/ca.crt:/etc/veoveo-ca.crt:ro
     restart: unless-stopped
-
   vv-desktop-edge:
     container_name: vv-desktop-edge
-    profiles: [desktop]
+    profiles:
+    - desktop
     image: envoyproxy/envoy:v1.40.0@sha256:459f2a6404c340fe6afccd69d85527012d47f3c036765493e6f8f3113fa384de
     user: root
-    environment: { ENVOY_UID: "0" }
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    environment:
+      ENVOY_UID: '0'
+    cap_drop:
+    - ALL
+    security_opt:
+    - no-new-privileges:true
     read_only: true
-    command: [-c, /etc/envoy/envoy.yaml, --log-level, warn]
-    networks: { vv-local: {}, vv-outside: {} }
-    ports:
-      - "127.0.0.1:7443:7443"
-    volumes:
-      - ./desktop/envoy.yaml:/etc/envoy/envoy.yaml:ro
-      - ./tls/desktop:/etc/envoy/tls:ro
-      - ./tls/ca:/etc/envoy/ca:ro
-    restart: unless-stopped
-
-  vv-dev-gateway:
-    <<: *development
-    container_name: vv-dev-gateway
-    image: vv-dev-gateway:local
-    build:
-      context: ./autonomy
-      additional_contexts:
-        lore: docker-image://vv-lore:local
-        ca: ./tls/ca
-      args: { BASE: "veoveo-service-gateway:dev" }
+    command:
+    - -c
+    - /etc/envoy/envoy.yaml
+    - --log-level
+    - warn
     networks:
-      vv-dev-gateway: { ipv4_address: 10.231.20.3 }
-    volumes:
-      - vv-dev-gateway:/sandbox
-
-  vv-dev-time:
-    <<: *development
-    container_name: vv-dev-time
-    image: vv-dev-time:local
-    build:
-      context: ./autonomy
-      additional_contexts:
-        lore: docker-image://vv-lore:local
-        ca: ./tls/ca
-      args: { BASE: "veoveo-mcp-time:dev" }
-    networks:
-      vv-dev-time: { ipv4_address: 10.231.21.3 }
-    volumes:
-      - vv-dev-time:/sandbox
-
-  vv-dev-artifact:
-    <<: *development
-    container_name: vv-dev-artifact
-    image: vv-dev-artifact:local
-    build:
-      context: ./autonomy
-      additional_contexts:
-        lore: docker-image://vv-lore:local
-        ca: ./tls/ca
-      args: { BASE: "veoveo-mcp-artifact:dev" }
-    networks:
-      vv-dev-artifact: { ipv4_address: 10.231.22.3 }
-    volumes:
-      - vv-dev-artifact:/sandbox
-
-  vv-dev-media:
-    <<: *development
-    container_name: vv-dev-media
-    image: vv-dev-media:local
-    build:
-      context: ./autonomy
-      additional_contexts:
-        lore: docker-image://vv-lore:local
-        ca: ./tls/ca
-      args: { BASE: "veoveo-mcp-media:dev" }
-    networks:
-      vv-dev-media: { ipv4_address: 10.231.23.3 }
-    volumes:
-      - vv-dev-media:/sandbox
-
-  vv-autonomy-edge:
-    container_name: vv-autonomy-edge
-    profiles: [autonomy]
-    image: envoyproxy/envoy:v1.40.0@sha256:459f2a6404c340fe6afccd69d85527012d47f3c036765493e6f8f3113fa384de
-    user: root
-    environment: { ENVOY_UID: "0" }
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
-    command: [-c, /etc/envoy/envoy.yaml, --log-level, warn]
-    networks:
-      vv-dev-gateway: { ipv4_address: 10.231.20.2, aliases: [lore-proxy.internal, inference.internal, dev-egress.internal] }
-      vv-dev-time: { ipv4_address: 10.231.21.2, aliases: [lore-proxy.internal, inference.internal, dev-egress.internal] }
-      vv-dev-artifact: { ipv4_address: 10.231.22.2, aliases: [lore-proxy.internal, inference.internal, dev-egress.internal] }
-      vv-dev-media: { ipv4_address: 10.231.23.2, aliases: [lore-proxy.internal, inference.internal, dev-egress.internal] }
-      vv-review: { ipv4_address: 10.231.24.2, aliases: [lore-proxy.internal] }
       vv-local: {}
       vv-outside: {}
+    ports:
+    - 127.0.0.1:7443:7443
     volumes:
-      - ./autonomy/envoy.yaml:/etc/envoy/envoy.yaml:ro
-      - ./tls/autonomy:/etc/envoy/tls:ro
-      - ./tls/ca:/etc/envoy/ca:ro
-      - vv-autonomy-sds:/etc/envoy/lore:ro
-      - vv-autonomy-secrets:/etc/envoy/secrets:ro
+    - ./desktop/envoy.yaml:/etc/envoy/envoy.yaml:ro
+    - ./tls/desktop:/etc/envoy/tls:ro
+    - ./tls/ca:/etc/envoy/ca:ro
     restart: unless-stopped
-
-  vv-autonomy-tokens:
-    container_name: vv-autonomy-tokens
-    profiles: [autonomy]
-    image: veoveo-service-gateway:autonomy-runtime
-    user: root
-    security_opt: [no-new-privileges:true]
-    cap_drop: [ALL]
-    cap_add: [CHOWN, FOWNER, DAC_OVERRIDE]
-    command:
-      - lore-tokens
-      - --directory
-      - /gateway/state/gateway
-      - --token-endpoint
-      - http://vv-gateway.internal:8080/oauth/token
-      - --resource
-      - lores://vv-lore.internal:41337
-      - --group
-      - "0"
-      - --target
-      - lore-admin=/sds/lore-admin.json
-      - --target
-      - lore-vv-srv-gateway=/sds/lore-vv-srv-gateway.json
-      - --target
-      - lore-vv-mcp-time=/sds/lore-vv-mcp-time.json
-      - --target
-      - lore-vv-mcp-artifact=/sds/lore-vv-mcp-artifact.json
-      - --target
-      - lore-vv-mcp-media=/sds/lore-vv-mcp-media.json
-    environment: { RUST_LOG: info }
-    networks: { vv-local: {} }
-    volumes:
-      - vv-srv-gateway:/gateway:ro
-      - vv-autonomy-sds:/sds
-    restart: unless-stopped
-
-  vv-review:
-    container_name: vv-review
-    profiles: [autonomy]
-    image: vv-lore:local
-    user: "1000:1000"
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
-    entrypoint: [sleep, infinity]
-    environment:
-      LORE_GLOBAL_PATH: /review/lore-global
-      XDG_CONFIG_HOME: /review/.config
-      XDG_DATA_HOME: /review/.local/share
-      XDG_CACHE_HOME: /review/.cache
-      SSL_CERT_FILE: /etc/ssl/certs/veoveo-ca.crt
-    networks:
-      vv-review: { ipv4_address: 10.231.24.3 }
-    volumes:
-      - vv-review:/review
-      - ./tls/ca/ca.crt:/etc/ssl/certs/veoveo-ca.crt:ro
-    working_dir: /review
-    restart: unless-stopped
-
   vv-postgres:
     container_name: vv-postgres
     image: postgres:18.6-trixie@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
     environment:
-      POSTGRES_PASSWORD: ${VEOVEO_POSTGRES_PASSWORD:?set VEOVEO_POSTGRES_PASSWORD to the superuser password before starting}
-      # Read once by postgres/initdb/owner.sql to create the installation owner.
-      VEOVEO_DATABASE_PASSWORD: ${VEOVEO_DATABASE_PASSWORD:?set VEOVEO_DATABASE_PASSWORD to the installation owner password before starting}
-    # Keepalive probes close the connection of a host that disappears within about 25
-    # seconds, which releases the advisory locks of its process instances.
+      POSTGRES_PASSWORD: ${VEOVEO_POSTGRES_PASSWORD:?set VEOVEO_POSTGRES_PASSWORD to the superuser password before
+        starting}
+      VEOVEO_DATABASE_PASSWORD: ${VEOVEO_DATABASE_PASSWORD:?set VEOVEO_DATABASE_PASSWORD to the installation owner
+        password before starting}
     command:
-      - postgres
-      - -c
-      - tcp_keepalives_idle=10
-      - -c
-      - tcp_keepalives_interval=5
-      - -c
-      - tcp_keepalives_count=3
+    - postgres
+    - -c
+    - tcp_keepalives_idle=10
+    - -c
+    - tcp_keepalives_interval=5
+    - -c
+    - tcp_keepalives_count=3
     networks:
-      vv-local: { aliases: [vv-postgres.internal] }
+      vv-local:
+        aliases:
+        - vv-postgres.internal
       vv-outside: {}
     ports:
-      # Loopback only, for the host's tools; environments use vv-postgres.internal.
-      - "127.0.0.1:${VEOVEO_DATABASE_PORT:-5432}:5432"
+    - 127.0.0.1:${VEOVEO_DATABASE_PORT:-5432}:5432
     volumes:
-      - vv-postgres:/var/lib/postgresql
-      - ./postgres/initdb:/docker-entrypoint-initdb.d:ro
+    - vv-postgres:/var/lib/postgresql
+    - ./postgres/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      # TCP, so the socket-only server that runs the init scripts never counts as ready.
-      test: ["CMD", "pg_isready", "--host", "127.0.0.1", "--username", "veoveo_owner", "--dbname", "veoveo"]
+      test:
+      - CMD
+      - pg_isready
+      - --host
+      - 127.0.0.1
+      - --username
+      - veoveo_owner
+      - --dbname
+      - veoveo
       interval: 5s
       timeout: 5s
       retries: 12
     restart: unless-stopped
-
   vv-seaweedfs:
     container_name: vv-seaweedfs
-    # SeaweedFS 4.48, the latest stable release, unmodified, in its all-in-one `weed mini`
-    # mode: master, volume server, filer and S3 gateway in one process. The Artifact
-    # server signs every byte transfer with this credential and calls only standard S3
-    # operations. With no S3 configuration file, SeaweedFS takes its one identity from
-    # AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
     image: chrislusf/seaweedfs:4.48@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
     command:
-      - mini
-      - -dir=/data
-      - -s3.port=9000
-      # `weed mini` serves the admin UI only when asked explicitly, whatever its help says.
-      - -admin.ui=true
-      - -admin.password=${VEOVEO_SEAWEEDFS_ADMIN_PASSWORD:?set VEOVEO_SEAWEEDFS_ADMIN_PASSWORD to the admin UI's password before starting}
-      - -webdav=false
-      - -s3.port.iceberg=0
-      - -s3.port.lance=0
+    - mini
+    - -dir=/data
+    - -s3.port=9000
+    - -admin.ui=true
+    - -admin.password=${VEOVEO_SEAWEEDFS_ADMIN_PASSWORD:?set VEOVEO_SEAWEEDFS_ADMIN_PASSWORD to the admin UI's password
+      before starting}
+    - -webdav=false
+    - -s3.port.iceberg=0
+    - -s3.port.lance=0
     environment:
-      AWS_ACCESS_KEY_ID: ${VEOVEO_STORAGE_ACCESS_KEY:?set VEOVEO_STORAGE_ACCESS_KEY to the object store's access key before starting}
-      AWS_SECRET_ACCESS_KEY: ${VEOVEO_STORAGE_SECRET_KEY:?set VEOVEO_STORAGE_SECRET_KEY to the object store's secret key before starting}
+      AWS_ACCESS_KEY_ID: ${VEOVEO_STORAGE_ACCESS_KEY:?set VEOVEO_STORAGE_ACCESS_KEY to the object store's access
+        key before starting}
+      AWS_SECRET_ACCESS_KEY: ${VEOVEO_STORAGE_SECRET_KEY:?set VEOVEO_STORAGE_SECRET_KEY to the object store's secret
+        key before starting}
     networks:
-      vv-local: { aliases: [vv-seaweedfs.internal] }
+      vv-local:
+        aliases:
+        - vv-seaweedfs.internal
       vv-outside: {}
     ports:
-      # The S3 endpoint on loopback only, where a browser on the host fetches signed
-      # URLs once the host maps vv-seaweedfs.internal to 127.0.0.1. The Artifact server
-      # retries its bucket preparation, so it decides when storage is ready.
-      - "127.0.0.1:${VEOVEO_STORAGE_PORT:-9000}:9000"
-      # The admin UI, user `admin`, on loopback only.
-      - "127.0.0.1:${VEOVEO_SEAWEEDFS_ADMIN_PORT:-23646}:23646"
+    - 127.0.0.1:${VEOVEO_STORAGE_PORT:-9000}:9000
+    - 127.0.0.1:${VEOVEO_SEAWEEDFS_ADMIN_PORT:-23646}:23646
     volumes:
-      - vv-seaweedfs:/data
+    - vv-seaweedfs:/data
     restart: unless-stopped
-
   vv-egress:
     container_name: vv-egress
-    # Envoy 1.40.0, the latest stable release, unmodified (D42). egress/render writes
-    # its configuration from .env.
     image: envoyproxy/envoy:v1.40.0@sha256:459f2a6404c340fe6afccd69d85527012d47f3c036765493e6f8f3113fa384de
-    command: [-c, /etc/envoy/envoy.yaml, --log-level, warn]
+    command:
+    - -c
+    - /etc/envoy/envoy.yaml
+    - --log-level
+    - warn
     environment:
-      # Envoy reads the edge's keys and secrets as root inside its container.
-      ENVOY_UID: "0"
+      ENVOY_UID: '0'
     networks:
-      vv-local: { aliases: [vv-gateway.internal, vv-egress.internal] }
-      vv-media: { aliases: [media-provider.internal] }
+      vv-local:
+        aliases:
+        - vv-gateway.internal
+        - vv-egress.internal
       vv-outside: {}
-    ports:
-      # The Gateway and the servers on the host's loopback interface, for the host and
-      # the tunnel.
-      - "127.0.0.1:8080:18080"
-      - "127.0.0.1:8800:18800"
-      - "127.0.0.1:8801:18801"
-      - "127.0.0.1:8802:18802"
+    ports: []
     volumes:
-      - ./egress/envoy.local.yaml:/etc/envoy/envoy.yaml:ro
-      - ./egress/sds:/etc/envoy/sds:ro
-      - ./tls/egress:/etc/envoy/tls:ro
-      - vv-egress-secrets:/etc/envoy/secrets:ro
+    - ./egress/envoy.local.yaml:/etc/envoy/envoy.yaml:ro
     restart: unless-stopped
-
+    cap_drop:
+    - ALL
+    security_opt:
+    - no-new-privileges:true
+    read_only: true
   vv-lore:
     container_name: vv-lore
-    profiles: [autonomy]
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
-    # Unmodified upstream Lore at its release commit. It reads the
-    # Gateway's keys at startup, so it restarts until the Gateway answers.
+    cap_drop:
+    - ALL
+    security_opt:
+    - no-new-privileges:true
     image: vv-lore:local
     build: ./lore
     networks:
-      vv-local: { aliases: [vv-lore.internal] }
+      vv-local:
+        ipv4_address: 10.231.10.10
+        aliases:
+        - vv-lore.internal
     volumes:
-      - vv-lore:/data
-      - ./lore/server.toml:/etc/lore/config/local.toml:ro
-      - ./tls/lore:/etc/lore/tls:ro
+    - vv-lore:/data
+    - ./lore/server.toml:/etc/lore/config/local.toml:ro
+    - ./tls/lore:/etc/lore/tls:ro
     restart: unless-stopped
-
-  vv-srv-gateway:
-    <<: *environment
-    container_name: vv-srv-gateway
-    image: vv-srv-gateway:local
-    build:
-      <<: *environment-build
-      args: { BASE: "veoveo-service-gateway:dev" }
-    environment:
-      <<: *environment-variables
-      HOME: /sandbox
-    networks:
-      vv-local: { aliases: [vv-srv-gateway.internal] }
-    volumes:
-      - vv-srv-gateway:/sandbox
-
-  vv-mcp-time:
-    <<: *environment
-    container_name: vv-mcp-time
-    image: vv-mcp-time:local
-    build:
-      <<: *environment-build
-      args: { BASE: "veoveo-mcp-time:dev" }
-    networks:
-      vv-local: { aliases: [vv-mcp-time.internal] }
-    volumes:
-      - vv-mcp-time:/sandbox
-
-  vv-mcp-artifact:
-    <<: *environment
-    container_name: vv-mcp-artifact
-    image: vv-mcp-artifact:local
-    build:
-      <<: *environment-build
-      args: { BASE: "veoveo-mcp-artifact:dev" }
-    networks:
-      vv-local: { aliases: [vv-mcp-artifact.internal] }
-    volumes:
-      - vv-mcp-artifact:/sandbox
-
-  vv-mcp-media:
-    <<: *environment
-    container_name: vv-mcp-media
-    image: vv-mcp-media:local
-    build:
-      <<: *environment-build
-      args: { BASE: "veoveo-mcp-media:dev" }
-    networks:
-      vv-local: { aliases: [vv-mcp-media.internal] }
-      vv-media: {}
-    volumes:
-      - vv-mcp-media:/sandbox
-
-  vv-tunnel:
-    container_name: vv-tunnel
-    # Optional: `docker compose --profile tunnel up -d` connects the installation's
-    # public origin to this workstation through a remote-managed Cloudflare Tunnel,
-    # whose ingress rules live with the tunnel. cloudflared 2026.10.0, the latest stable
-    # release, unmodified.
-    profiles: [tunnel]
-    image: cloudflare/cloudflared:2026.10.0@sha256:9b49eed8f62806d5d45ddf59ecefb5710429598ea6d3fcccd2af938f621b2b07
-    command: [tunnel, --no-autoupdate, run]
-    environment:
-      # Compose reads every service's variables even when its profile is off, so the
-      # token is optional here and cloudflared refuses to start without it.
-      TUNNEL_TOKEN: ${VEOVEO_TUNNEL_TOKEN:-}
-    # Host networking, so the tunnel reaches the edge's published ports on 127.0.0.1.
-    network_mode: host
-    restart: unless-stopped
-
 volumes:
   vv-lore-identity-secrets:
     external: true
@@ -536,22 +300,15 @@ volumes:
   vv-lore-identity:
     external: true
     name: vv-local_vv-lore-identity
-  # Operator-owned identity state survives even `docker compose down -v`.
   vv-keycloak-db:
     external: true
     name: vv-local_vv-keycloak-db
-  vv-dev-gateway:
-  vv-dev-time:
-  vv-dev-artifact:
-  vv-dev-media:
-  vv-review:
-  vv-autonomy-sds:
-  vv-autonomy-secrets:
   vv-postgres:
+    external: true
+    name: vv-local_vv-postgres
   vv-seaweedfs:
+    external: true
+    name: vv-local_vv-seaweedfs
   vv-lore:
-  vv-egress-secrets:
-  vv-srv-gateway:
-  vv-mcp-time:
-  vv-mcp-artifact:
-  vv-mcp-media:
+    external: true
+    name: vv-local_vv-lore

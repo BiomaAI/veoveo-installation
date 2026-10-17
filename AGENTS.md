@@ -1,35 +1,23 @@
 # Agent Instructions
 
-- This repository is a template for Veoveo installations. It holds only installation
-  decisions: domain, identity providers, tenants, roles and grants, and which components
-  run at which revisions. It never names a server's internals; components register and
-  declare themselves.
-- Its defaults run a local installation on one workstation. Keep them working, because
-  every installation starts from them.
-- Identity providers are installation choices: permanent Keycloak for local development,
-  Entra for the Linux reference, and each customer's own OIDC provider. Generic deployment
-  must not invoke Keycloak provisioning or require its administration credentials.
-- Build, check and repair logic belongs to each component's own repository and
-  environment. Planning documents belong in `veoveo-docs`.
-- Use upstream images such as PostgreSQL, SeaweedFS and Envoy unmodified and pinned by
-  digest, and unmodified Lore from `EpicGames/lore` pinned to its release commit. Verify the latest stable
-  release at its source when changing a pin.
-- Never commit credentials. `.env` and private TLS/state files stay ignored and out of
-  build contexts. Coding agents run only in `vv-dev-*`, never in the trusted `runtime`
-  containers. Dev volumes contain source, caches and disposable test state only.
-- Envoy authenticates development Lore and inference requests. Tokens, signing keys,
-  runtime volumes and the Docker socket never enter a dev container. Select each Lore
-  credential by the listener's private network and actual TCP peer, never by an
-  agent-controlled header. Keep `no-new-privileges` and all capabilities dropped in dev.
-- Runtime containers contain no Lore client or token mounts. Use the isolated reviewer
-  for repository administration and keep `no-new-privileges` enabled everywhere.
-- Committed files name the installation's public origin only by the placeholder
-  `https://veoveo.example.com`. The real origin and the tunnel's connector token live in
-  the uncommitted `.env`.
-- Names, identifiers and formats follow the
-  [naming and format conventions](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/CONVENTIONS.md);
-  Compose services and containers use the `vv-` short form, and their network names end
-  in `.internal`.
-- Validate with `docker compose config` and start the services on macOS and on Linux
-  before pushing.
-- Commit small, coherent changes. Commits carry no AI or tool attribution.
+- This repository holds installation choices and trusted bootstrap configuration.
+  Planning belongs in `veoveo-docs`. Components own their build and check logic.
+- All coding factories and managed MCP workloads use OpenShell's native Docker
+  driver. Use its existing APIs, lifecycle, credential store, policy and diagnostics.
+  Do not add Compose author/application profiles, a token worker or a second launcher.
+- Use permanent Keycloak locally and provider-agnostic OIDC configuration elsewhere.
+  Generic installation must not require Keycloak administration credentials.
+- Real provider tokens, signing keys, operator state, bootstrap volumes and Docker
+  access stay outside author and agent-controlled service workloads. Use native
+  OpenShell credential mediation. Unsupported enforcement fails closed.
+- Prefer upstream configuration and extension points. Maintained, revision-pinned
+  VeoveoAI security/transport patches are allowed by the accepted architecture.
+  Preserve ordinary Lore operations and upstream security boundaries.
+- Never commit credentials. `.env`, TLS/private state and local backups remain
+  ignored and excluded from build contexts. Protect durable data independently of
+  disposable sandbox lifecycle.
+- Use upstream bootstrap images pinned by digest. Verify releases when changing pins.
+  Committed public origins use `https://veoveo.example.com`.
+- Validate changed bootstrap configuration and the focused new path on macOS.
+  The existing Linux installation is out of scope for this cutover.
+- Commit coherent changes without AI attribution.

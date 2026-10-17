@@ -1,11 +1,9 @@
-# The installation's Lore server. The Gateway's authorization server issues its tokens
-# (D43), and each token's `lore_resources` claim names the repositories it reaches.
+# Upstream Lore. The Desktop adapter signs tokens using the native resources claim.
 
 [server.auth]
-jwt_issuer = ["http://vv-gateway.internal:8080/oauth", "https://localhost:7443/oauth"]
+jwt_issuer = ["https://localhost:7443/oauth"]
 jwt_audience = ["lores://vv-lore.internal:41337"]
 jwt_typ = "at+jwt"
-resource_claim = "lore_resources"
 # `lore repository list` names no repository; a client reaches the ones it is granted.
 baseline_access = "denied"
 repository_catalog = "auth_service"
@@ -14,11 +12,10 @@ repository_catalog_url = "http://vv-srv-lore.internal:8081"
 [server.auth.jwk]
 endpoint = "http://vv-srv-lore.internal:8080/oauth/jwks.json"
 
-# Lore's per-repository mode requires an advertised OIDC provider and a resource
-# template, though the Gateway grants repositories directly in each token.
-[server.auth.oidc]
-client_id = "lore-cli"
-resource_template = "lores://vv-lore.internal:41337/repositories/{id}"
+# Use Lore's native auth-service contract for Desktop and repository-scoped
+# access tokens. No dependency on the removed Veoveo gateway's OAuth discovery.
+[environment.endpoint]
+auth_url = "http://vv-srv-lore.internal:8081"
 
 [server.quic]
 enabled = false

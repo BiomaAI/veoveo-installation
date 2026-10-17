@@ -1,17 +1,18 @@
-#!/bin/sh
-# Writes egress/envoy.local.yaml from egress/envoy.yaml with the hosts .env names: the
-# public origin's, the media provider API's/output hosts, and OIDC provider hosts. Run from the
-# repository's directory after changing any of them, then restart vv-egress.
-set -eu
-value() { sed -n "s/^$1=//p" .env | tail -n 1; }
-host() { printf '%s\n' "$1" | sed -n 's#^https://\([^/:]*\).*#\1#p'; }
-provider=$(host "$(value MEDIA_PROVIDER_URL)")
-oidc_hosts=$(value OIDC_EGRESS_HOSTS | tr ',' '\n')
-if printf '%s\n' "$oidc_hosts" | sed '/^$/d' | LC_ALL=C grep -Eq '[^A-Za-z0-9.-]'; then
-  printf '%s\n' 'OIDC_EGRESS_HOSTS must contain comma-separated DNS hostnames only.' >&2
-  exit 1
-fi
-hosts=$( { host "$(value VEOVEO_PUBLIC_ORIGIN)"; printf '%s\n' "$provider" "$oidc_hosts"; value MEDIA_OUTPUT_HOSTS | tr ',' '\n'; } \
-  | sed '/^$/d; s/.*/, "&:443"/' | tr -d '\n')
-sed -e "s/@EGRESS_HOSTS@/${hosts}/" -e "s/@MEDIA_PROVIDER_HOST@/${provider:-media-provider.invalid}/g" \
-  egress/envoy.yaml > egress/envoy.local.yaml
+#!/usr/bin/env python3
+"""Render the bootstrap identity-provider allowlist; never render credentials."""
+import json
+from pathlib import Path
+import re
+root = Path(__file__).resolve().parent.parent
+values = dict(line.split("=", 1) for line in (root / ".env").read_text().splitlines()
+              if "=" in line and not line.lstrip().startswith("#"))
+hosts = [host.strip() for host in values.get("OIDC_EGRESS_HOSTS", "").strip("\"' ").split(",") if host.strip()]
+if any(not re.fullmatch(r"[A-Za-z0-9.-]+", host) for host in hosts):
+    raise SystemExit("OIDC_EGRESS_HOSTS must contain DNS hostnames only")
+source = (root / "egress/envoy.yaml").read_text()
+quoted = json.dumps([host + ":443" for host in hosts] or ["oidc-disabled.invalid:443"])
+source = source.replace("- '@OIDC_EGRESS_HOSTS@'", quoted)
+# Replace the YAML domains sequence rather than its scalar when generating JSON-style lists.
+source = source.replace("domains:\n              " + quoted, "domains: " + quoted)
+(root / "egress/envoy.local.yaml").write_text(source)
+print("Rendered bootstrap OIDC egress allowlist")

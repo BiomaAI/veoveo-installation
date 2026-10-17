@@ -1,7 +1,7 @@
-.git
+.git/
 .env
 .env.*
 **/.env
 **/.env.*
-tls
-state
+state/
+tls/

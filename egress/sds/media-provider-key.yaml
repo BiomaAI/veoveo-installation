@@ -1,6 +1,0 @@
-resources:
-- "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret
-  name: media-provider-key
-  generic_secret:
-    secret:
-      filename: /etc/envoy/secrets/media-provider-key
