@@ -104,7 +104,8 @@ Pass `--installation` with this installation's absolute path:
 - `lore-direct --image IMAGE_ID` runs the disposable direct-issuer workflow and
   timed lifecycle gates. Build its std-only canonical test workload using
   `LoreDirect.Dockerfile` in the qualification repository. `--phase workflow` omits
-  lifecycle measurement and cannot qualify renewal/removal. `--phase remaining`
+  lifecycle measurement and cannot qualify renewal/removal. `--phase renewal`
+  selects only the workflow and renewal gate; `--phase remaining`
   and `--phase recovery` select independent gates; they do not imply renewal passed.
 - `lore-negative` checks a valid direct grant against a management bearer. The
   optional `--legacy-token-file PATH` is solely a historical operator probe; it
@@ -112,12 +113,17 @@ Pass `--installation` with this installation's absolute path:
   not an active signer.
 - `service --image IMAGE --reuse` checks the existing native private MCP fixture.
 
-The lifecycle workload captures its opaque reference once, keeps the same process
-and runs real Lore commands across at least two native renewals and original
-expiry plus 60-second verifier leeway. Only one initial native rotate is allowed
+The lifecycle workload captures its opaque reference once and checks a random
+per-launch marker in fresh command replies while running real Lore commands across
+at least two native renewals and original expiry plus 60-second verifier leeway.
+Only one initial native rotate is allowed
 per provider. It tests unavailable issuance by disabling only fixture A's IdP
 client while B operates/renews; this local qualification action uses Keycloak admin
 credentials only on the trusted host, never in a workload or runtime service.
+Cleanup restores the prior enabled value only for a client changed by that run.
+The recovery gate leaves A's state untouched. Its process marker comes from a fresh
+answered command, allowing native workload restarts while preserving sandbox identity.
+Earlier PID-only records do not establish uninterrupted process lifetime.
 
 OpenShell intentionally rejects detach while a policy references the provider.
 The supported sequence removes the explicit binding with native `UpdateConfig`,
