@@ -16,6 +16,12 @@
   branch guard belongs in Lore's existing pre-push hook and trusted configuration;
   it is not a comprehensive branch authorization or transport-expiry system.
   Credential lifecycle qualification stays separate in native OpenShell controls.
+- The user withdrew Desktop acceptance on 2026-10-17. Follow
+  [the direct Lore credential plan](../veoveo-docs/LORE_DIRECT_OIDC_PLAN.md): IdP
+  issuance, native OpenShell renewal/injection and native Lore resource grants.
+  Retire the Desktop adapter after this path qualifies; do not add a machine-token
+  endpoint, new signer or refresh daemon. Existing Desktop instructions describe
+  the pre-cutover runtime and do not impose a completion gate.
 - Never commit credentials. `.env`, TLS/private state and local backups remain
   ignored and excluded from build contexts. Protect durable data independently of
   disposable sandbox lifecycle.

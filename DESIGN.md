@@ -12,6 +12,12 @@ Keycloak, its dedicated database and HTTPS endpoint stay in Compose to avoid an
 OIDC cold-start dependency loop. All managed author and MCP workloads use OpenShell's native
 Docker driver. There is no Kubernetes, Helm, Flux or legacy runtime profile.
 
+Desktop acceptance is withdrawn as of 2026-10-17. Follow the
+[direct Lore credential cutover](../veoveo-docs/LORE_DIRECT_OIDC_PLAN.md): the IdP
+issues ordinary repo grants, OpenShell renews/injects them, and native Lore validates
+them. Retire the Desktop adapter/ingress after that path qualifies. No replacement
+Veoveo signer, token endpoint or refresh worker is part of the design.
+
 Durable bootstrap data volumes are external to Compose cleanup. Ignored operator
 state includes identity credentials, TLS keys and the hard-cut recovery bundle.
 Factory workloads receive native credential placeholders and cannot mount operator

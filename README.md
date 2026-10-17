@@ -5,9 +5,14 @@ and environment compositions. Lore owns source; OpenShell executes factory and M
 workloads through its native Docker driver.
 
 The old `autonomy` and `runtime` launchers have been removed. `compose.yaml` contains
-trusted bootstrap only: Lore, local identity, PostgreSQL, SeaweedFS and the required
+trusted bootstrap only: Lore, local identity, PostgreSQL, SeaweedFS and the existing
 Lore Desktop authentication/TLS integration. Their named data volumes are external
 and survive bootstrap removal. OpenShell runs as the native macOS gateway service.
+
+Desktop acceptance was withdrawn on 2026-10-17. The next implementation uses
+[direct IdP-issued Lore credentials and native OpenShell renewal](../veoveo-docs/LORE_DIRECT_OIDC_PLAN.md),
+then retires the Desktop adapter and ingress. The bootstrap commands below describe
+the still-deployed configuration until that cutover is qualified.
 
 ## Local bootstrap
 
@@ -39,13 +44,14 @@ Native workload definitions, provider profiles and operator setup live under
 `openshell/`. Use the same runtime interface for authoring, checks and deployed MCP
 services. Source revisions and runtime image digests identify the deployed version.
 
-## Lore Desktop
+## Lore Desktop (pending retirement)
 
 The existing remote remains `grpcs://localhost:7443`. The Desktop edge forwards
 user credentials to upstream Lore, and `veoveo-service-lore` adapts its published
-Desktop authentication/catalog protocol to the configured OIDC provider. This is
-required protocol adaptation. Local Keycloak is permanent; external installations
-provide their own OIDC issuer/client settings.
+Desktop authentication/catalog protocol to the configured OIDC provider. That
+adaptation serves the withdrawn Desktop requirement; it is not a required factory
+service. Do not extend it with token issuance for OpenShell. Local Keycloak stays;
+the direct replacement uses native Lore resource grants and OpenShell providers.
 
 The old runtime was removed on macOS. The native Lore and private MCP path has focused acceptance; exact operating
 commands are in [OpenShell setup](openshell/README.md). Compatible infrastructure

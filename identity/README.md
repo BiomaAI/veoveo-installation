@@ -149,22 +149,30 @@ and [authorization code flow](https://learn.microsoft.com/en-us/entra/identity-p
 documentation. Entra requires the reference tenant and app registration; this
 local setup does not create those or modify the remote deployment.
 
-## Desktop acceptance remains separate
+## Desktop integration (pending retirement)
+
+The user withdrew Desktop acceptance on 2026-10-17. The results below are historical,
+and the adapter remains deployed only until the
+[direct Lore credential path](../../veoveo-docs/LORE_DIRECT_OIDC_PLAN.md) qualifies.
+That plan uses built-in local IdP mappings, native OpenShell refresh and native Lore
+authorization. Generic runtime code remains provider-independent; external issuer
+claim/refresh compatibility requires separate acceptance. No factory token endpoint
+will be added to the Desktop adapter.
 
 The separate `veoveo-service-lore` adapter now translates stable Desktop's published
 `UrcAuthApi` login to this provider's OIDC flow, filters its repository catalog, and
 keeps provider refresh credentials outside coding containers. The actual macOS
 Desktop has passed browser login, catalog discovery and reconnect. Remote graph and
-diff browsing remain open; no local checkout or token-pasting workaround counts as
-that acceptance. See [Desktop integration](../README.md#desktop-integration).
+diff browsing were not completed and are now withdrawn requirements. See
+[the current runtime](../README.md#lore-desktop-pending-retirement).
 
-Automatic provider-expiry recovery is also open: after Keycloak rejected an expired
+Automatic provider-expiry recovery was also incomplete: after Keycloak rejected an expired
 refresh token, Desktop showed an authentication error and did not reopen sign-in.
 The official CLI's browser login renewed the shared credential, and restarting
 Desktop restored the four-repository catalog. Provider refresh and reload after
 adapter restart passed on the OIDC portability revision. The tested manual recovery
-procedure is in the installation README; a seamless Desktop recovery flow is still
-required.
+procedure belonged to the former Desktop workflow. Seamless Desktop recovery no
+longer blocks acceptance and must not justify retaining the adapter.
 
 The adapter selects its provider through OIDC issuer/client/scopes configuration.
 Only `identity/configure-lore-client` calls Keycloak administration APIs for local

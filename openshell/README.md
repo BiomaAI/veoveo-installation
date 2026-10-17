@@ -12,6 +12,12 @@ pre-push hook. The broad authoring-authorization patch was reverted; no custom
 claims, RPC middleware or stream-expiry behavior remain. Changes have not yet
 been published as an upstream PR or portable image release.
 
+Next implementation: [direct IdP Lore credentials](../../veoveo-docs/LORE_DIRECT_OIDC_PLAN.md)
+using native provider refresh. Desktop is no longer an acceptance requirement.
+The manual signer-based commands below record the current pre-cutover test path;
+they must be replaced, not expanded into a renewal service. The new path is not
+yet deployed or qualified by this documentation change.
+
 ## Operator State And Identity
 
 The native gateway reads `~/.config/openshell/gateway.toml` and `gateway.env`.
@@ -107,8 +113,9 @@ that disposable test factory after an image rebuild. Use image digests/IDs when
 recording a deployed version. It does not publish or build agent-authored images.
 
 `provision-lore --repository ID` uses the trusted adapter signer to provision one
-read-only, fifteen-minute test grant. It never prints the token. `first-path
-sync-factory` updates the native provider and policy and waits for supervisor
+fifteen-minute test grant. The sandbox's OpenShell RPC policy makes this smoke path
+read-only; an empty native Lore action array alone does not. It never prints the
+token. `first-path sync-factory` updates the native provider and policy and waits for supervisor
 installation. A new Lore read after rotation does not require a factory restart.
 This bootstrap helper is not an automatic renewal service.
 
@@ -128,7 +135,7 @@ native `ForwardTcp`. Its fake application bearer is separate from OIDC managemen
 authentication. A nonmember gets the native `NOT_FOUND` concealment response.
 
 Full branch/revision deployment, arbitrary composition, infrastructure migration,
-Linux/CUDA and Desktop graph/session recovery are tracked in the
+Linux/CUDA and the direct credential cutover are tracked in the
 [hard-cut plan](../../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md).
 
 ## Normal Lore Push Guard
@@ -166,6 +173,6 @@ Restore the empty trusted assignment map after qualification and restart Lore.
 
 The run writes a private `state/openshell/factory-hook-result.json` only after all
 checks and cleanup pass. It makes no inference calls and leaves the original smoke
-grant read-only. This is a normal-push workflow guard, not complete isolation against
+path read-only. This is a normal-push workflow guard, not complete isolation against
 all storage or administration APIs. Manual test-provider updates do **not** qualify
 automatic renewal or revocation; those remain separate OpenShell lifecycle gates.
