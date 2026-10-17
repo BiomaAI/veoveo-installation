@@ -173,6 +173,12 @@
         "passed": true
       },
       "postRetirementReadOnlySmoke": "pass",
+      "adapterFreeLoreColdStart": {
+        "assignedRepositoryRead": "pass after server readiness",
+        "ungrantedRepository": "denied",
+        "managementBearer": "denied",
+        "initialPreReadinessRequest": "transport connection failed; retry succeeded"
+      },
       "postRetirementCustodyAndRawEgress": "pass",
       "postRetirementPrivateMcp": "pass; initialize/discover/echo, missing app credential and workspace nonmember checked",
       "temporaryQualificationResourcesCleaned": true,
