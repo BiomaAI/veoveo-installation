@@ -29,18 +29,28 @@ Private controller and nonmember acceptance credentials live in ignored
 service, image, Compose environment or log. The native human CLI uses its own PKCE
 login and refresh storage, not the controller credential.
 
-For the private local issuer, give the CLI the installation's combined CA bundle:
+On each Mac, complete the one-time [installation CA trust setup](../identity/README.md#macos-certificate-trust)
+before the first login. The native CLI then uses macOS trust for the private issuer
+from every terminal, including automatic OIDC refresh. No shell certificate export
+is required:
 
 ```sh
-export SSL_CERT_FILE="$PWD/state/openshell/ca-bundle.pem"
 openshell gateway login openshell
-openshell sandbox list
-openshell --workspace vv-first-private sandbox list
+openshell status
+openshell sandbox list --all-workspaces
+openshell whoami
 ```
 
 The CA-only file at `~/.config/openshell/gateways/openshell/mtls/ca.crt` is the native
-CLI's gateway transport trust location. The registration uses OIDC; no client
-certificate or insecure TLS flag is needed.
+CLI's separate gateway transport trust location. Keep that registration trust in
+place as well. The registration uses OIDC; no client certificate or insecure TLS
+flag is needed. The service's `gateway.env` remains separate from terminal setup.
+
+Installation acceptance runs these commands from a new shell with `SSL_CERT_FILE`
+and `SSL_CERT_DIR` absent, then repeats an authenticated command after the stored
+OIDC access token expires to verify automatic refresh. For an existing shell,
+`env -u SSL_CERT_FILE -u SSL_CERT_DIR openshell status` explicitly checks native
+trust. CLI OIDC refresh is separate from the factory's Lore grant renewal gate.
 
 ## Build Inputs
 

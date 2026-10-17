@@ -17,6 +17,11 @@ desktop up -d`. A fresh installation must provision the identity credentials and
 external data volumes first. See [identity](identity/README.md) and [the infrastructure
 plan](../veoveo-docs/INFRASTRUCTURE_CANDIDATE.md).
 
+On macOS, complete the one-time [installation CA trust setup](identity/README.md#macos-certificate-trust)
+in the user's login keychain before OpenShell login. This is an installation step;
+ordinary CLI use needs no certificate environment exports. Then follow the
+[native OpenShell commands](openshell/README.md#operator-state-and-identity).
+
 `vv-egress` permits only configured OIDC hosts for trusted bootstrap authentication.
 OpenShell owns factory/model/API credential mediation. No agent joins bootstrap
 networks or mounts their state.

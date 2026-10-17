@@ -37,17 +37,45 @@ resolves `*.localhost` to loopback; on Linux hosts without that behavior add
 these names through Docker's aliases for the TLS edge. `.localhost` bypasses the
 outbound dependency proxy in trusted runtimes.
 
-Trust only the generated identity leaf certificate in the macOS user's keychain:
+### macOS certificate trust
+
+After generating the installation CA, install its public certificate once in the
+current macOS user's login keychain with SSL trust. Run from the installation root:
 
 ```sh
-security add-trusted-cert -r trustAsRoot -p ssl \
-  -k "$HOME/Library/Keychains/login.keychain-db" tls/identity/identity.crt
+security add-trusted-cert -r trustRoot -p ssl \
+  -k "$HOME/Library/Keychains/login.keychain-db" tls/ca/ca.crt
 ```
 
-This does not grant CA trust to the installation root. The leaf is valid for one
-year and only for its named local endpoints. Renew it with the same CA before
-expiry, reload Envoy and replace the leaf's user trust. Linux clients can trust the
-installation CA in their chosen client's trust store.
+macOS may request authorization for this one-time trust change. It uses the user
+trust domain and does not require `sudo`. Only the public CA certificate enters the
+keychain; its private signing key stays in the installation's protected state.
+
+OpenShell's OIDC discovery, login and token refresh use native certificate roots.
+Earlier installations trusted only the `auth.localhost` leaf certificate for the
+browser, which left the CLI reporting `UnknownIssuer`. Trusting the installation
+CA supplies the issuer chain the CLI needs. Existing leaf entries can remain.
+The CA trust persists across terminals and reboots; ordinary OpenShell commands
+need no `SSL_CERT_FILE` or `SSL_CERT_DIR` export. Remove any Veoveo-specific shell
+override added for the earlier smoke setup.
+
+To inspect existing entries, compare these SHA-256 fingerprints:
+
+```sh
+openssl x509 -in tls/ca/ca.crt -noout -fingerprint -sha256
+security find-certificate -a -c "Veoveo local installation CA" -Z \
+  "$HOME/Library/Keychains/login.keychain-db"
+security dump-trust-settings
+```
+
+Preserve this CA across bootstrap reruns. Renew endpoint certificates under the
+same CA before expiry and reload the affected TLS endpoints; that requires no new
+root trust installation. A new CA requires installing its public certificate on
+each client before switching endpoints. Linux clients use their platform's trust
+store. An externally hosted issuer with a publicly trusted chain needs no local
+Veoveo CA trust for its login endpoint.
+
+### Local credentials
 
 Initial user and administrator details live in `state/identity/credentials.json`,
 mode 0600 inside a mode 0700 directory. The ordinary username is the host's login
