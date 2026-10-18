@@ -50,10 +50,15 @@ image identities and runtime receipts belong in the
 As of 2026-10-18, native Linux builds and component checks pass. Native OpenShell
 operator login through Entra is verified, and the reference tunnel is connected.
 Fresh PostgreSQL is healthy. SeaweedFS verifies TLS and denies anonymous S3 requests
-through both its origin and public hostname.
+through both its origin and public hostname. Hub and Time are Ready in native
+OpenShell sandboxes. Hub passes canonical public discovery/JWKS checks; Time
+registered through native credential custody and applied its database migration.
+The restricted Hub forwarder completed a scheduled credential renewal at
+21:06:55 UTC, observed without manual rotation.
 
-Deployed registration, authenticated transfers, Tasks, permissions, subscriptions,
-renewal and restart persistence remain to be qualified. The real signed WaveSpeed
+User-authenticated Hub MCP calls, Artifact/Media registration and transfers,
+Tasks, permissions, subscriptions, application credential renewal and restart
+persistence remain to be qualified. The real signed WaveSpeed
 callback and final OpenCode/MiMo run are also pending; this Linux deployment has
 made no paid generation or model-driven acceptance call. GPU/CUDA and general
 environment composition remain separate work.
@@ -70,7 +75,7 @@ out of Git. Use the existing private configuration and native OpenShell credenti
 custody. Cloning this repository does not confer operator or application access.
 
 The repository shares Git history with the template. Its current reviewed base is
-`1ca4f3062a11c0f6d46de2e898a0e427929fc7eb`. Configure the upstream after cloning:
+`b4e2f99ab21b163fab8cad3ef6c546c198e9850b`. Configure the upstream after cloning:
 
 ```sh
 git remote add upstream https://github.com/VeoveoAI/veoveo-template-installation.git
