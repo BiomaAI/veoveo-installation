@@ -226,3 +226,9 @@ The [prepared Time workflow](FACTORY_TIME.md) adds separate standard policies an
 profiles for a trusted source publisher and bounded factory. The original fixture
 policy and qualification flow above remain separate. Do not publish source or run
 a model until the execution checklist has accepted deployed Hub/Time.
+
+## Private Artifact follow-up
+
+After Hub/Time, use the [native Artifact preparation](ARTIFACT.md) for its explicit
+private Hub binding, persistent registration key, dedicated bucket-scoped signing
+credential and direct signed S3 transfers. Public sharing and Media remain separate.

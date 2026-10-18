@@ -18,6 +18,10 @@ ISSUER = 'https://auth.localhost:8443/realms/veoveo'
 JWKS = 'https://host.openshell.internal:8443/realms/veoveo/protocol/openid-connect/certs'
 HUB_ORIGIN = 'https://vv-control--hub--http.openshell.localhost:17670'
 ROLES = ('member', 'admin', 'forwarder')
+TIME_BINDING = {'endpoint': 'http://time.internal:8800/time/mcp', 'workspace': 'vv-services',
+                'sandbox': 'time', 'port': 8800}
+ARTIFACT_BINDING = {'endpoint': 'http://artifact.internal:8801/artifact/mcp', 'workspace': 'vv-services',
+                    'sandbox': 'artifact', 'port': 8801}
 
 
 def private(path, text, exclusive=False):
@@ -183,10 +187,21 @@ def configure_client(request, token, role, scope_id):
     return account
 
 
-def catalog(origin):
+def retain_artifact_binding(requested):
+    """Never remove a previously selected native service on an ordinary rerun."""
+    path = STATE / 'hub.json'
+    if not path.exists():
+        return requested
+    bindings = json.loads(path.read_text())['nativeUpstreams']['bindings']
+    if bindings not in ([TIME_BINDING], [TIME_BINDING, ARTIFACT_BINDING]):
+        raise ValueError('existing native bindings differ; review operator placement before regeneration')
+    return requested or ARTIFACT_BINDING in bindings
+
+
+def catalog(origin, include_artifact=False):
     resource = origin + '/mcp/local'
     clients = ['vv-hub-member', 'vv-hub-admin']
-    return {'identityProviders': [{'id': 'local', 'issuer': ISSUER,
+    result = {'identityProviders': [{'id': 'local', 'issuer': ISSUER,
         'jwks': {'source': 'remote', 'jwksUri': JWKS},
         'trustedCertificateAuthorities': [{'source': 'file', 'path': '/etc/veoveo/hub/installation-ca.crt'}],
         'tokenEndpoint': ISSUER + '/protocol/openid-connect/token', 'metadata': {}}],
@@ -215,16 +230,21 @@ def catalog(origin):
             'locator': 'VEOVEO_REGISTRATION_SECRET', 'owner': {'kind': 'hub'}, 'metadata': {}}],
         'nativeUpstreams': {'gateway': 'https://host.openshell.internal:17670',
             'certificateAuthority': '/run/openshell-supervisor-ca/material/ca.crt', 'bearerEnvironment': 'HUB_MANAGEMENT_REFERENCE',
-            'bindings': [{'endpoint': 'http://time.internal:8800/time/mcp', 'workspace': 'vv-services',
-                          'sandbox': 'time', 'port': 8800}]}, 'metadata': {}}
+            'bindings': [dict(TIME_BINDING)]}, 'metadata': {}}
+    if include_artifact:
+        result['nativeUpstreams']['bindings'].append(dict(ARTIFACT_BINDING))
+    return result
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--hub-origin', required=True, help='explicit expected native HTTPS Hub origin')
+    parser.add_argument('--include-artifact', action='store_true',
+                        help='explicitly select the private vv-services/artifact native binding')
     options = parser.parse_args()
     if options.hub_origin.rstrip('/') != HUB_ORIGIN:
         raise ValueError('this local setup requires the reviewed vv-control/hub/http origin on 17670')
+    include_artifact = retain_artifact_binding(options.include_artifact)
     os.umask(0o077)
     STATE.mkdir(mode=0o700, parents=True, exist_ok=True)
     STATE.chmod(0o700)
@@ -258,7 +278,7 @@ def main():
         subject = configure_client(request, token, role, selected['sandbox:write' if role == 'forwarder' else 'mcp'])
         if role == 'forwarder':
             print('Forwarder subject for native vv-services user membership: ' + subject)
-    private(STATE / 'hub.json', json.dumps(catalog(HUB_ORIGIN), indent=2) + '\n')
+    private(STATE / 'hub.json', json.dumps(catalog(HUB_ORIGIN, include_artifact), indent=2) + '\n')
     print('Prepared local identities and owner-only state/openshell/hub files; no workloads or database state changed.')
     print('Verify the actual native exposure equals --hub-origin before application qualification.')
 
