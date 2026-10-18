@@ -213,7 +213,11 @@ Do not attach its admin, qualification, management or registration providers.
 
 Import [time-inference.yaml](providers/time-inference.yaml) in `vv-time-build`.
 Supply the approved inference secret through the trusted shell environment or
-native secret input; disable shell tracing. For an already exported
+native secret input; disable shell tracing. This installation already keeps it as
+`DEEPINFRA_API_TOKEN` in the ignored root `.env`. Load it with the trusted
+installation environment workflow and map it to `VEOVEO_INFERENCE_TOKEN` only in
+the operator provisioning process; never print it or copy `.env` into the sandbox.
+For an already exported
 `VEOVEO_INFERENCE_TOKEN`, creation uses an environment lookup (no literal secret):
 
 ```sh
