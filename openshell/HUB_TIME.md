@@ -2,7 +2,7 @@
 
 These files prepare the existing native Hub → Time contract. They do not deploy
 services or establish application, renewal, database or restart acceptance. Use the
-[execution checklist](../../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md#subsequent-adoption)
+[execution checklist](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md#subsequent-adoption)
 for those gates. Preserve the existing databases, legacy schemas and server data.
 Hub creates its own `hub` schema; this preparation performs no database migration,
 reset or rename.
@@ -143,7 +143,7 @@ supported alternative.
 
 Set `VEOVEO_ACCEPTANCE_MEMBER_BEARER_ENV=HUB_MEMBER_REFERENCE` and
 `VEOVEO_ACCEPTANCE_ADMIN_BEARER_ENV=HUB_ADMIN_REFERENCE` in that runner. The
-[Time acceptance source](../../veoveo-mcp-time/README.md#acceptance) now sends a valid
+[Time acceptance source](https://github.com/VeoveoAI/veoveo-mcp-time/blob/main/README.md#acceptance) now sends a valid
 modern MCP unauthenticated request requiring Hub HTTP401/Bearer challenge, and
 checks actual schedule Task cancellation with a pushed and retained Cancelled
 outcome. Native transport refusal must not count as Hub permission refusal. Run
@@ -173,7 +173,7 @@ the old Time runtime stopped and the new runtime is ready, then sends exactly
 `continue` followed by LF. The same Task must still be Working after that boundary,
 then open Working on a fresh subscription and push Completed with the expected
 typed schedule and retained result. Early completion fails as inconclusive.
-Follow the [domain-owned instructions](../../veoveo-mcp-time/README.md#in-flight-task-restart)
+Follow the [domain-owned instructions](https://github.com/VeoveoAI/veoveo-mcp-time/blob/main/README.md#in-flight-task-restart)
 for exact invocations. The runner receives no management authority, files or
 restart manifest. Source checks do not establish these deployed outcomes; record
 actual runtime and registration identity evidence in the execution checklist.

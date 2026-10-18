@@ -1,7 +1,7 @@
 # Native reference installation with Entra
 
 This prepares the reference Linux goal in the
-[execution plan](../../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md#reference-linux-deployment-and-signed-wavespeed-webhook-goal).
+[execution plan](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md#reference-linux-deployment-and-signed-wavespeed-webhook-goal).
 It is configuration, not a qualification receipt or deployment controller. Public
 origins below are examples; use the operator's reviewed DNS/TLS configuration in
 private state. The authorized fresh Linux reference discards old application

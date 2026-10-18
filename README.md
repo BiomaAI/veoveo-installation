@@ -29,7 +29,7 @@ No agent joins bootstrap networks, mounts operator state or accesses Docker.
 Rust toolchain. The server uses native OIDC with its public CA trust and the
 existing hook extension. The first smoke factory's RPC policy is read-only and
 has no inference provider. Build commands select the required patched sources;
-the [execution checklist](../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md) records current acceptance.
+the [execution checklist](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md) records current acceptance.
 
 For the Entra-backed reference Linux goal, follow the existing native contracts
 and [reference preparation](openshell/REFERENCE.md). It uses no local Keycloak
@@ -52,6 +52,6 @@ are preserved.
 
 The local direct-issuer path has focused qualification. The reference Linux/Entra
 and signed webhook goal is active in the
-[execution plan](../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md). Customer issuers,
+[execution plan](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md). Customer issuers,
 interactive human Lore login, GPU/CUDA and general environment composition remain
 separate qualifications.
