@@ -26,6 +26,41 @@ and it is refused access to an unrelated bucket and administrative identity APIs
 Preserve existing identities and data. Credential adoption/provisioning is a trusted
 operator operation, not part of `configure-hub` or an agent factory.
 
+SeaweedFS 4.48's `s3.user.provision -role=readwrite` preset alone is insufficient:
+Artifact also initializes the bucket/lifecycle and manages multipart uploads.
+After provisioning, inspect the service user's attached policy name and replace
+that policy using the native `weed shell` IAM command and the reviewed
+[Artifact storage policy](artifact-storage-policy.json). For the existing user
+`vv-artifact` provisioned with that preset, the generated name is normally
+`artifacts-vv-artifact-readwrite`; verify the actual attachment before updating it.
+Make the JSON available to the trusted process running `weed shell` (for a
+container shell, copy only this nonsecret file into the container first), then run
+these commands in that shell with the verified name and file path:
+
+```text
+s3.policy -get -name=artifacts-vv-artifact-readwrite
+s3.policy -put -name=artifacts-vv-artifact-readwrite -file=/tmp/artifact-storage-policy.json
+s3.policy -get -name=artifacts-vv-artifact-readwrite
+```
+
+This updates the attached policy without replacing the user's signing credentials.
+Its bucket-only actions are `s3:CreateBucket`, `s3:ListBucket` and
+`s3:PutLifecycleConfiguration` on `arn:aws:s3:::artifacts`. Its object actions are
+`s3:GetObject`, `s3:PutObject`, `s3:DeleteObject`, `s3:CreateMultipartUpload`,
+`s3:UploadPart`, `s3:CompleteMultipartUpload`, `s3:ListMultipartUploadParts` and
+`s3:AbortMultipartUpload` on `arn:aws:s3:::artifacts/*`. Startup calls CreateBucket
+even when the bucket exists; an existing bucket does not remove that authorization
+requirement. If Artifact's `cors_origins` is nonempty, add only
+`s3:PutBucketCors` to the bucket statement in the reviewed installation copy;
+SeaweedFS 4.48 uses that exact spelling. The default policy omits it.
+
+No bare `Admin`, IAM administration, bucket deletion, unrelated bucket access or
+blanket action grant is required. Read back the applied policy, then verify startup,
+small signed PUT/GET, multipart completion/abort, unrelated-bucket refusal and
+administrative identity-API refusal using the service credential. Inspect protocol
+status/error codes; a generic CLI error alone does not prove access was denied.
+Keep the bootstrap administrator separate and verify it remains usable.
+
 Store only the service's standard environment in ignored
 `state/openshell/artifact/storage.env`, directory 0700/file 0600:
 
