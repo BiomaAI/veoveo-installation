@@ -1,0 +1,74 @@
+version: 1
+filesystem_policy:
+  include_workdir: true
+  read_only:
+  - /bin
+  - /usr
+  - /lib
+  - /lib64
+  - /etc
+  - /proc
+  - /dev/urandom
+  - /var/log
+  read_write:
+  - /sandbox
+  - /tmp
+  - /dev/null
+network_policies:
+  hub:
+    endpoints:
+    - host: veoveo.bioma.ai
+      port: 443
+      path: /mcp/local
+      protocol: mcp
+      enforcement: enforce
+      credential_binding:
+        provider: vv-hub-qualification
+      mcp:
+        versions:
+        - '2026-07-28'
+        allow_all_known_mcp_methods: false
+      rules:
+      - allow:
+          method: server/discover
+      - allow:
+          method: ping
+      - allow:
+          method: tools/list
+      - allow:
+          method: tools/call
+          tool: time__resolve_time
+      - allow:
+          method: tools/call
+          tool: time__convert_time
+      - allow:
+          method: tools/call
+          tool: time__expand_schedule
+      - allow:
+          method: tools/call
+          tool: time__validate_timeline
+      - allow:
+          method: tools/call
+          tool: time__create_event
+      - allow:
+          method: tools/call
+          tool: time__cancel_event
+      - allow:
+          method: tools/call
+          tool: time__list_sources
+      - allow:
+          method: tools/call
+          tool: time__list_active_authorities
+      - allow:
+          method: tools/call
+          tool: time__undeclared_tool
+      - allow:
+          method: resources/read
+      - allow:
+          method: subscriptions/listen
+      - allow:
+          method: tasks/get
+      - allow:
+          method: tasks/cancel
+    binaries:
+    - path: /sandbox/bin/time-acceptance

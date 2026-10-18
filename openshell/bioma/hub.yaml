@@ -1,0 +1,61 @@
+version: 1
+filesystem_policy:
+  include_workdir: true
+  read_only:
+  - /bin
+  - /usr
+  - /lib
+  - /lib64
+  - /etc
+  - /proc
+  - /dev/urandom
+  - /var/log
+  - /var/lib/veoveo
+  read_write:
+  - /tmp
+  - /dev/null
+network_policies:
+  forward:
+    endpoints:
+    - host: host.openshell.internal
+      port: 17670
+      path: /openshell.v1.OpenShell/ForwardTcp
+      protocol: rest
+      enforcement: enforce
+      credential_binding:
+        provider: vv-hub-forwarder
+      rules:
+      - allow:
+          method: POST
+          path: /openshell.v1.OpenShell/ForwardTcp
+    binaries:
+    - path: /usr/local/bin/veoveo-hub
+  entra:
+    endpoints:
+    - host: login.microsoftonline.com
+      port: 443
+      path: /e0ee3c6a-4f58-4f66-8de4-253226eeed5f/discovery/v2.0/keys
+      protocol: rest
+      enforcement: enforce
+      rules:
+      - allow:
+          method: GET
+          path: /e0ee3c6a-4f58-4f66-8de4-253226eeed5f/discovery/v2.0/keys
+    - host: login.microsoftonline.com
+      port: 443
+      path: /e0ee3c6a-4f58-4f66-8de4-253226eeed5f/oauth2/v2.0/token
+      protocol: rest
+      enforcement: enforce
+      rules:
+      - allow:
+          method: POST
+          path: /e0ee3c6a-4f58-4f66-8de4-253226eeed5f/oauth2/v2.0/token
+    binaries:
+    - path: /usr/local/bin/veoveo-hub
+  database:
+    endpoints:
+    - host: host.openshell.internal
+      port: 5432
+      protocol: tcp
+    binaries:
+    - path: /usr/local/bin/veoveo-hub
