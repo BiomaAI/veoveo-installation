@@ -10,8 +10,6 @@ credentials:
   refresh:
     strategy: oauth2_refresh_token
     token_url: https://veoveo.bioma.ai/oauth/token
-    scopes:
-    - mcp
     refresh_before: 180s
     max_lifetime: 300s
     material:
@@ -29,8 +27,6 @@ credentials:
   refresh:
     strategy: oauth2_refresh_token
     token_url: https://veoveo.bioma.ai/oauth/token
-    scopes:
-    - mcp
     refresh_before: 180s
     max_lifetime: 300s
     material:
