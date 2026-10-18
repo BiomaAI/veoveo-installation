@@ -68,6 +68,7 @@ def main():
         role = request("/admin/realms/veoveo/roles/openshell-user", token=token) if client_id == "veoveo-outsider" else admin_role
         request("/admin/realms/veoveo/users/" + subject + "/role-mappings/realm", "POST", [role], token)
     config = {"issuer": "https://auth.localhost:8443/realms/veoveo", "clientId": "veoveo-controller",
+              "issuerCaFile": str(ROOT / "tls/ca/ca.crt"),
               "clientSecretFile": str(secret_path), "audience": "openshell",
               "gateway": "https://localhost:17670", "gatewayCaFile": "/opt/homebrew/var/openshell/tls/ca.crt"}
     (directory / "controller.json").write_text(json.dumps(config, indent=2) + "\n")
