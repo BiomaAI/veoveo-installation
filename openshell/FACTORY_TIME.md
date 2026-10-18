@@ -126,7 +126,7 @@ Keep Git and Lore working directories separate. Run this block in Bash:
     END { exit rejected }
   '
   umask 077
-  git -C ../veoveo-mcp-time archive --format=tar "$TIME_GIT_COMMIT" \
+  git -c tar.umask=0022 -C ../veoveo-mcp-time archive --format=tar "$TIME_GIT_COMMIT" \
     > state/openshell/lore-direct/time-source.tar
   openshell sandbox upload --workspace vv-time-source --no-git-ignore \
     publisher state/openshell/lore-direct/time-source.tar /sandbox/time-source.tar
@@ -249,20 +249,23 @@ native exposure; the policy's local origin is not a substitute for that check.
 
 Offline inspection of the installed pinned OpenCode 2.0.29 loaded
 `/etc/opencode/opencode.json` and confirmed `prepared-time` has four steps.
-`default_agent` remains the two-step `build` agent. Before model execution, use
-installed help and effective configuration to establish the exact explicit config
-and `prepared-time` selection invocation; this final no-model check remains
-required. Do not rely on the default agent. Keep integrations disabled and the
-provider/output limits as configured.
+`default_agent` remains the two-step `build` agent. Select the installed config
+explicitly with `OPENCODE_CONFIG=/etc/opencode/opencode.json`; the CLI has no
+`--config` flag. The no-model check is `opencode debug config` under that environment.
+Installed help confirms `opencode run --agent prepared-time` for the eventual
+model invocation. Do not rely on the default agent. Keep integrations disabled and
+the provider/output limits as configured.
 
-The inspected shell schema accepts numeric timeout milliseconds: `0` disables the
-timeout, and background execution is unbounded. Use foreground execution with an
-explicit finite timeout sufficient for the measured release build. Its accepted
-maximum has not been established and must be checked without inference before the
-model task. The provider HTTP `timeout: 300000` is a separate limit and does not
-bound a shell build. Do not use zero, background execution or an assumed default
-short timeout. A schema/tool limit failure returns to development before spending
-model tokens. Keep OpenCode version/digests pinned.
+Static inspection of the installed shell implementation confirms `timeout` is a
+nonnegative integer in milliseconds. Foreground defaults to 120000; an explicit
+900000 is accepted and passed unchanged to its timer, with no shell-specific cap.
+On expiry it terminates the command with a three-second force-kill grace. Zero
+disables the timer, and background execution defaults to no timeout. Select a
+finite foreground timeout sufficient for the measured release build. The provider
+HTTP `timeout: 300000` is a separate limit and does not bound a shell build. Do not
+use zero, background execution or the assumed default. A schema/tool failure
+returns to development before spending model tokens. Keep OpenCode version/digests
+pinned.
 
 With the exact image/policy/providers, manually clone `TIME_LORE_REVISION` from
 `grpcs://10.231.10.10:41337/TIME_REPOSITORY_ID` using the same `--identity` and opaque
