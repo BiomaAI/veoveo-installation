@@ -266,6 +266,31 @@ Time `http://time.internal:8800`, Artifact `http://artifact.internal:8801`, and 
 `http://media.internal:8802`. Time and Artifact need no public exposure or public
 origin. Their private calls retain logical Host and audience through ForwardTcp.
 
+### Media Host admission for native HTTP exposure
+
+Whenever Media is selected for native HTTP service exposure, including an early
+fake-provider ingress probe, add the following nonsecret literal to the existing
+trusted `provider.env` mounted at `/etc/veoveo/media/provider.env`:
+
+```sh
+VEOVEO_ALLOW_LOOPBACK_HOSTS=true
+```
+
+Retain the file's provider/webhook secret and other reviewed settings, private
+permissions and UID 10001 readability. The existing startup command sources this
+file before executing Media; update that mounted file through trusted preparation,
+then use native stop/start of the existing `vv-services/media` sandbox to load it.
+Do not replace the file with only the flag or introduce another startup wrapper.
+
+This is independent of public origin and completion mode. Keep
+`VEOVEO_PUBLIC_ORIGIN` unset for the fake/status-check baseline; setting the Host
+allowance does not enable Events. Media binds `0.0.0.0:8802` inside its isolated
+sandbox network. Native HTTP ingress forwards with `Host: 127.0.0.1:8802`;
+the flag adds only `localhost`, `127.0.0.1` and `::1` to the SDK's accepted hosts.
+It does not widen native policy, expose the host network or bypass normal TLS,
+application authentication or webhook signature verification. Private ForwardTcp
+continues to retain the logical `media.internal:8802` authority.
+
 ### Media event completion and callback ingress
 
 For the signed callback gate, replace the fake-only configuration with the
