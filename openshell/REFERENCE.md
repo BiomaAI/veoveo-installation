@@ -32,11 +32,19 @@ issuer, audience, roles, expiry and native admission before deployment.
 
 Register the native CLI with its exact gateway URL, tenant-specific issuer,
 client ID and selected resource scopes using `openshell gateway add ...
---oidc-issuer ... --oidc-client-id ... --oidc-scopes ...`, then `gateway login`.
-The existing browser flow uses authorization code, PKCE and state with an HTTP
-loopback callback. Configure the corresponding Entra public-client redirect and
-request `offline_access` when renewable interactive login is needed. Trusted
-client-credentials login instead reads `OPENSHELL_OIDC_CLIENT_SECRET` from the
+--oidc-issuer ... --oidc-client-id ... --oidc-scopes ...`. The reference qualified
+native device authorization with a separate Entra public CLI registration
+(`isFallbackPublicClient = true`): request the resource's `access_as_user` scope
+plus `openid profile offline_access`, then run:
+
+```sh
+OPENSHELL_NO_BROWSER=1 openshell gateway login <name>
+```
+
+The browser authorization-code flow uses PKCE, state and an HTTP loopback callback;
+it requires an exact provider-supported redirect registration. A random-port
+`127.0.0.1` callback was not qualified by this reference device-flow receipt.
+Trusted client-credentials login instead reads `OPENSHELL_OIDC_CLIENT_SECRET` from the
 operator environment; never put it on argv. Select `<resource-App-ID-URI>/.default`
 for app-only tokens. This is distinct from the JWT's `aud` value. No client mTLS
 identity is required for these OIDC users; ordinary server TLS verification and
