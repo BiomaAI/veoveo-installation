@@ -56,6 +56,10 @@ canonical public discovery/JWKS checks; service registration and database migrat
 pass. Artifact's bucket-scoped storage identity passes object and multipart
 operations and is denied access to an unrelated bucket. The fixture holds fake
 credentials only; it has no real WaveSpeed credentials.
+Media's native/public callback ingress passes Host admission after selecting the
+SDK's existing loopback-host allowance. Unsigned callback probes are rejected;
+this does not yet qualify a real provider event. The same sandbox, persistent
+volumes and signing key survive the configuration restart.
 The restricted Hub forwarder completed a scheduled credential renewal at
 21:06:55 UTC, observed without manual rotation.
 
@@ -79,7 +83,7 @@ out of Git. Use the existing private configuration and native OpenShell credenti
 custody. Cloning this repository does not confer operator or application access.
 
 The repository shares Git history with the template. Its current reviewed base is
-`1ea5c8d48dd76ac4adf031140d39dc08273fc586`. Configure the upstream after cloning:
+`7e113b2d871d1a0c0e5dd056b134acdbf0c899f2`. Configure the upstream after cloning:
 
 ```sh
 git remote add upstream https://github.com/VeoveoAI/veoveo-template-installation.git
