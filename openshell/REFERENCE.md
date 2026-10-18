@@ -4,8 +4,11 @@ This prepares the reference Linux goal in the
 [execution plan](../../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md#reference-linux-deployment-and-signed-wavespeed-webhook-goal).
 It is configuration, not a qualification receipt or deployment controller. Public
 origins below are examples; use the operator's reviewed DNS/TLS configuration in
-private state. Preserve remote source, databases, S3 data, signing keys, native
-credential state and backups before replacing workloads. GPU/CUDA is separate.
+private state. The authorized fresh Linux reference discards old application
+containers, clusters and data volumes, with no backups requested. Preserve source,
+the Mac installation and the active new OpenShell/Entra control plane. Scope the
+operator's deletion inventory to old reference resources; this is not permission
+to clear unrelated Docker or native state. GPU/CUDA is separate.
 
 Use the existing Docker-driver gateway, providers, policies, volumes and lifecycle.
 Do not run the local Keycloak profile or identity HTTPS edge on this Entra reference.
@@ -82,7 +85,7 @@ Hub, not by the agent. Hub checks signature, issuer, application audience and
 nonce, maps `oid` to the stable subject and maps only the selected `tid` to the
 installation tenant. Sign-in alone grants no Work Context or permission.
 
-## Prepare existing Hub schemas
+## Prepare trusted Hub configuration
 
 Privately supply `VEOVEO_IDP_OIDC_TENANT_ID`, `VEOVEO_IDP_OIDC_CLIENT_ID`,
 `VEOVEO_IDP_OIDC_ISSUER`, `VEOVEO_IDP_OIDC_CLIENT_SECRET` and the existing trusted
@@ -129,6 +132,71 @@ Hub's private environment. Validate the generated catalog using the component CL
 veoveo-hub validate --config state/openshell/hub/hub.json
 ```
 
+Before first startup, populate the existing `vv-hub-config` named volume with
+**only** `hub.env`, `hub.json` and `authorization-server.jwks.json`, mounted read-only
+at `/etc/veoveo/hub` through [the existing mount configuration](hub-mounts.json).
+The Entra catalog references that public JWK file at this exact path; omitting it
+breaks application-token verification. Make the directory mode 0700 and files 0600,
+owned/readable by the runtime's UID 10001. Do not copy operator state or caller
+refresh material. The Mac's `installation-ca.crt` is not needed for publicly
+trusted Entra endpoints. The separate native control connection still uses the
+OpenShell-provisioned workload CA described in [Hub/Time setup](HUB_TIME.md).
+
+### Fresh bootstrap and retired reference keys
+
+After the reviewed old-resource cleanup, initialize empty external volumes
+`vv-local_vv-postgres` and `vv-local_vv-seaweedfs`, which the existing Compose file
+requires. Privately select new `VEOVEO_POSTGRES_PASSWORD` (bootstrap superuser),
+`VEOVEO_DATABASE_PASSWORD` (installation owner), `VEOVEO_STORAGE_ACCESS_KEY`,
+`VEOVEO_STORAGE_SECRET_KEY` and `VEOVEO_SEAWEEDFS_ADMIN_PASSWORD`; keep them out of
+argv/output. Do not copy old application credentials or restore an old dump.
+[PostgreSQL's existing init file](../postgres/initdb/owner.sql) creates
+`veoveo_owner LOGIN CREATEROLE` and database `veoveo` owned by that role on an empty
+data directory. It does not migrate a pre-existing database. The fresh helper's
+default owner/server URLs already select this new `veoveo`; no override is needed
+for that bootstrap.
+
+The helper makes no database connection. It has **no database-URL override flag**
+and does not read URL overrides from the invoking environment. If another fresh
+database name is deliberately selected, create it through the trusted PostgreSQL
+bootstrap procedure, first prepare the standard files above, then privately edit
+only these standard fields in `state/openshell/hub/hub.env` before mounting or
+starting Hub:
+
+```sh
+VEOVEO_DATABASE_URL=postgres://veoveo_owner@host.openshell.internal:5432/veoveo_reference
+VEOVEO_SERVER_DATABASE_URL=postgres://host.openshell.internal:5432/veoveo_reference
+```
+
+`veoveo_reference` is an example of the selected new database, not a command to
+create it. Supply its reviewed owner password separately through the existing
+`VEOVEO_DATABASE_PASSWORD` field; never put it in argv or published URLs. Preserve
+all generated keys and other environment fields. The two URLs reach the same
+selected database, with Hub's owner login and the server-login template
+respectively. A normal helper rerun reads and preserves the existing `hub.env`,
+including these URL values; it refuses a changed supplied password rather than
+rotating it. Review the private values before deployment; catalog validation does
+not establish database readiness or migration compatibility.
+
+This reference does not adopt historical database migration ledgers, rows or
+objects. Start current migrations on the newly initialized database; do not forge
+old checksums or rename the legacy `gateway` schema into `hub`. No history
+migration feature or backup/restore step is required for this authorized fresh
+setup.
+
+The old Linux Time, Artifact and Media `server-key.p8` identities were exposed and
+are retired: **never deploy or adopt those keys**, including staged copies. This
+overrides only the linked Mac key-adoption steps for this reference. Start with
+fresh Hub private output and empty UID 10001 service-state volumes. First Hub
+preparation generates new forwarded/application signing keys, audit/refresh keys
+and initial registration secret; do not seed it from old `hub.env`. Each service's
+existing `KeyDirectory::load_or_generate` creates its new Ed25519 `server-key.p8`
+atomically, mode 0600, on first startup in its writable key directory. The fresh
+database has no namespace claims and pins those new public identities at normal
+registration. Preserve the new state and keys on subsequent reruns/restarts. The
+active OpenShell operator/forwarder identities are separate and are not reset by
+this application cleanup.
+
 Reruns retain selected private Time/Artifact/Media bindings and policy definitions.
 Changed issuer, clients, principal grants, tenant/context, owner, keys or native
 control endpoint require separate reviewed migration/recovery; the helper refuses
@@ -163,14 +231,76 @@ separate refresh entries. An Entra client secret is not a Hub client-credentials
 grant. Fully unattended hosted Hub clients retain their existing `private_key_jwt`
 contract and need a separately reviewed caller-custody decision.
 
+### Canonical Hub authority and private service placement
+
 Service registration uses the existing per-service initial-access providers.
-Adapt the existing Time/Artifact/Media policies to the actual Hub HTTPS authority,
-metadata, registration and token endpoints. Retain exact modern MCP rules and
-binary restrictions; add no broad REST/MCP allow. Actual services stay private
-under native ForwardTcp bindings. Media's signed callback uses its existing
-`/media/operations/{operation_id}/{token}` route, public origin and signature
-verifier; expose only that path through the reviewed existing tunnel. Verify
-actual signed callback receipt and event completion separately from status polls.
+For **Time, Artifact and Media**, set:
+
+```sh
+VEOVEO_HUB_ISSUER=https://veoveo.example.com
+```
+
+This is Hub's configured canonical public issuer, not its native exposure origin.
+SDK registration discovery requires the returned `issuer` to equal this value
+exactly. Adapt [Time](time.yaml), [Artifact](artifact.yaml) and [Media](media.yaml)
+service policies to `veoveo.example.com:443` for the existing
+`/.well-known/oauth-authorization-server`, `/jwks.json`, `/oauth/register` and
+registration-management paths. Keep only each service's required `/oauth/token`
+and `/mcp/local` calls, existing executable restrictions and exact REST/MCP rules.
+The application authorization server at `/oauth` has separate metadata and
+`/oauth/jwks.json`; do not substitute it for service registration discovery.
+Adapt application/qualification policies and refresh token URLs to the same
+canonical public authority. Do not broaden paths to accommodate the change.
+
+Cloudflare's Hub route instead connects to `https://127.0.0.1:17670` with verified
+TLS `originServerName=vv-control--hub--http.openshell.localhost` and
+`httpHostHeader=vv-control--hub--http.openshell.localhost:17670`. Native ingress selects that service
+and rewrites the upstream Host to `127.0.0.1:8080`; retain Hub's existing
+`serve --allow-loopback-hosts` command and loopback-only listener. Hub builds issuer,
+OAuth redirect and audience values from its configured catalog/deployment, not
+forwarded headers. The native service hostname is a routing/TLS authority, not an
+alternate application issuer.
+
+Keep the startup-approved ForwardTcp bindings and logical service bases unchanged:
+Time `http://time.internal:8800`, Artifact `http://artifact.internal:8801`, and Media
+`http://media.internal:8802`. Time and Artifact need no public exposure or public
+origin. Their private calls retain logical Host and audience through ForwardTcp.
+
+### Media event completion and callback ingress
+
+For the signed callback gate, replace the fake-only configuration with the
+reviewed real provider origin, API-only credential binding, permitted output hosts
+and actual webhook signing secret in the existing trusted service configuration.
+Keep API credentials off output requests. Set Media's non-secret settings:
+
+```sh
+VEOVEO_PUBLIC_ORIGIN=https://veoveo.example.com
+VEOVEO_ALLOW_LOOPBACK_HOSTS=true
+```
+
+Keep `VEOVEO_PUBLIC_BASE_URL=http://media.internal:8802`. Public origin selects
+Events completion; absence selects status checks, with no automatic fallback.
+Expose Media through its existing native service ingress:
+
+```sh
+openshell service expose --workspace vv-services media 8802 http \
+  --authorization-mode bearer-passthrough
+```
+
+Configure the existing tunnel to route only
+`/media/operations/{operation_id}/{token}` to this service; the service accepts
+POST on that route. Use verified native TLS
+`originServerName=vv-services--media--http.openshell.localhost` and
+`httpHostHeader=vv-services--media--http.openshell.localhost:17670`; the relay
+sends `Host: 127.0.0.1:8802`, hence the explicit loopback allowance. Do not publicly
+route Media MCP, fixture controls or arbitrary service paths. Preserve the callback
+path and signature headers/body; never record its bearer token in logs. The adapter
+currently sends legacy `webhook`, paired with its existing v3 signature verifier;
+do not switch only the parameter to `standard_webhook`.
+
+Verify accepted signed callback receipt and generation operation completion
+`events` with zero generation status checks. Billing's separate checks remain
+expected. A completed Task or successful route alone cannot prove webhook delivery.
 
 ## Native SeaweedFS HTTPS and signed authority
 
@@ -188,10 +318,12 @@ VEOVEO_STORAGE_TLS_KEY_FILE=/etc/seaweedfs/tls/tls.key
 Use the standard [read-only TLS override](../compose.storage-tls.yaml) with the
 existing Compose bootstrap. Inspect the source certificate/key and volume state
 first; the bind refuses to create a missing source. Validate the combined files
-before replacing only the existing SeaweedFS service. No certificate/key is copied
-into an image, and no additional proxy is introduced. Keep administration and
-storage signing credentials private; retain the dedicated bucket-scoped Artifact
-identity and all data.
+before starting only the PostgreSQL and SeaweedFS services on the fresh volumes,
+using `--no-deps` to avoid reconciling other bootstrap services. No certificate/key
+is copied into an image, and no additional proxy is introduced. Keep bootstrap
+administration private; provision a new dedicated bucket-scoped Artifact identity,
+with the existing IAM procedure, rather than mounting the bootstrap S3 credential
+in Artifact. Preserve all newly created data and credentials thereafter.
 
 The existing tunnel's object-host route must use verified TLS to that native S3
 listener, with a certificate valid for the selected origin server name. Preserve
@@ -200,8 +332,15 @@ URL. Configure Artifact's `VEOVEO_STORAGE_SIGNING_ENDPOINT` to
 `https://objects.veoveo.example.com`. For initial qualification the same reachable
 HTTPS authority may be used for `VEOVEO_STORAGE_ENDPOINT`; a distinct internal
 endpoint requires its own verified route/trust. Artifact uses path-style S3, so
-no wildcard bucket hostname or S3 adapter is needed. Native byte-transfer policies
-must admit this exact authority/port for intended binaries while preserving SigV4.
+no wildcard bucket hostname or S3 adapter is needed. In the reference copies of
+Artifact, Media and acceptance-client policies, admit exactly
+`objects.veoveo.example.com`, port `443`, protocol `tcp`, for their intended
+executables. This keeps signed requests outside HTTP interception and preserves
+SigV4 method, Host, path/query and headers unchanged. Replace the Mac's
+`host.openshell.internal:9000` byte-route selection; do not grant a broad HTTPS
+endpoint or attach an application/provider credential to signed storage requests.
+The object tunnel route preserves the **public S3 Host**, unlike native Hub/Media
+service ingress; its TLS origin-server name must match the S3 listener certificate.
 
 Qualify an actual signed upload/download from both the Linux workload and the Mac,
 unchanged method/URL/headers, exact bytes/hash, ranges where required and refused
