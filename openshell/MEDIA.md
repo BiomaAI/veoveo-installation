@@ -110,9 +110,16 @@ Prepare the required fake webhook HMAC secret once in ignored
 `state/openshell/media/provider.env`, directory 0700/file 0600. It contains only
 `MEDIA_PROVIDER_WEBHOOK_SECRET`, generated privately by the trusted operator.
 Preserve an existing value. Although this slice sends no webhooks, both binaries
-require the configuration. Copy only this file into `vv-media-config` privately,
-readable by UID 10001; never print it, put it on command arguments or copy the
-whole operator state directory.
+require the configuration. For this fake-only phase, prepare a separate private
+`state/openshell/media-provider/provider.env` containing the same fake HMAC value.
+Copy the service file only into `vv-media-config`, and the fixture file only into
+`vv-media-provider-config`, each directory 0700/file 0600 readable by UID 10001.
+Never print either value, put it on command arguments or copy the whole operator
+state directory. The fixture must never mount Media's service configuration volume.
+When selecting a real provider, replace only the trusted Media service config with
+its actual webhook signing secret; never copy that secret or real provider
+credentials into the fixture's config volume. Preserve the fake-only fixture state
+independently.
 
 Use only native workspace-labelled named volumes:
 
@@ -121,15 +128,21 @@ docker volume create --label openshell.ai/sandbox-attachable=true \
   --label openshell.ai/sandbox-attachable-workspace=vv-services vv-media-state
 docker volume create --label openshell.ai/sandbox-attachable=true \
   --label openshell.ai/sandbox-attachable-workspace=vv-services vv-media-config
+docker volume create --label openshell.ai/sandbox-attachable=true \
+  --label openshell.ai/sandbox-attachable-workspace=vv-services vv-media-provider-config
 ```
 
 Inspect labels and contents first. Inventory the legacy Media key and migration
 checksums before generating another key or changing schema state. If a key exists,
 adopt only `keys/server-key.p8` into `vv-media-state`, preserving its public identity,
 mode 0600 and UID 10001 ownership. The writable state survives sandbox replacement.
-Configuration is directory 0700/file 0600 and mounted read-only by
-[Media](media-mounts.json) and [the fixture](media-provider-mounts.json). Neither
-mounts operator directories, host binds or Docker sockets. The approved driver
+Configuration is directory 0700/file 0600. [Media](media-mounts.json) mounts only
+`vv-media-config` read-only, while [the fixture](media-provider-mounts.json) mounts
+only its separate `vv-media-provider-config` read-only at the same component path.
+Neither mounts operator directories, host binds or Docker sockets. These are
+startup mount selections: do not alter a running Mac sandbox as part of preparing
+the fresh reference; verify each new sandbox's actual mounts before activation.
+The approved driver
 configuration keeps resource admission enabled and bind mounts disabled;
 `allow_driver_config` also admits validated tmpfs/CDI requests, but these specs use
 neither.

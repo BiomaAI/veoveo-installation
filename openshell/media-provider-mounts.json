@@ -3,7 +3,7 @@
     "mounts": [
       {
         "type": "volume",
-        "source": "vv-media-config",
+        "source": "vv-media-provider-config",
         "target": "/etc/veoveo/media",
         "read_only": true
       }
