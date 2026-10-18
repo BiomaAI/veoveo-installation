@@ -256,8 +256,8 @@ Offline inspection of the installed pinned OpenCode 2.0.29 loaded
 `default_agent` remains the two-step `build` agent. Select the installed config
 explicitly with `OPENCODE_CONFIG=/etc/opencode/opencode.json`; the CLI has no
 `--config` flag. The no-model check is `opencode debug config` under that environment.
-Installed help confirms `opencode run --agent prepared-time` for the eventual
-model invocation. Do not rely on the default agent. Keep integrations disabled and
+Use `opencode run --agent prepared-time` followed by the prepared instructions as
+one positional message for the model invocation. Do not rely on the default agent. Keep integrations disabled and
 the provider/output limits as configured.
 
 Static inspection of the installed shell implementation confirms `timeout` is a
@@ -303,3 +303,17 @@ be reused. Verify unchanged source and retain actual command output. Build the
 runtime image outside the model from that same Lore revision using Time's existing
 Dockerfile, then deploy through native OpenShell and verify readiness plus a
 Hub-routed call. Those remain separate execution gates.
+
+For the runtime image, export the verified Lore source into a clean temporary
+Docker build context, excluding `.lore` metadata. Time's current `.dockerignore`
+excludes `.git`, but does not exclude `.lore`. Compare the exported source to the
+prepared tree before building the existing `runtime` target.
+
+Native image replacement requires recreating only the owned `vv-services/time`
+sandbox: confirm its identity and state mount, stop/delete it, await confirmed
+absence, then repeat the [Time create command](HUB_TIME.md) with the new immutable
+image. Keep its name, policy, registration provider, environment and `vv-time-state`
+volume. Do not delete the volume, provider or workspace. Hub's unchanged native
+binding resolves the sandbox name for each new connection, so it requires no
+restart. Verify the actual image, private readiness, retained public key and a
+fresh Hub-routed member call; new sandbox/process/registration client IDs are expected.
