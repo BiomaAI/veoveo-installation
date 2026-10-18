@@ -1,0 +1,12 @@
+{
+  "docker": {
+    "mounts": [
+      {
+        "type": "volume",
+        "source": "vv-media-config",
+        "target": "/etc/veoveo/media",
+        "read_only": true
+      }
+    ]
+  }
+}

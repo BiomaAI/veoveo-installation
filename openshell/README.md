@@ -94,11 +94,11 @@ partial cross-build outputs:
 ```bash
 (
 set -euo pipefail
-test ! -e state/openshell/supervisor-source-45f3b534
-git -C ../openshell worktree add --detach "$PWD/state/openshell/supervisor-source-45f3b534" \
-  45f3b534c75866e338000fc84b14e96c50b1b6ac
+test ! -e state/openshell/supervisor-source-6589a918
+git -C ../openshell worktree add --detach "$PWD/state/openshell/supervisor-source-6589a918" \
+  6589a918a7a84640969f9f77b852695e210d713f
 (
-  cd state/openshell/supervisor-source-45f3b534
+  cd state/openshell/supervisor-source-6589a918
   IMAGE_REGISTRY=veoveo IMAGE_TAG=native-ingress mise run build:docker:supervisor
 )
 docker build -f openshell/Supervisor.Dockerfile \
@@ -232,3 +232,10 @@ a model until the execution checklist has accepted deployed Hub/Time.
 After Hub/Time, use the [native Artifact preparation](ARTIFACT.md) for its explicit
 private Hub binding, persistent registration key, dedicated bucket-scoped signing
 credential and direct signed S3 transfers. Public sharing and Media remain separate.
+
+## Media preparation
+
+Use [native Media preparation](MEDIA.md) for the private service, separate fake
+provider and member/billed qualification templates. These require the reviewed
+disjoint REST/MCP admission build above; source preparation is not deployed Media
+acceptance. Preserve existing Time/Artifact data and configuration.

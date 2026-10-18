@@ -1,0 +1,8 @@
+id: vv-media-generation
+display_name: Private fake generation provider
+credentials:
+  - name: api_key
+    env_vars: [MEDIA_PROVIDER_API_KEY]
+    required: true
+    auth_style: bearer
+    header_name: authorization

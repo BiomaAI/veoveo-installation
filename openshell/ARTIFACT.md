@@ -46,6 +46,23 @@ directly to S3; Hub carries metadata/authorization only. This local HTTP storage
 listener remains the existing loopback-published SeaweedFS endpoint, not public
 storage ingress.
 
+For clients running directly on this Mac, configure the same reserved hostname in
+the Mac's hosts file as well:
+
+```text
+127.0.0.1 host.openshell.internal
+```
+
+OpenShell already resolves this name through its native host-loopback backend for
+sandbox workloads; that resolution does not configure the Mac's resolver. Adding
+the local hosts entry requires macOS administrator authentication. Preserve existing
+entries and reject a conflicting address. Check ordinary hostname resolution and a
+signed GET from the Mac after configuration, then check the unchanged URL from the
+native acceptance sandbox. A `curl --resolve` override is not client qualification.
+Do not replace the URL hostname with `localhost`, change its Host header or add a
+download proxy: the signed authority must remain intact. This is a local installation
+choice; other installations must supply their own shared reachable S3 authority.
+
 Add the explicit static native binding with the existing trusted helper:
 
 ```sh

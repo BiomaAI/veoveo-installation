@@ -2,6 +2,7 @@
 """Configure local Hub identities and trusted component files; never launch workloads."""
 import argparse
 import base64
+import copy
 import json
 import os
 from pathlib import Path
@@ -22,6 +23,8 @@ TIME_BINDING = {'endpoint': 'http://time.internal:8800/time/mcp', 'workspace': '
                 'sandbox': 'time', 'port': 8800}
 ARTIFACT_BINDING = {'endpoint': 'http://artifact.internal:8801/artifact/mcp', 'workspace': 'vv-services',
                     'sandbox': 'artifact', 'port': 8801}
+MEDIA_BINDING = {'endpoint': 'http://media.internal:8802/media/mcp', 'workspace': 'vv-services',
+                 'sandbox': 'media', 'port': 8802}
 
 
 def private(path, text, exclusive=False):
@@ -187,20 +190,31 @@ def configure_client(request, token, role, scope_id):
     return account
 
 
-def retain_artifact_binding(requested):
-    """Never remove a previously selected native service on an ordinary rerun."""
+def retained_catalog():
     path = STATE / 'hub.json'
-    if not path.exists():
-        return requested
-    bindings = json.loads(path.read_text())['nativeUpstreams']['bindings']
-    if bindings not in ([TIME_BINDING], [TIME_BINDING, ARTIFACT_BINDING]):
-        raise ValueError('existing native bindings differ; review operator placement before regeneration')
-    return requested or ARTIFACT_BINDING in bindings
+    return json.loads(path.read_text()) if path.exists() else None
 
 
-def catalog(origin, include_artifact=False):
+def select_services(include_artifact, include_media, retained):
+    """Preserve approved selections and reject foreign placement before provisioning."""
+    if retained is not None:
+        bindings = retained['nativeUpstreams']['bindings']
+        approved = ([TIME_BINDING], [TIME_BINDING, ARTIFACT_BINDING],
+                    [TIME_BINDING, ARTIFACT_BINDING, MEDIA_BINDING])
+        if bindings not in approved:
+            raise ValueError('existing native bindings differ; review operator placement before regeneration')
+        include_artifact = include_artifact or ARTIFACT_BINDING in bindings
+        include_media = include_media or MEDIA_BINDING in bindings
+    if include_media and not include_artifact:
+        raise ValueError('Media requires selected Artifact; use --include-artifact or retain its approved binding')
+    return include_artifact, include_media
+
+
+def catalog(origin, include_artifact=False, include_media=False, retained=None):
+    include_artifact, include_media = select_services(include_artifact, include_media, retained)
     resource = origin + '/mcp/local'
-    clients = ['vv-hub-member', 'vv-hub-admin']
+    roles = ['member', 'admin'] + (['billed'] if include_media else [])
+    clients = ['vv-hub-' + role for role in roles]
     result = {'identityProviders': [{'id': 'local', 'issuer': ISSUER,
         'jwks': {'source': 'remote', 'jwksUri': JWKS},
         'trustedCertificateAuthorities': [{'source': 'file', 'path': '/etc/veoveo/hub/installation-ca.crt'}],
@@ -215,7 +229,7 @@ def catalog(origin, include_artifact=False):
             {'name': 'admin', 'access': ['read', 'write'],
              'risks': ['sensitive', 'destructive', 'billed', 'physical', 'administer']}],
             'grants': [{'role': role, 'subject': {'principal': ISSUER + '#vv-hub-' + role}}
-                       for role in ['member', 'admin']]},
+                       for role in roles]},
         'registration': {'secret': 'registration_secret'},
         'tenants': [{'id': 'local', 'title': 'Local installation'}],
         'workContexts': [{'id': 'local', 'tenant': 'local', 'title': 'Local', 'policyRevision': 'local',
@@ -233,6 +247,25 @@ def catalog(origin, include_artifact=False):
             'bindings': [dict(TIME_BINDING)]}, 'metadata': {}}
     if include_artifact:
         result['nativeUpstreams']['bindings'].append(dict(ARTIFACT_BINDING))
+    if include_media:
+        result['nativeUpstreams']['bindings'].append(dict(MEDIA_BINDING))
+        result['authorization']['roles'].append(
+            {'name': 'billed', 'access': ['read', 'write'], 'risks': ['billed']})
+    if retained is not None:
+        result['workContexts'] = copy.deepcopy(retained['workContexts'])
+        result['policies'] = copy.deepcopy(retained['policies'])
+        if include_media:
+            contexts = [context for context in result['workContexts']
+                        if context['id'] == 'local' and context['tenant'] == 'local']
+            if len(contexts) != 1:
+                raise ValueError('review retained local Work Context before admitting billed client')
+            contributors = [membership for membership in contexts[0]['memberships']
+                            if membership['level'] == 'contributor'
+                            and {'vv-hub-member', 'vv-hub-admin'}.issubset(membership.get('oauthClients', []))]
+            if len(contributors) != 1:
+                raise ValueError('review retained contributor membership before admitting billed client')
+            if 'vv-hub-billed' not in contributors[0]['oauthClients']:
+                contributors[0]['oauthClients'].append('vv-hub-billed')
     return result
 
 
@@ -241,10 +274,14 @@ def main():
     parser.add_argument('--hub-origin', required=True, help='explicit expected native HTTPS Hub origin')
     parser.add_argument('--include-artifact', action='store_true',
                         help='explicitly select the private vv-services/artifact native binding')
+    parser.add_argument('--include-media', action='store_true',
+                        help='select private vv-services/media, requiring selected Artifact')
     options = parser.parse_args()
     if options.hub_origin.rstrip('/') != HUB_ORIGIN:
         raise ValueError('this local setup requires the reviewed vv-control/hub/http origin on 17670')
-    include_artifact = retain_artifact_binding(options.include_artifact)
+    retained = retained_catalog()
+    include_artifact, include_media = select_services(options.include_artifact, options.include_media, retained)
+    prepared_catalog = catalog(HUB_ORIGIN, include_artifact, include_media, retained)
     os.umask(0o077)
     STATE.mkdir(mode=0o700, parents=True, exist_ok=True)
     STATE.chmod(0o700)
@@ -274,11 +311,11 @@ def main():
     roles = request(base + '/roles', token=token)
     if not any(role['name'] == 'openshell-user' for role in roles):
         request(base + '/roles', 'POST', {'name': 'openshell-user'}, token)
-    for role in ROLES:
+    for role in (*ROLES, 'billed') if include_media else ROLES:
         subject = configure_client(request, token, role, selected['sandbox:write' if role == 'forwarder' else 'mcp'])
         if role == 'forwarder':
             print('Forwarder subject for native vv-services user membership: ' + subject)
-    private(STATE / 'hub.json', json.dumps(catalog(HUB_ORIGIN, include_artifact), indent=2) + '\n')
+    private(STATE / 'hub.json', json.dumps(prepared_catalog, indent=2) + '\n')
     print('Prepared local identities and owner-only state/openshell/hub files; no workloads or database state changed.')
     print('Verify the actual native exposure equals --hub-origin before application qualification.')
 
