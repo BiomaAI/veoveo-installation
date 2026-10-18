@@ -35,6 +35,14 @@ For the Entra-backed reference Linux goal, follow the existing native contracts
 and [reference preparation](openshell/REFERENCE.md). It uses no local Keycloak
 stack and introduces no alternate application launcher.
 
+[Bioma's installation](https://github.com/BiomaAI/veoveo-installation) is the concrete
+Linux reference implementation derived from this template. It records the selected
+native policies, public routes, source revisions and current qualification status.
+Not every template component is enabled there. Keep reusable fixes in this template
+and merge reviewed updates into that installation; private runtime state stays out
+of both repositories. Follow its acceptance record to distinguish deployed and
+verified behavior from work still in progress.
+
 ## Scope and recovery
 
 Desktop acceptance was withdrawn. Its adapter, signing/manual-token helpers and
