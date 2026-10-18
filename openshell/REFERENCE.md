@@ -322,8 +322,10 @@ before starting only the PostgreSQL and SeaweedFS services on the fresh volumes,
 using `--no-deps` to avoid reconciling other bootstrap services. No certificate/key
 is copied into an image, and no additional proxy is introduced. Keep bootstrap
 administration private; provision a new dedicated bucket-scoped Artifact identity,
-with the existing IAM procedure, rather than mounting the bootstrap S3 credential
-in Artifact. Preserve all newly created data and credentials thereafter.
+then apply the reviewed [native Artifact storage policy](ARTIFACT.md#trusted-preparation)
+with `s3.policy`; the built-in `readwrite` preset alone lacks required startup and
+multipart actions. Never mount the bootstrap S3 credential in Artifact. Preserve
+all newly created data and credentials thereafter.
 
 The existing tunnel's object-host route must use verified TLS to that native S3
 listener, with a certificate valid for the selected origin server name. Preserve
