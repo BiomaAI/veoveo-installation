@@ -23,7 +23,7 @@ network_policies:
       protocol: mcp
       enforcement: enforce
       credential_binding:
-        provider: vv-media-qualification
+        provider: vv-hub-qualification
       mcp:
         versions:
         - '2026-07-28'
@@ -61,7 +61,7 @@ network_policies:
       protocol: rest
       enforcement: enforce
       credential_binding:
-        provider: vv-media-qualification
+        provider: vv-hub-qualification
       rules:
       - allow:
           method: GET
