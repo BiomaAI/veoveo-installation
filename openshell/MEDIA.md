@@ -1,7 +1,8 @@
 # Native Media preparation
 
-This is source preparation for the [Media execution plan](../../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md#media-native-integration-plan),
-not deployed acceptance. Preserve the qualified Time/Artifact paths, existing
+These are installation and qualification instructions; the
+[Media execution plan](../../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md#media-native-integration-plan)
+records actual deployed evidence and remaining gates. Preserve the qualified Time/Artifact paths, existing
 PostgreSQL/SeaweedFS data and registration keys. Endpoint/provider/placement
 selection stays in this installation and uses the existing local Work Context;
 there is no Media registry or fixed dev/stage/release environment hierarchy.
@@ -13,15 +14,21 @@ revision. Its SDK and Artifact pins must refer to published, tested revisions.
 Use the component's ordinary targets, recording each resulting immutable image ID:
 
 ```sh
-MEDIA_REVISION=0589cb6dc192f8734bd2e5d183160868d682a102
+(
+set -e
+MEDIA_REVISION=392c2c1000c2b96fb8ee823bbf0996444c547623
+test "$(git -C ../veoveo-mcp-media rev-parse HEAD)" = "$MEDIA_REVISION"
+test -z "$(git -C ../veoveo-mcp-media status --porcelain)"
 docker build --target check ../veoveo-mcp-media
 docker build --target runtime --build-arg VERSION=0.1.0 \
   --build-arg REVISION="$MEDIA_REVISION" -t veoveo/media:native ../veoveo-mcp-media
 docker build --target fake-provider --build-arg VERSION=0.1.0 \
   --build-arg REVISION="$MEDIA_REVISION" -t veoveo/media-provider:native ../veoveo-mcp-media
+)
 ```
 
-Set `MEDIA_REVISION` to the reviewed commit before these commands. Inspect the
+Use a clean component checkout of `MEDIA_REVISION`; a revision label does not
+select the build source. Set it to the reviewed commit before these commands. Inspect the
 runtime labels and retain exact `MEDIA_RUNTIME_IMAGE_ID` and
 `MEDIA_PROVIDER_IMAGE_ID` values for native creation. The fixture's `testing`
 feature is enabled only in its separate build; production Media does not serve a
@@ -139,6 +146,7 @@ openshell sandbox create --workspace vv-services --name media-provider \
   --no-auto-providers --driver-config-json "$(cat openshell/media-provider-mounts.json)" \
   --restart-policy on-failure --detach \
   --env MEDIA_FAKE_PROVIDER_LISTEN=127.0.0.1:8803 \
+  --env MEDIA_FAKE_PROVIDER_API_BEARER=fake-generation-key \
   --env MEDIA_FAKE_PROVIDER_ADVERTISED_BASE=https://vv-services--media-provider--http.openshell.localhost:17670 -- \
   /bin/sh -c 'set -a; . /etc/veoveo/media/provider.env; set +a; exec /usr/local/bin/veoveo-mcp-media-fake-provider'
 openshell service expose --workspace vv-services media-provider 8803 http \
@@ -151,6 +159,10 @@ verification. This exposure is for the test fixture only, preserving provider
 Bearer semantics; it is not public Media MCP ingress. The fake's HTTP status/output
 links must use that same origin, never its bind address or rewritten Host.
 It has no outgoing network policy and makes no callback in status-check mode.
+The selected fixture image requires the public test bearer above on its
+provider API, matching the native generation provider's injected value. This is
+a fake credential, not a real provider key. Missing or incorrect API bearers are
+rejected; output downloads and trusted test controls use their separate paths.
 
 After PostgreSQL, SeaweedFS, Hub, Artifact and the fixture are ready:
 
@@ -197,34 +209,94 @@ it must not receive `vv-hub-admin` credentials. One explicit provider binding
 selects either distinct supplied opaque reference without substituting identities.
 Do not attach this qualification profile to author factories or the Media service.
 
-Compile the component-owned acceptance executable from the reviewed source with
+For the deployed `392c2c1` runtime/fixture pair, use qualification source
+`20e2c6edb13d86cf981cf78e2a45fa41cbc94ff5`. Its later changes correct acceptance
+comparisons and documentation and synchronize C31 compliance metadata; production
+Rust and fixture behavior are unchanged. It compares canonical typed checksums,
+the actual Task-required refusal, and completion-result versus persisted lifecycle
+timestamps according to their respective contracts. Record the test revision
+separately from the runtime image labels.
+Compile the component-owned acceptance executable from that clean qualification checkout with
 `--features testing --test acceptance --no-run` in its dev image. Transfer only the
 reviewed executable to `/sandbox/bin/media-acceptance` in the trusted runner and
-use [its narrow policy](media-qualification.yaml). The runner holds no management
+use [its narrow policy](media-qualification.yaml). OpenShell pins a network-calling
+executable's identity on first use. When updating an existing runner's binary,
+stop/start that runner through native lifecycle controls before running the new
+executable, then verify its hash, policy and provider application. Do not hot-swap
+it under the old supervisor or clear integrity state manually. Recheck opaque
+handle identity before using a pre-restart credential-renewal baseline.
+The runner holds no management
 credential or restart authority. It admits `media__run` for both identities so the
 ordinary member's request reaches Hub's billed-permission refusal. Successful
 catalog/schema/run, Task get/cancel, resource/subscription and Artifact download
 requests must produce actual application outcomes; native transport errors prove
-no Hub refusal. The disjoint GET own-usage rule supports the retained separate
-real-provider acceptance case, not permission to bill that provider now.
+no Hub refusal. The disjoint GET own-usage rule verifies fake-generation estimate
+and actual records; it also supports the retained separate real-provider case,
+without authorizing that case now.
 
 ```sh
 export VEOVEO_ACCEPTANCE_HUB=https://vv-control--hub--http.openshell.localhost:17670
 export VEOVEO_ACCEPTANCE_MEMBER_BEARER_ENV=HUB_MEMBER_REFERENCE
 export VEOVEO_ACCEPTANCE_ADMIN_BEARER_ENV=HUB_ADMIN_REFERENCE
-/sandbox/bin/media-acceptance --ignored --skip real_provider --nocapture --test-threads=1
+export VEOVEO_ACCEPTANCE_MEDIA_FIXTURE=https://vv-services--media-provider--http.openshell.localhost:17670
+export VEOVEO_ACCEPTANCE_BILLED_PRINCIPAL='https://auth.localhost:8443/realms/veoveo#vv-hub-billed'
+export VEOVEO_ACCEPTANCE_WORK_CONTEXT=local
+export VEOVEO_ACCEPTANCE_LABELS='[]'
+/sandbox/bin/media-acceptance --ignored --skip real_provider --skip restart --nocapture --test-threads=1
 ```
 
-Only the two existing fake-provider cases run here. Additional deployed lifecycle
+The expected principal, Work Context and labels must match the actual retained
+Hub configuration; the values above describe this local installation. They are
+assertions about ownership/provenance, not authority to change the output policy.
+
+Run restart phases separately. The in-flight probe is
+`a_running_generation_recovers_after_media_and_hub_restart`: it reports the held
+Task/prediction, closes its client and waits for exactly `continue` followed by LF
+on stdin. Keep native Exec attached with `--tty` and an open terminal session;
+verify stdin with a harmless `read` command before creating the controlled Task.
+The qualification's noninteractive Exec invocation closed stdin and failed before
+the restart boundary, so it is not suitable for this phase.
+Only the trusted operator restarts the actual Media and Hub sandboxes,
+verifies their identities/readiness and persisted keys, and then supplies that
+line. The fixture must keep running. Do not treat a prompt or process restart
+inside the runner as a service restart.
+
+For terminal persistence, run only `restart_persistence_prepare`, retain its
+reported `VEOVEO_MEDIA_RESTART_TASK_ID`, restart Media and Hub with the native
+operator controls, then run only `restart_persistence_verify` with that Task ID.
+Use `--ignored --exact TEST_NAME --nocapture --test-threads=1` for each phase.
+These phases prove different behavior; a retained terminal result does not prove
+in-flight recovery.
+
+The initial deployment passed the two existing fake-provider cases. Additional deployed lifecycle
 proofs remain pending: independent request evidence for no resubmission, actual
 cancellation, externally orchestrated in-flight recovery, retained bytes/metadata,
-provenance, usage and renewal. The standalone fake has no component-counter API;
-a single stored output is not evidence of one submission. Add no test-control API
-without review. Keep the fixture running across a Media restart when testing
+provenance, usage and renewal. The reviewed testing-only fixture controls expose
+safe request counts and prediction IDs/status at `GET /testing/state`, quote
+hold/release at `POST /testing/quotes`, automatic completion selection at
+`POST /testing/delivery`, and explicit completion at
+`POST /testing/predictions/{prediction}/complete`. The qualification policy admits
+only those routes and methods for the trusted acceptance executable. Media's
+production policy cannot access `/testing/**`. These controls require selected
+revision `392c2c1`; the initial `0589cb6` image does not provide them.
+A single stored output is not evidence of one submission. Keep the fixture running across a Media restart when testing
 provider-operation recovery. Inspect actual provider refresh application and leave
 measured margin before the next native credential fence; do not retry mutations or
 hide interrupted calls. Record same persisted public keys separately from generated
 registration client IDs, which may change at restart.
+
+The controlled cases deliberately leave automatic fixture completion disabled.
+After the final restart proof, release quote holds and restore automatic delivery
+before an interactive client run, using the trusted operator on this Mac:
+
+```sh
+curl --fail --silent --show-error --cacert /opt/homebrew/var/openshell/tls/ca.crt \
+  --json '{"hold":false}' \
+  https://vv-services--media-provider--http.openshell.localhost:17670/testing/quotes
+curl --fail --silent --show-error --cacert /opt/homebrew/var/openshell/tls/ca.crt \
+  --json '{"automatic":true}' \
+  https://vv-services--media-provider--http.openshell.localhost:17670/testing/delivery
+```
 
 OpenCode with explicit `deepinfra/XiaomiMiMo/MiMo-V2.6-Pro` is the last bounded
 qualification only after deterministic/unit/integration/deployed probes pass.

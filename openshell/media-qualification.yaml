@@ -28,7 +28,7 @@ network_policies:
           - allow: {method: subscriptions/listen}
           - allow: {method: tasks/get}
           - allow: {method: tasks/cancel}
-      # Separate optional own-usage view used by the retained billed-provider case.
+      # Own-usage view verifies fake-generation estimate/actual records as well.
       - host: vv-control--hub--http.openshell.localhost
         port: 17670
         path: /admin/local/usage/daily
@@ -44,5 +44,19 @@ network_policies:
       - host: host.openshell.internal
         port: 9000
         protocol: tcp
+    binaries:
+      - path: /sandbox/bin/media-acceptance
+  fixture_controls:
+    endpoints:
+      - host: vv-services--media-provider--http.openshell.localhost
+        port: 17670
+        path: /testing/**
+        protocol: rest
+        enforcement: enforce
+        rules:
+          - allow: {method: GET, path: /testing/state}
+          - allow: {method: POST, path: /testing/quotes}
+          - allow: {method: POST, path: /testing/delivery}
+          - allow: {method: POST, path: /testing/predictions/*/complete}
     binaries:
       - path: /sandbox/bin/media-acceptance

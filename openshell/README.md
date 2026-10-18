@@ -1,9 +1,13 @@
 # Native OpenShell Setup
 
-Homebrew owns the stock OpenShell 0.1.4 CLI/gateway. Its native Docker driver runs
-factories and managed MCP services. The pinned supervisor supplies the previously
-qualified HTTP/2/gRPC credential mediation. No replacement launcher, token service,
-refresh daemon or secret store is required.
+Homebrew manages the native macOS OpenShell service. The Media slice adopts local
+CLI/gateway builds from reviewed revision `6589a918` in its existing binary paths;
+the service wrapper, LaunchAgent and configuration ownership remain unchanged.
+Its native Docker driver runs factories and managed MCP services. The pinned
+supervisor supplies HTTP/2/gRPC credential mediation, native verified ingress and
+disjoint REST/MCP path admission. No replacement launcher, token service, refresh
+daemon or secret store is required. Homebrew upgrade/reinstall can overwrite the
+local binaries; deliberately select and requalify the reviewed source afterward.
 
 The direct Lore path is **IdP issuance → OpenShell renewal/injection → Lore native
 authorization**. Veoveo supplies trusted configuration and branch assignments.
@@ -106,6 +110,30 @@ docker build -f openshell/Supervisor.Dockerfile \
   -t veoveo/supervisor:local .
 )
 ```
+
+Build the native Mac CLI and gateway from that same pinned worktree. This is the
+reproducible source command, not a transcript of the initial local build:
+
+```sh
+(
+  cd state/openshell/supervisor-source-6589a918
+  mise exec -- cargo build -p openshell-cli --bin openshell \
+    -p openshell-gateway --bin openshell-gateway
+)
+```
+
+The initial adoption retained the Homebrew wrapper at
+`/opt/homebrew/opt/openshell/libexec/openshell-gateway-homebrew-service` and replaced
+only its `bin/openshell` and `bin/openshell-gateway` executables with the reviewed
+`target/debug` outputs. Before replacing binaries, retain the original executables,
+private gateway configuration and LaunchAgent in a private backup directory, then
+install the reviewed outputs as executable files and restart the existing service.
+The local backup is `state/openshell/gateway-cutover-6589a918/` (directory 0700,
+files 0600); preserve it. The selected native outputs have SHA-256
+`b438df2a46ef289683b12217f0c4515f96c3f1eaf04b382791cd4a2c3cf1c32b`
+(CLI) and `2838f3c1a7710cf310d91f7308012a903bc67fa587fa045860e6a913c2c9c288`
+(gateway). Do not restore stock executables while claiming the patched policy
+behavior. This local adoption is not a published Homebrew formula.
 
 Select the resulting immutable image ID with the native gateway's
 `OPENSHELL_SUPERVISOR_IMAGE` setting. Set
