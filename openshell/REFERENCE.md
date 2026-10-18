@@ -12,6 +12,29 @@ Do not run the local Keycloak profile or identity HTTPS edge on this Entra refer
 The Mac's existing setup remains unchanged. Hub requires Tasks and clients must
 implement the supported MCP specification; add no taskless fallback.
 
+## Pin all native runtime images
+
+Build the Linux/amd64 gateway, supervisor and sandbox runtime from the same reviewed
+OpenShell revision `6589a918a7a84640969f9f77b852695e210d713f`, using its native
+build prerequisites and [the existing build workflow](README.md). In that clean
+source checkout, also build the separate trusted sandbox runtime image:
+
+```sh
+MISE_AUTO_INSTALL=0 DOCKER_PLATFORM=linux/amd64 \
+  IMAGE_REGISTRY=veoveo IMAGE_TAG=reference-6589a918 mise run build:docker:sandbox
+docker image inspect --format '{{.Id}}' veoveo/sandbox:reference-6589a918
+```
+
+Select the inspected immutable image ID in the existing gateway environment as
+`OPENSHELL_SANDBOX_RUNTIME_IMAGE`. The Docker driver extracts the trusted
+`openshell-sandbox` executable from this image for every sandbox; it is distinct
+from the application's `default_image` and from `OPENSHELL_SUPERVISOR_IMAGE`.
+Pin all three inputs independently rather than allowing a mutable development
+runtime image to be pulled during gateway startup. The reference build produced
+sandbox runtime `sha256:d87ca9c45c4cd8bc7876f5b1cb86768f4dd42b3babc2398dc00bff206d993a75`
+and supervisor `sha256:22368e9fd71ebbb887402a91ca4ba7e5c754146179a4f53f7495f41d15644f51`;
+these are Linux reference receipts, not changes to the Mac's selected images.
+
 ## Entra and the two token relationships
 
 OpenShell authenticates Entra access tokens directly. The gateway's issuer,

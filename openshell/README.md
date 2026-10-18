@@ -111,6 +111,10 @@ docker build -f openshell/Supervisor.Dockerfile \
 )
 ```
 
+For Linux, also build and pin the separate trusted sandbox runtime image as
+described in [the reference installation](REFERENCE.md#pin-all-native-runtime-images).
+It is distinct from the application base and supervisor images.
+
 Build the native Mac CLI and gateway from that same pinned worktree. This is the
 reproducible source command, not a transcript of the initial local build:
 
