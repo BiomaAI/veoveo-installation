@@ -50,15 +50,19 @@ image identities and runtime receipts belong in the
 As of 2026-10-18, native Linux builds and component checks pass. Native OpenShell
 operator login through Entra is verified, and the reference tunnel is connected.
 Fresh PostgreSQL is healthy. SeaweedFS verifies TLS and denies anonymous S3 requests
-through both its origin and public hostname. Hub and Time are Ready in native
-OpenShell sandboxes. Hub passes canonical public discovery/JWKS checks; Time
-registered through native credential custody and applied its database migration.
+through both its origin and public hostname. Hub, Time, Artifact, Media and the
+synthetic provider fixture are Ready in native OpenShell sandboxes. Hub passes
+canonical public discovery/JWKS checks; service registration and database migrations
+pass. Artifact's bucket-scoped storage identity passes object and multipart
+operations and is denied access to an unrelated bucket. The fixture holds fake
+credentials only; it has no real WaveSpeed credentials.
 The restricted Hub forwarder completed a scheduled credential renewal at
 21:06:55 UTC, observed without manual rotation.
 
-User-authenticated Hub MCP calls, Artifact/Media registration and transfers,
-Tasks, permissions, subscriptions, application credential renewal and restart
-persistence remain to be qualified. The real signed WaveSpeed
+The administrator's Entra-to-Hub PKCE login and application-token signature checks
+pass. User-authenticated Hub MCP calls and transfers, Tasks, two-principal
+permissions, subscriptions, application credential renewal and restart persistence
+remain to be qualified. The ordinary member's interactive sign-in is pending. The real signed WaveSpeed
 callback and final OpenCode/MiMo run are also pending; this Linux deployment has
 made no paid generation or model-driven acceptance call. GPU/CUDA and general
 environment composition remain separate work.
@@ -75,7 +79,7 @@ out of Git. Use the existing private configuration and native OpenShell credenti
 custody. Cloning this repository does not confer operator or application access.
 
 The repository shares Git history with the template. Its current reviewed base is
-`b4e2f99ab21b163fab8cad3ef6c546c198e9850b`. Configure the upstream after cloning:
+`1ea5c8d48dd76ac4adf031140d39dc08273fc586`. Configure the upstream after cloning:
 
 ```sh
 git remote add upstream https://github.com/VeoveoAI/veoveo-template-installation.git
