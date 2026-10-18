@@ -11,7 +11,8 @@ credentials:
       # client-credentials token presented directly to the MCP profile.
       strategy: oauth2_refresh_token
       token_url: https://veoveo.example.com/oauth/token
-      scopes: [mcp]
+      # Initial PKCE authorization requests scope=mcp. Refresh preserves that grant:
+      # omit scope here and in refresh material; the current Hub rejects explicit refresh scopes.
       refresh_before: 180s
       max_lifetime: 3600s
       material:
