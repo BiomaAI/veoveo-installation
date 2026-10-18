@@ -28,5 +28,6 @@
 - Use upstream bootstrap images pinned by digest. Verify releases when changing pins.
   Committed public origins use `https://veoveo.example.com`.
 - Validate changed bootstrap configuration and the focused new path on macOS.
-  The existing Linux installation is out of scope for this cutover.
+  The reference Linux deployment, Entra and signed Media webhook are now in scope
+  under the execution plan. Preserve remote state; GPU/CUDA qualification is separate.
 - Commit coherent changes without AI attribution.

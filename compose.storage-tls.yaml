@@ -1,0 +1,12 @@
+# Standard Compose override for the existing trusted SeaweedFS bootstrap only.
+# Set VEOVEO_STORAGE_TLS_CERT_FILE=/etc/seaweedfs/tls/tls.crt and
+# VEOVEO_STORAGE_TLS_KEY_FILE=/etc/seaweedfs/tls/tls.key in the private .env.
+services:
+  vv-seaweedfs:
+    volumes:
+      - type: bind
+        source: ${VEOVEO_STORAGE_TLS_DIRECTORY:?select the existing operator-owned certificate directory}
+        target: /etc/seaweedfs/tls
+        read_only: true
+        bind:
+          create_host_path: false

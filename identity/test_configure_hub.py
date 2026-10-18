@@ -103,5 +103,144 @@ class NativePlacementTests(unittest.TestCase):
                 helper.select_services(False, True, retained)
 
 
+
+class EntraPreparationTests(unittest.TestCase):
+    TENANT = '11111111-1111-4111-8111-111111111111'
+    CLIENT = '22222222-2222-4222-8222-222222222222'
+    MEMBER = '33333333-3333-4333-8333-333333333333'
+    ADMIN = '44444444-4444-4444-8444-444444444444'
+    BILLED = '55555555-5555-4555-8555-555555555555'
+    ORIGIN = 'https://veoveo.example.com'
+    ISSUER = 'https://login.microsoftonline.com/' + TENANT + '/v2.0'
+
+    def arguments(self):
+        base = 'https://login.microsoftonline.com/' + self.TENANT
+        return dict(origin=self.ORIGIN, discovery={'issuer': self.ISSUER,
+            'authorization_endpoint': base + '/oauth2/v2.0/authorize',
+            'token_endpoint': base + '/oauth2/v2.0/token',
+            'jwks_uri': base + '/discovery/v2.0/keys'},
+            tenant_id=self.TENANT, client_id=self.CLIENT, tenant='reference', context='reference-work',
+            policy='reference-policy', owner=self.ADMIN, members=[self.MEMBER], admins=[self.ADMIN],
+            billed=[self.BILLED], application_client='opencode', redirects=['http://127.0.0.1:3210/callback'],
+            gateway='https://host.openshell.internal:17670', key_id='public-kid',
+            include_artifact=True, include_media=True)
+
+    def test_entra_is_a_hosted_application_broker_with_explicit_authority(self):
+        result = helper.entra_catalog(**self.arguments())
+        self.assertEqual(result['identityProviders'][0]['claimMapping'],
+                         {'subject': 'oid', 'tenant': {'claim': 'tid', 'values': {self.TENANT: 'reference'}}})
+        authority = result['authorizationServers'][0]
+        self.assertEqual(authority['issuer'], self.ORIGIN + '/oauth')
+        self.assertEqual(authority['tokenEndpoint'], self.ORIGIN + '/oauth/token')
+        self.assertEqual(result['oidcClients'][0]['redirectUri'], self.ORIGIN + '/oauth/callback')
+        caller = result['oauthClients'][0]
+        self.assertEqual(caller['authMethods'], ['none'])
+        self.assertEqual(caller['grantTypes'], ['authorization_code_pkce', 'refresh_token'])
+        self.assertEqual(caller['defaultWorkContext'], 'reference-work')
+        self.assertNotIn('credentialSecret', caller)
+        self.assertNotIn('jwks', caller)
+        self.assertEqual(result['authorization']['grants'][2], {'role': 'billed',
+            'subject': {'principal': self.ISSUER + '#' + self.BILLED}, 'tenant': 'reference'})
+        self.assertEqual(result['authorization']['roles'][-1]['risks'], ['billed'])
+        membership = result['workContexts'][0]['memberships'][0]
+        self.assertNotIn('oauthClients', membership)  # Signing in with the public client grants nothing.
+        self.assertEqual(set(membership['principals']),
+                         {self.ISSUER + '#' + oid for oid in [self.MEMBER, self.ADMIN, self.BILLED]})
+        self.assertEqual(result['nativeUpstreams']['bindings'],
+                         [helper.TIME_BINDING, helper.ARTIFACT_BINDING, helper.MEDIA_BINDING])
+        self.assertNotIn('trustedCertificateAuthorities', result['identityProviders'][0])
+
+    def test_rerun_retains_selected_services_and_policy_without_mutating_input(self):
+        arguments = self.arguments()
+        retained = helper.entra_catalog(**arguments)
+        retained['policies'].append({'version': 'retained-policy', 'rules': []})
+        before = json.dumps(retained)
+        arguments.update(include_artifact=False, include_media=False, retained=retained)
+        self.assertEqual(helper.entra_catalog(**arguments), retained)
+        self.assertEqual(json.dumps(retained), before)
+
+    def test_changed_retained_identity_authority_or_placement_is_not_reconciled(self):
+        arguments = self.arguments()
+        retained = helper.entra_catalog(**arguments)
+        for field in ['identityProviders', 'authorization', 'workContexts', 'oidcClients']:
+            changed = json.loads(json.dumps(retained))
+            changed[field] = []
+            with self.assertRaisesRegex(ValueError, 'identity/authority differs'):
+                helper.entra_catalog(**arguments, retained=changed)
+        changed = json.loads(json.dumps(retained))
+        changed['nativeUpstreams']['gateway'] = 'https://unapproved.example.com'
+        with self.assertRaisesRegex(ValueError, 'gateway differs'):
+            helper.entra_catalog(**arguments, retained=changed)
+        changed['nativeUpstreams']['bindings'][0]['sandbox'] = 'foreign'
+        with self.assertRaisesRegex(ValueError, 'review operator placement'):
+            helper.entra_catalog(**arguments, retained=changed)
+
+    def test_bad_urls_tenant_mapping_and_empty_authority_are_rejected(self):
+        for origin in ['http://veoveo.example.com', 'https://user@veoveo.example.com',
+                       'https://veoveo.example.com/path', 'https://veoveo.example.com/?x=1',
+                       'https://veoveo.example.com/#fragment', 'https://veoveo.example.com:99999']:
+            with self.assertRaises(ValueError):
+                helper.entra_catalog(**dict(self.arguments(), origin=origin))
+        for changes in [dict(tenant=''), dict(members=[]), dict(admins=[]), dict(billed=[]),
+                        dict(redirects=['http://not-loopback.example.com/callback']),
+                        dict(tenant_id=self.CLIENT)]:
+            with self.assertRaises(ValueError):
+                helper.entra_catalog(**dict(self.arguments(), **changes))
+        arguments = self.arguments()
+        arguments['discovery']['token_endpoint'] = 'https://foreign.example.com/token'
+        with self.assertRaisesRegex(ValueError, 'cross-origin'):
+            helper.entra_catalog(**arguments)
+
+    def test_incomplete_retained_state_never_creates_replacement_keys(self):
+        import argparse
+        with tempfile.TemporaryDirectory() as directory, patch.object(helper, 'STATE', Path(directory)):
+            catalog = Path(directory) / 'hub.json'
+            catalog.write_text('{}')
+            with self.assertRaisesRegex(ValueError, 'incomplete retained'):
+                helper.prepare_entra(argparse.Namespace())
+            self.assertEqual(sorted(path.name for path in Path(directory).iterdir()), ['hub.json'])
+            catalog.unlink()
+            private = Path(directory) / 'hub.env'
+            private.write_text('retained-private-material')
+            with self.assertRaisesRegex(ValueError, 'incomplete retained'):
+                helper.prepare_entra(argparse.Namespace())
+            self.assertEqual(private.read_text(), 'retained-private-material')
+            self.assertEqual(sorted(path.name for path in Path(directory).iterdir()), ['hub.env'])
+
+    def test_private_preparation_has_no_keycloak_calls_and_preserves_keys_on_rerun(self):
+        import argparse
+        import os
+        with tempfile.TemporaryDirectory() as directory, patch.object(helper, 'STATE', Path(directory)), \
+                patch.object(helper.runpy, 'run_path', side_effect=AssertionError('no Keycloak admin')), \
+                patch.dict(os.environ, {'VEOVEO_DATABASE_PASSWORD': 'fixture-db-only',
+                    'VEOVEO_IDP_OIDC_CLIENT_SECRET': 'fixture-idp-only',
+                    'VEOVEO_IDP_OIDC_ISSUER': self.ISSUER}):
+            path = Path(directory) / 'discovery.json'
+            path.write_text(json.dumps(self.arguments()['discovery']))
+            options = argparse.Namespace(hub_origin=self.ORIGIN, oidc_discovery_file=str(path),
+                entra_tenant_id=self.TENANT, entra_client_id=self.CLIENT, tenant='reference',
+                work_context='reference-work', policy_version='reference-policy', owner_object_id=self.ADMIN,
+                member_object_id=[self.MEMBER], admin_object_id=[self.ADMIN], billed_object_id=[self.BILLED],
+                application_client_id='opencode', client_redirect_uri=['http://127.0.0.1:3210/callback'],
+                native_gateway='https://host.openshell.internal:17670', include_artifact=True, include_media=True)
+            helper.prepare_entra(options)
+            original = {name: (Path(directory) / name).read_bytes()
+                        for name in ['hub.env', 'hub.json', 'authorization-server.jwks.json']}
+            helper.prepare_entra(options)
+            for name, value in original.items():
+                self.assertEqual((Path(directory) / name).read_bytes(), value)
+                self.assertEqual((Path(directory) / name).stat().st_mode & 0o777, 0o600)
+            jwk = json.loads(original['authorization-server.jwks.json'])['keys'][0]
+            self.assertEqual(jwk['kid'], json.loads(original['hub.json'])['authorizationServers'][0]['accessTokenKeyId'])
+            with patch.dict(os.environ, {'VEOVEO_IDP_OIDC_CLIENT_SECRET': 'different-fixture'}):
+                with self.assertRaisesRegex(ValueError, 'credential differs'):
+                    helper.prepare_entra(options)
+            self.assertEqual((Path(directory) / 'hub.env').read_bytes(), original['hub.env'])
+            options.tenant = 'different-tenant'
+            with self.assertRaisesRegex(ValueError, 'identity/authority differs'):
+                helper.prepare_entra(options)
+            self.assertEqual((Path(directory) / 'hub.json').read_bytes(), original['hub.json'])
+
+
 if __name__ == '__main__':
     unittest.main()

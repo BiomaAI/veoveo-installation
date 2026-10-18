@@ -1,37 +1,256 @@
 {
-  "identityProviders": [{
-    "id": "entra",
-    "issuer": "https://login.microsoftonline.com/TENANT_ID/v2.0",
-    "jwks": {
-      "source": "remote",
-      "jwksUri": "https://login.microsoftonline.com/TENANT_ID/discovery/v2.0/keys"
+  "identityProviders": [
+    {
+      "id": "entra",
+      "issuer": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0",
+      "jwks": {
+        "source": "remote",
+        "jwksUri": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/discovery/v2.0/keys"
+      },
+      "claimMapping": {
+        "subject": "oid",
+        "tenant": {
+          "claim": "tid",
+          "values": {
+            "11111111-1111-4111-8111-111111111111": "reference"
+          }
+        }
+      },
+      "authorizationEndpoint": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/oauth2/v2.0/authorize",
+      "tokenEndpoint": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/oauth2/v2.0/token",
+      "metadata": {}
+    }
+  ],
+  "authorizationServers": [
+    {
+      "id": "hub",
+      "issuer": "https://veoveo.example.com/oauth",
+      "jwks": {
+        "source": "file",
+        "path": "/etc/veoveo/hub/authorization-server.jwks.json"
+      },
+      "accessTokenKeyId": "REPLACE_WITH_SIGNING_KEY_THUMBPRINT",
+      "accessTokenSigningKey": "access_token_signing_key",
+      "identityProvider": "entra",
+      "authorizationEndpoint": "https://veoveo.example.com/oauth/authorize",
+      "tokenEndpoint": "https://veoveo.example.com/oauth/token",
+      "metadata": {}
+    }
+  ],
+  "profiles": [
+    {
+      "id": "local",
+      "identityProvider": "entra",
+      "authorizationServer": "hub",
+      "protectedResource": "https://veoveo.example.com/mcp/local",
+      "policyVersion": "reference-policy",
+      "authModes": [
+        "oidc_authorization_code_pkce"
+      ],
+      "requiredScopes": [
+        "mcp"
+      ],
+      "metadata": {}
+    }
+  ],
+  "authorization": {
+    "roles": [
+      {
+        "name": "member",
+        "access": [
+          "read",
+          "write"
+        ]
+      },
+      {
+        "name": "admin",
+        "access": [
+          "read",
+          "write"
+        ],
+        "risks": [
+          "sensitive",
+          "destructive",
+          "billed",
+          "physical",
+          "administer"
+        ]
+      },
+      {
+        "name": "billed",
+        "access": [
+          "read",
+          "write"
+        ],
+        "risks": [
+          "billed"
+        ]
+      }
+    ],
+    "grants": [
+      {
+        "role": "member",
+        "subject": {
+          "principal": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0#33333333-3333-4333-8333-333333333333"
+        },
+        "tenant": "reference"
+      },
+      {
+        "role": "admin",
+        "subject": {
+          "principal": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0#44444444-4444-4444-8444-444444444444"
+        },
+        "tenant": "reference"
+      },
+      {
+        "role": "billed",
+        "subject": {
+          "principal": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0#55555555-5555-4555-8555-555555555555"
+        },
+        "tenant": "reference"
+      }
+    ]
+  },
+  "registration": {
+    "secret": "registration_secret"
+  },
+  "tenants": [
+    {
+      "id": "reference",
+      "title": "reference"
+    }
+  ],
+  "workContexts": [
+    {
+      "id": "reference-work",
+      "tenant": "reference",
+      "title": "reference-work",
+      "policyRevision": "reference-policy",
+      "outputPolicy": {
+        "owner": {
+          "kind": "principal",
+          "id": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0#44444444-4444-4444-8444-444444444444"
+        }
+      },
+      "memberships": [
+        {
+          "level": "contributor",
+          "principals": [
+            "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0#33333333-3333-4333-8333-333333333333",
+            "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0#44444444-4444-4444-8444-444444444444",
+            "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0#55555555-5555-4555-8555-555555555555"
+          ]
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "version": "reference-policy",
+      "rules": []
+    }
+  ],
+  "dataLabels": [],
+  "oidcClients": [
+    {
+      "id": "entra",
+      "identityProvider": "entra",
+      "authorizationServer": "hub",
+      "allowedResources": [
+        "https://veoveo.example.com/mcp/local"
+      ],
+      "clientId": "22222222-2222-4222-8222-222222222222",
+      "redirectUri": "https://veoveo.example.com/oauth/callback",
+      "authMethod": "client_secret_post",
+      "credentialSecret": "entra_client_secret",
+      "scopes": [
+        "openid",
+        "profile"
+      ],
+      "metadata": {}
+    }
+  ],
+  "oauthClients": [
+    {
+      "id": "opencode",
+      "authorizationServer": "hub",
+      "defaultWorkContext": "reference-work",
+      "invocationMode": "direct",
+      "allowedResources": [
+        "https://veoveo.example.com/mcp/local"
+      ],
+      "grantTypes": [
+        "authorization_code_pkce",
+        "refresh_token"
+      ],
+      "authMethods": [
+        "none"
+      ],
+      "redirectUris": [
+        "http://127.0.0.1:3210/callback"
+      ],
+      "allowedScopes": [
+        "mcp"
+      ],
+      "metadata": {}
+    }
+  ],
+  "secrets": [
+    {
+      "id": "registration_secret",
+      "source": "env",
+      "purpose": "registration_secret",
+      "locator": "VEOVEO_REGISTRATION_SECRET",
+      "owner": {
+        "kind": "hub"
+      },
+      "metadata": {}
     },
-    "claimMapping": {
-      "subject": "oid",
-      "tenant": { "claim": "tid", "values": { "TENANT_ID": "local" } }
+    {
+      "id": "access_token_signing_key",
+      "source": "env",
+      "purpose": "jwks_private_key",
+      "locator": "VEOVEO_ACCESS_TOKEN_SIGNING_KEY_B64",
+      "owner": {
+        "kind": "hub"
+      },
+      "metadata": {}
     },
-    "authorizationEndpoint": "https://login.microsoftonline.com/TENANT_ID/oauth2/v2.0/authorize",
-    "tokenEndpoint": "https://login.microsoftonline.com/TENANT_ID/oauth2/v2.0/token",
-    "metadata": {}
-  }],
-  "oidcClients": [{
-    "id": "entra",
-    "identityProvider": "entra",
-    "authorizationServer": "local",
-    "allowedResources": ["https://veoveo.example.com/mcp/local"],
-    "clientId": "APPLICATION_CLIENT_ID",
-    "redirectUri": "https://veoveo.example.com/oauth/callback",
-    "authMethod": "client_secret_post",
-    "credentialSecret": "entra_client_secret",
-    "scopes": ["openid", "profile"],
-    "metadata": {}
-  }],
-  "secrets": [{
-    "id": "entra_client_secret",
-    "source": "env",
-    "purpose": "oauth_client_secret",
-    "locator": "VEOVEO_ENTRA_CLIENT_SECRET",
-    "owner": { "kind": "hub" },
-    "metadata": {}
-  }]
+    {
+      "id": "entra_client_secret",
+      "source": "env",
+      "purpose": "oauth_client_secret",
+      "locator": "VEOVEO_IDP_OIDC_CLIENT_SECRET",
+      "owner": {
+        "kind": "hub"
+      },
+      "metadata": {}
+    }
+  ],
+  "nativeUpstreams": {
+    "gateway": "https://host.openshell.internal:17670",
+    "certificateAuthority": "/run/openshell-supervisor-ca/material/ca.crt",
+    "bearerEnvironment": "HUB_MANAGEMENT_REFERENCE",
+    "bindings": [
+      {
+        "endpoint": "http://time.internal:8800/time/mcp",
+        "workspace": "vv-services",
+        "sandbox": "time",
+        "port": 8800
+      },
+      {
+        "endpoint": "http://artifact.internal:8801/artifact/mcp",
+        "workspace": "vv-services",
+        "sandbox": "artifact",
+        "port": 8801
+      },
+      {
+        "endpoint": "http://media.internal:8802/media/mcp",
+        "workspace": "vv-services",
+        "sandbox": "media",
+        "port": 8802
+      }
+    ]
+  },
+  "metadata": {}
 }

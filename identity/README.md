@@ -169,11 +169,11 @@ management interface private. Use the provider's supported clustering and backup
 configuration when the installation needs high availability. A local loopback
 configuration is not a public production ingress configuration.
 
-For Entra, omit the `keycloak` Compose profile and its three services. Start with
-[entra.example.json](entra.example.json), a configuration fragment rather than a
-complete Hub installation. Replace `TENANT_ID`, `APPLICATION_CLIENT_ID`, the
-installation origin, resource and tenant mapping; merge entries by ID into the
-installation's Hub configuration. Point the relevant profile and authorization
+For Entra, omit the `keycloak` Compose profile and its three services. Follow
+[reference preparation](../openshell/REFERENCE.md) and the existing helper's
+`--identity-provider entra` path. [entra.example.json](entra.example.json) shows
+the full standard catalog shape, with deliberately unenrolled example UUIDs and
+a placeholder signing-key thumbprint; do not deploy it unchanged. Point the relevant profile and authorization
 server's `identityProvider` to `entra`, enable `oidc_authorization_code_pkce`, and
 configure the public Hub authorization/token endpoints and client registration.
 Grant roles explicitly to issuer + stable object ID principals; sign-in alone must

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Configure local Hub identities and trusted component files; never launch workloads."""
+"""Prepare trusted Hub files, using local Keycloak or an existing Entra registration."""
 import argparse
 import base64
 import copy
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -12,6 +13,8 @@ import shlex
 import ssl
 import subprocess
 import tempfile
+import uuid
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE = ROOT / 'state/openshell/hub'
@@ -47,10 +50,12 @@ def environment(values):
     return ''.join(name + '=' + shlex.quote(value) + '\n' for name, value in values.items())
 
 
-def hub_secrets(origin):
+def hub_secrets(origin, hosted=False):
     path = STATE / 'hub.env'
     required = ['VEOVEO_FORWARDED_TOKEN_KEY_B64', 'VEOVEO_AUDIT_SIGNING_KEY_B64',
                 'VEOVEO_REFRESH_DELIVERY_KEY_B64', 'VEOVEO_REGISTRATION_SECRET', 'VEOVEO_DATABASE_PASSWORD']
+    if hosted:
+        required += ['VEOVEO_ACCESS_TOKEN_SIGNING_KEY_B64', 'VEOVEO_IDP_OIDC_CLIENT_SECRET']
     if path.exists():
         values = {}
         for line in path.read_text().splitlines():
@@ -66,6 +71,8 @@ def hub_secrets(origin):
         supplied = os.environ.get('VEOVEO_DATABASE_PASSWORD')
         if supplied is not None and supplied != values['VEOVEO_DATABASE_PASSWORD']:
             raise ValueError('database credential differs; perform reviewed database rotation separately')
+        if hosted and os.environ.get('VEOVEO_IDP_OIDC_CLIENT_SECRET') != values['VEOVEO_IDP_OIDC_CLIENT_SECRET']:
+            raise ValueError('Entra credential differs; perform reviewed rotation separately')
         path.chmod(0o600)
         return values
     password = os.environ.get('VEOVEO_DATABASE_PASSWORD')
@@ -85,6 +92,14 @@ def hub_secrets(origin):
         'VEOVEO_ISSUER': origin, 'VEOVEO_CONFIG': '/etc/veoveo/hub/hub.json',
         'VEOVEO_LISTEN_ADDRESS': '127.0.0.1:8080',
     }
+    if hosted:
+        secret = os.environ.get('VEOVEO_IDP_OIDC_CLIENT_SECRET', '')
+        if not secret.strip() or '\n' in secret or '\r' in secret:
+            raise ValueError('Entra preparation requires its confidential client secret in the trusted environment')
+        signing = subprocess.run(['openssl', 'genpkey', '-algorithm', 'Ed25519', '-outform', 'DER'],
+                                 check=True, capture_output=True).stdout
+        values['VEOVEO_ACCESS_TOKEN_SIGNING_KEY_B64'] = base64.b64encode(signing).decode()
+        values['VEOVEO_IDP_OIDC_CLIENT_SECRET'] = secret
     private(path, environment(values), exclusive=True)
     return values
 
@@ -269,14 +284,198 @@ def catalog(origin, include_artifact=False, include_media=False, retained=None):
     return result
 
 
+
+def https_origin(value):
+    parsed = urlsplit(value)
+    if (parsed.scheme != 'https' or not parsed.hostname or parsed.username is not None
+            or parsed.password is not None or parsed.path not in ('', '/')
+            or parsed.query or parsed.fragment or any(c.isspace() for c in value)):
+        raise ValueError('expected an HTTPS origin without credentials, path, query or fragment')
+    parsed.port  # Reject malformed/out-of-range ports before any state write.
+    return value.rstrip('/')
+
+
+def https_endpoint(value):
+    parsed = urlsplit(value)
+    if (parsed.scheme != 'https' or not parsed.hostname or parsed.username is not None
+            or parsed.password is not None or parsed.query or parsed.fragment
+            or any(c.isspace() for c in value)):
+        raise ValueError('expected an HTTPS endpoint without credentials, query or fragment')
+    parsed.port
+    return value
+
+
+def identifier(value):
+    if not value or any(not (c.isascii() and (c.isalnum() or c in '._-')) for c in value):
+        raise ValueError('installation identifiers must be nonempty ASCII names')
+    return value
+
+
+def canonical_uuid(value):
+    return str(uuid.UUID(value))
+
+
+def redirect_uri(value):
+    parsed = urlsplit(value)
+    if (not parsed.hostname or parsed.username is not None or parsed.password is not None
+            or parsed.fragment or any(c.isspace() for c in value)
+            or not (parsed.scheme == 'https' or (parsed.scheme == 'http'
+                    and parsed.hostname in ('localhost', '127.0.0.1', '::1')))):
+        raise ValueError('client redirect requires HTTPS or an HTTP loopback URL, without credentials/fragment')
+    parsed.port
+    return value
+
+
+def authorization_jwk(encoded_key):
+    """Derive the standard public Ed25519 JWK and RFC 7638 kid; never expose the key."""
+    public = subprocess.run(['openssl', 'pkey', '-inform', 'DER', '-pubout', '-outform', 'DER'],
+                            input=base64.b64decode(encoded_key, validate=True),
+                            check=True, capture_output=True).stdout
+    # RFC 8410 Ed25519 SubjectPublicKeyInfo: fixed AlgorithmIdentifier, 32-byte key.
+    prefix = bytes.fromhex('302a300506032b6570032100')
+    if len(public) != len(prefix) + 32 or not public.startswith(prefix):
+        raise ValueError('Hub application signing key must be Ed25519')
+    b64 = lambda value: base64.urlsafe_b64encode(value).decode().rstrip('=')
+    key = {'crv': 'Ed25519', 'kty': 'OKP', 'x': b64(public[len(prefix):])}
+    kid = b64(hashlib.sha256(json.dumps(key, sort_keys=True, separators=(',', ':')).encode()).digest())
+    return dict(key, kid=kid, alg='EdDSA', use='sig')
+
+
+def entra_catalog(origin, discovery, tenant_id, client_id, tenant, context, policy, owner,
+                  members, admins, billed, application_client, redirects, gateway, key_id,
+                  include_artifact=False, include_media=False, retained=None):
+    """Render existing Hub/OIDC schemas only. This function has no identity/network I/O."""
+    origin, gateway = https_origin(origin), https_origin(gateway)
+    tenant_id, client_id = canonical_uuid(tenant_id), canonical_uuid(client_id)
+    tenant, context, policy = map(identifier, (tenant, context, policy))
+    application_client = identifier(application_client)
+    issuer = https_endpoint(discovery['issuer']).rstrip('/')
+    if urlsplit(issuer).path != '/' + tenant_id + '/v2.0':
+        raise ValueError('Entra discovery must use the selected tenant-specific v2 issuer')
+    endpoints = {name: https_endpoint(discovery[name])
+                 for name in ('authorization_endpoint', 'token_endpoint', 'jwks_uri')}
+    if any(urlsplit(value).netloc != urlsplit(issuer).netloc for value in endpoints.values()):
+        raise ValueError('review cross-origin Entra discovery endpoints before preparation')
+    principals = {role: sorted({canonical_uuid(value) for value in values})
+                  for role, values in [('member', members), ('admin', admins), ('billed', billed)]}
+    owner = canonical_uuid(owner)
+    if not principals['member'] or not principals['admin'] or owner not in principals['admin']:
+        raise ValueError('explicit member/admin principals and an administrator output owner are required')
+    include_artifact, include_media = select_services(include_artifact, include_media, retained)
+    if (include_media and not principals['billed']) or (principals['billed'] and not include_media):
+        raise ValueError('explicit billed principals require selected Media and vice versa')
+    redirects = sorted({redirect_uri(value) for value in redirects})
+    if not redirects:
+        raise ValueError('an explicit application client redirect is required')
+    # Reuse the existing installation shape and reviewed private placement selection.
+    result = catalog(origin, include_artifact, include_media)
+    resource, application_issuer = origin + '/mcp/local', origin + '/oauth'
+    result['identityProviders'] = [{'id': 'entra', 'issuer': issuer,
+        'jwks': {'source': 'remote', 'jwksUri': endpoints['jwks_uri']},
+        'claimMapping': {'subject': 'oid', 'tenant': {'claim': 'tid', 'values': {tenant_id: tenant}}},
+        'authorizationEndpoint': endpoints['authorization_endpoint'],
+        'tokenEndpoint': endpoints['token_endpoint'], 'metadata': {}}]
+    result['authorizationServers'] = [{'id': 'hub', 'issuer': application_issuer,
+        'jwks': {'source': 'file', 'path': '/etc/veoveo/hub/authorization-server.jwks.json'},
+        'accessTokenKeyId': key_id, 'accessTokenSigningKey': 'access_token_signing_key',
+        'identityProvider': 'entra', 'authorizationEndpoint': origin + '/oauth/authorize',
+        'tokenEndpoint': origin + '/oauth/token', 'metadata': {}}]
+    result['profiles'] = [{'id': 'local', 'identityProvider': 'entra', 'authorizationServer': 'hub',
+        'protectedResource': resource, 'policyVersion': policy,
+        'authModes': ['oidc_authorization_code_pkce'], 'requiredScopes': ['mcp'], 'metadata': {}}]
+    result['authorization']['grants'] = [{'role': role,
+        'subject': {'principal': issuer + '#' + subject}, 'tenant': tenant}
+        for role, subjects in principals.items() for subject in subjects]
+    result['tenants'] = [{'id': tenant, 'title': tenant}]
+    result['workContexts'] = [{'id': context, 'tenant': tenant, 'title': context, 'policyRevision': policy,
+        'outputPolicy': {'owner': {'kind': 'principal', 'id': issuer + '#' + owner}},
+        'memberships': [{'level': 'contributor', 'principals': sorted({issuer + '#' + subject
+                         for subjects in principals.values() for subject in subjects})}]}]
+    result['policies'] = [{'version': policy, 'rules': []}]
+    result['oauthClients'] = [{'id': application_client, 'authorizationServer': 'hub',
+        'defaultWorkContext': context, 'invocationMode': 'direct', 'allowedResources': [resource],
+        'grantTypes': ['authorization_code_pkce', 'refresh_token'], 'authMethods': ['none'],
+        'redirectUris': redirects, 'allowedScopes': ['mcp'], 'metadata': {}}]
+    result['oidcClients'] = [{'id': 'entra', 'identityProvider': 'entra', 'authorizationServer': 'hub',
+        'allowedResources': [resource], 'clientId': client_id, 'redirectUri': origin + '/oauth/callback',
+        'authMethod': 'client_secret_post', 'credentialSecret': 'entra_client_secret',
+        'scopes': ['openid', 'profile'], 'metadata': {}}]
+    result['secrets'] += [{'id': 'access_token_signing_key', 'source': 'env', 'purpose': 'jwks_private_key',
+        'locator': 'VEOVEO_ACCESS_TOKEN_SIGNING_KEY_B64', 'owner': {'kind': 'hub'}, 'metadata': {}},
+        {'id': 'entra_client_secret', 'source': 'env', 'purpose': 'oauth_client_secret',
+         'locator': 'VEOVEO_IDP_OIDC_CLIENT_SECRET', 'owner': {'kind': 'hub'}, 'metadata': {}}]
+    result['nativeUpstreams']['gateway'] = gateway
+    if retained is not None:
+        # Identity/authority migrations are separate reviewed operations, never a rerun side effect.
+        for field in ('identityProviders', 'authorizationServers', 'profiles', 'authorization',
+                      'tenants', 'workContexts', 'oauthClients', 'oidcClients', 'secrets'):
+            if retained[field] != result[field]:
+                raise ValueError('retained Entra identity/authority differs; review migration before regeneration')
+        if retained['nativeUpstreams']['gateway'] != gateway:
+            raise ValueError('retained native gateway differs; review placement before regeneration')
+        result['policies'] = copy.deepcopy(retained['policies'])
+    return result
+
+
+def prepare_entra(options):
+    retained = retained_catalog()
+    if (retained is not None) != (STATE / 'hub.env').exists():
+        raise ValueError('incomplete retained Hub configuration; recover it before preparation')
+    discovery = json.loads(Path(options.oidc_discovery_file).read_text())
+    expected_issuer = os.environ.get('VEOVEO_IDP_OIDC_ISSUER')
+    if not expected_issuer or discovery['issuer'].rstrip('/') != expected_issuer.rstrip('/'):
+        raise ValueError('trusted issuer must match the supplied standard discovery document')
+    arguments = dict(origin=options.hub_origin, discovery=discovery,
+        tenant_id=options.entra_tenant_id, client_id=options.entra_client_id,
+        tenant=options.tenant, context=options.work_context, policy=options.policy_version,
+        owner=options.owner_object_id, members=options.member_object_id, admins=options.admin_object_id,
+        billed=options.billed_object_id, application_client=options.application_client_id,
+        redirects=options.client_redirect_uri, gateway=options.native_gateway,
+        include_artifact=options.include_artifact, include_media=options.include_media,
+        retained=retained)
+    # Validate every public selection and retained authority before creating private material.
+    entra_catalog(key_id=(arguments['retained'] or {}).get('authorizationServers', [{}])[0]
+                  .get('accessTokenKeyId', 'preparation'), **arguments)
+    values = hub_secrets(https_origin(options.hub_origin), hosted=True)
+    jwk = authorization_jwk(values['VEOVEO_ACCESS_TOKEN_SIGNING_KEY_B64'])
+    prepared = entra_catalog(key_id=jwk['kid'], **arguments)
+    private(STATE / 'authorization-server.jwks.json', json.dumps({'keys': [jwk]}, indent=2) + '\n')
+    private(STATE / 'hub.json', json.dumps(prepared, indent=2) + '\n')
+    print('Prepared owner-only Entra Hub configuration; no identity, database or runtime operations performed.')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--hub-origin', required=True, help='explicit expected native HTTPS Hub origin')
+    parser.add_argument('--hub-origin', required=True, help='explicit canonical HTTPS Hub origin')
+    parser.add_argument('--identity-provider', choices=['keycloak', 'entra'], default='keycloak')
+    parser.add_argument('--oidc-discovery-file', help='trusted standard Entra OIDC discovery JSON')
+    parser.add_argument('--entra-tenant-id', default=os.environ.get('VEOVEO_IDP_OIDC_TENANT_ID'))
+    parser.add_argument('--entra-client-id', default=os.environ.get('VEOVEO_IDP_OIDC_CLIENT_ID'))
+    parser.add_argument('--tenant')
+    parser.add_argument('--work-context')
+    parser.add_argument('--policy-version')
+    parser.add_argument('--owner-object-id')
+    parser.add_argument('--member-object-id', action='append', default=[])
+    parser.add_argument('--admin-object-id', action='append', default=[])
+    parser.add_argument('--billed-object-id', action='append', default=[])
+    parser.add_argument('--application-client-id')
+    parser.add_argument('--client-redirect-uri', action='append', default=[])
+    parser.add_argument('--native-gateway', help='verified private OpenShell HTTPS endpoint, separate from public Hub')
     parser.add_argument('--include-artifact', action='store_true',
                         help='explicitly select the private vv-services/artifact native binding')
     parser.add_argument('--include-media', action='store_true',
                         help='select private vv-services/media, requiring selected Artifact')
     options = parser.parse_args()
+    os.umask(0o077)
+    if options.identity_provider == 'entra':
+        required = ['oidc_discovery_file', 'entra_tenant_id', 'entra_client_id', 'tenant',
+                    'work_context', 'policy_version', 'owner_object_id', 'application_client_id',
+                    'native_gateway']
+        if any(not getattr(options, name) for name in required):
+            parser.error('Entra requires discovery, tenant/client IDs, installation tenant/context/policy, '
+                         'owner, application client and native gateway inputs')
+        prepare_entra(options)
+        return
     if options.hub_origin.rstrip('/') != HUB_ORIGIN:
         raise ValueError('this local setup requires the reviewed vv-control/hub/http origin on 17670')
     retained = retained_catalog()

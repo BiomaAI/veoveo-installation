@@ -176,6 +176,8 @@ services:
     - mini
     - -dir=/data
     - -s3.port=9000
+    - -s3.cert.file=${VEOVEO_STORAGE_TLS_CERT_FILE:-}
+    - -s3.key.file=${VEOVEO_STORAGE_TLS_KEY_FILE:-}
     - -admin.ui=true
     - -admin.password=${VEOVEO_SEAWEEDFS_ADMIN_PASSWORD:?set VEOVEO_SEAWEEDFS_ADMIN_PASSWORD to the admin UI's password
       before starting}

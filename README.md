@@ -31,6 +31,10 @@ existing hook extension. The first smoke factory's RPC policy is read-only and
 has no inference provider. Build commands select the required patched sources;
 the [execution checklist](../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md) records current acceptance.
 
+For the Entra-backed reference Linux goal, follow the existing native contracts
+and [reference preparation](openshell/REFERENCE.md). It uses no local Keycloak
+stack and introduces no alternate application launcher.
+
 ## Scope and recovery
 
 Desktop acceptance was withdrawn. Its adapter, signing/manual-token helpers and
@@ -38,6 +42,8 @@ Desktop-only ingress are retired; `grpcs://localhost:7443` is no longer an activ
 endpoint. Private signing/session recovery state and durable Lore/identity data
 are preserved.
 
-The local direct-issuer path has focused qualification. Entra/customer issuers,
-interactive human Lore login, Linux/CUDA, general builds and environment composition
-remain separate work in the [execution plan](../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md).
+The local direct-issuer path has focused qualification. The reference Linux/Entra
+and signed webhook goal is active in the
+[execution plan](../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md). Customer issuers,
+interactive human Lore login, GPU/CUDA and general environment composition remain
+separate qualifications.

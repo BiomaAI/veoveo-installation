@@ -238,8 +238,9 @@ workspaces/providers and durable Lore/identity data.
 The pre-push hook remains a normal-push workflow guard, not complete low-level
 branch isolation. Protected branches and ordinary human permissions keep their
 native meaning. See the [hook contract](../../lore/docs/reference/factory-branch-hook.md).
-Entra/customer issuers, interactive human Lore login, Linux/CUDA and broader
-composition are separate qualifications in the [execution plan](../../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md).
+The active Linux/Entra and signed webhook goal uses the existing native path.
+Customer issuers, interactive human Lore login, GPU/CUDA and broader composition
+remain separate qualifications in the [execution plan](../../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md).
 
 ## Hub and Time preparation
 
@@ -267,3 +268,10 @@ Use [native Media preparation](MEDIA.md) for the private service, separate fake
 provider and member/billed qualification templates. These require the reviewed
 disjoint REST/MCP admission build above; source preparation is not deployed Media
 acceptance. Preserve existing Time/Artifact data and configuration.
+
+## Reference Linux and Entra
+
+Use [reference preparation](REFERENCE.md) for the active Linux/Entra and signed
+Media webhook goal. It preserves these native runtime contracts with separate
+operator-owned reference configuration; Mac and factory receipts remain historical.
+GPU/CUDA and generalized source-to-deployment automation remain separate.
