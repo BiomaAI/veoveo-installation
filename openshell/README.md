@@ -12,7 +12,7 @@ local binaries; deliberately select and requalify the reviewed source afterward.
 The direct Lore path is **IdP issuance → OpenShell renewal/injection → Lore native
 authorization**. Veoveo supplies trusted configuration and branch assignments.
 The build commands below select the patched sources directly. Native OpenShell
-configuration selects runtime images; the [execution checklist](../../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md)
+configuration selects runtime images; the [execution checklist](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md)
 records current acceptance. Local image tags are not registry releases.
 
 ## Operator identity and trust
@@ -241,10 +241,10 @@ workspaces/providers and durable Lore/identity data.
 
 The pre-push hook remains a normal-push workflow guard, not complete low-level
 branch isolation. Protected branches and ordinary human permissions keep their
-native meaning. See the [hook contract](../../lore/docs/reference/factory-branch-hook.md).
+native meaning. See the [hook contract](https://github.com/VeoveoAI/lore/blob/native-openshell/docs/reference/factory-branch-hook.md).
 The active Linux/Entra and signed webhook goal uses the existing native path.
 Customer issuers, interactive human Lore login, GPU/CUDA and broader composition
-remain separate qualifications in the [execution plan](../../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md).
+remain separate qualifications in the [execution plan](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md).
 
 ## Hub and Time preparation
 

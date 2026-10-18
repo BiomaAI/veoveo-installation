@@ -216,7 +216,7 @@ and availability timestamp, then have the trusted operator prove native Artifact
 and Hub stop/start plus readiness with the same state volume and public signing-key
 thumbprint. Run `restart_persistence_verify` alone with those domain inputs. It
 requires a fresh subscription, unchanged metadata/access and exact retained bytes,
-then removes its test artifact. See the [domain-owned instructions](../../veoveo-mcp-artifact/README.md#restart-persistence).
+then removes its test artifact. See the [domain-owned instructions](https://github.com/VeoveoAI/veoveo-mcp-artifact/blob/main/README.md#restart-persistence).
 The test never controls lifecycle or receives management credentials.
 
 Observe applied native provider renewal before a restart probe and leave a measured
