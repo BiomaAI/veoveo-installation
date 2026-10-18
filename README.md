@@ -14,13 +14,14 @@ protection remains effective. It is not complete isolation against storage APIs.
 
 Keep the ignored `.env`, installation CA and private operator state. Local Keycloak
 and its dedicated PostgreSQL are permanent bootstrap, alongside Lore, PostgreSQL,
-SeaweedFS and trusted identity ingress/egress. Their external data volumes survive
+SeaweedFS and the Keycloak HTTPS ingress. Their external data volumes survive
 Compose cleanup. The native OpenShell gateway runs as the macOS service.
 
 Complete the one-time [CA trust setup](identity/README.md#macos-certificate-trust),
 then follow [native OpenShell setup](openshell/README.md). Existing installations
-render egress with `./egress/render`, provision approved Lore identities with
-`./identity/configure-lore`, and use `docker compose --profile keycloak up -d`.
+provision approved Lore identities with `./identity/configure-lore` and use
+`docker compose --profile keycloak up -d`. The former OIDC egress proxy is retired;
+workload egress follows native OpenShell policy and credential mediation.
 A fresh installation must first provision identity credentials and external volumes.
 No agent joins bootstrap networks, mounts operator state or accesses Docker.
 

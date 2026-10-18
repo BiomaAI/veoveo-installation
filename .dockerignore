@@ -5,3 +5,6 @@
 **/.env.*
 state/
 tls/
+
+# Retired proxy output can remain locally; exclude it from image contexts.
+egress/

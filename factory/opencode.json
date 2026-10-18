@@ -84,6 +84,11 @@
       "mode": "primary",
       "steps": 2,
       "system": "Run only the user-requested local CLI command using shell. Report the result briefly. Do not inspect files, edit code, or invoke other agents."
+    },
+    "prepared-time": {
+      "mode": "primary",
+      "steps": 4,
+      "system": "Execute only the supplied immutable Lore clone and exact Cargo release build using shell. Use the supplied shell timeout. Report revision, command, exit status and binary path. On any failure stop and report it. Do not edit source, repair the environment, change dependencies, retry, explore MCP, or invoke other agents."
     }
   },
   "tool_output": {

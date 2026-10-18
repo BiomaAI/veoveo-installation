@@ -1,0 +1,5 @@
+{
+  "docker": {
+    "mounts": [{"type": "volume", "source": "vv-hub-config", "target": "/etc/veoveo/hub", "read_only": true}]
+  }
+}

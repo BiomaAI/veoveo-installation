@@ -47,14 +47,26 @@ static_resources:
               routes:
               - match: { prefix: / }
                 route: { cluster: keycloak, timeout: 30s }
-            - name: gateway
-              domains: ["gateway.localhost:8443", "gateway.localhost"]
+            # Native sandboxes resolve this trusted host alias. Publish only the
+            # realm's public keys; preserve the canonical issuer for Keycloak.
+            - name: keycloak_public_jwks
+              domains: ["host.openshell.internal:8443", "host.openshell.internal"]
+              request_headers_to_add:
+              - header: { key: x-forwarded-host, value: "auth.localhost:8443" }
+                append_action: OVERWRITE_IF_EXISTS_OR_ADD
+              - header: { key: x-forwarded-port, value: "8443" }
+                append_action: OVERWRITE_IF_EXISTS_OR_ADD
+              - header: { key: x-forwarded-proto, value: https }
+                append_action: OVERWRITE_IF_EXISTS_OR_ADD
               routes:
+              - match:
+                  path: /realms/veoveo/protocol/openid-connect/certs
+                  headers:
+                  - name: ":method"
+                    string_match: { exact: GET }
+                route: { cluster: keycloak, timeout: 30s }
               - match: { prefix: / }
-                route:
-                  cluster: gateway
-                  host_rewrite_literal: vv-gateway.internal:8080
-                  timeout: 60s
+                direct_response: { status: 403 }
           http_filters:
           - name: envoy.filters.http.router
             typed_config:
@@ -70,13 +82,3 @@ static_resources:
         - endpoint:
             address:
               socket_address: { address: vv-keycloak.internal, port_value: 8080 }
-  - name: gateway
-    type: STRICT_DNS
-    connect_timeout: 5s
-    load_assignment:
-      cluster_name: gateway
-      endpoints:
-      - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address: { address: vv-srv-gateway.internal, port_value: 8080 }

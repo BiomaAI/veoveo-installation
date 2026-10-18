@@ -6,6 +6,9 @@ ARG TARGETARCH
 # OpenCode v2's standalone binary, verified against the published npm integrity.
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates protobuf-compiler libprotobuf-dev \
     && rm -rf /var/lib/apt/lists/* /var/log/apt /var/log/dpkg.log
+# Component-owned conformance CLI; SDK has no runtime image. Keep its reviewed pin.
+RUN cargo install --locked --git https://github.com/VeoveoAI/veoveo-hub-sdk \
+    --rev a1d9d653ae3d723821cdeeab92f4a67acdca39ce --root /usr/local veoveo-hub-sdk-cli
 RUN case "${TARGETARCH}" in \
       arm64) package=arm64; digest=EsCnvp5lMJNem0YoQJM9PkXY0KrkiugL55M9J2JlImQzKdQnZ4CKutrPAXOnsa889qHhY5tjRpAnD/ZYFzhkRA== ;; \
       amd64) package=x64; digest=pdG/T4uBxSC3hjUTOrTlx2pXlZl2VqABlb0AgDlZ8VO/q1pUUOYvooWmN5VeSi+EP8cKGVUsj0GUmMDeB2ympA== ;; \

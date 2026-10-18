@@ -1,0 +1,21 @@
+# configure-lore renders only REPOSITORY_ID into private time.provider.yaml.
+id: vv-lore-time
+display_name: Prepared Time exact-repository grant
+credentials:
+  - name: access_token
+    env_vars: [LORE_AUTH_TOKEN]
+    required: true
+    auth_style: bearer
+    header_name: authorization
+    refresh:
+      strategy: oauth2_client_credentials
+      token_url: https://auth.localhost:8443/realms/veoveo/protocol/openid-connect/token
+      scopes: [lore-repo-REPOSITORY_ID]
+      refresh_before: 180s
+      max_lifetime: 300s
+      material:
+        - name: client_id
+          required: true
+        - name: client_secret
+          required: true
+          secret: true

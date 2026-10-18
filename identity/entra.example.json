@@ -31,7 +31,7 @@
     "source": "env",
     "purpose": "oauth_client_secret",
     "locator": "VEOVEO_ENTRA_CLIENT_SECRET",
-    "owner": { "kind": "gateway" },
+    "owner": { "kind": "hub" },
     "metadata": {}
   }]
 }

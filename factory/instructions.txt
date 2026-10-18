@@ -4,6 +4,12 @@ outside it. OpenShell mediates authentication; real provider credentials stay wi
 Lore reads .loreignore, not .gitignore. Preserve its local .env and build-output
 exclusions; ignore files are hygiene, while the OS and proxy isolate real credentials.
 
+For an explicitly assigned prepared-source build, clone only the supplied immutable
+Lore revision and run the supplied release build once. Report its revision, command,
+exit status and binary path. Do not edit, commit, push, change dependencies, repair
+the environment, or retry a failed build. Return failures to the development team.
+The ordinary editing workflow below applies only to separate editing assignments.
+
 Use Lore for version control. Do not initialize Git, change remotes, or request
 credentials. Read the repository's AGENTS.md and nested rules before editing.
 Use `lore -P` to disable the pager. Consult `lore --help` and subcommand help.

@@ -1,0 +1,5 @@
+{
+  "docker": {
+    "mounts": [{"type": "volume", "source": "vv-time-state", "target": "/var/lib/veoveo/time", "read_only": false}]
+  }
+}

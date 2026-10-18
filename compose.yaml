@@ -122,7 +122,6 @@ services:
       vv-local:
         aliases:
         - auth.localhost
-        - gateway.localhost
       vv-outside: {}
     ports:
     - 127.0.0.1:8443:8443
@@ -199,31 +198,6 @@ services:
     volumes:
     - vv-seaweedfs:/data
     restart: unless-stopped
-  vv-egress:
-    container_name: vv-egress
-    image: envoyproxy/envoy:v1.40.0@sha256:459f2a6404c340fe6afccd69d85527012d47f3c036765493e6f8f3113fa384de
-    command:
-    - -c
-    - /etc/envoy/envoy.yaml
-    - --log-level
-    - warn
-    environment:
-      ENVOY_UID: '0'
-    networks:
-      vv-local:
-        aliases:
-        - vv-gateway.internal
-        - vv-egress.internal
-      vv-outside: {}
-    ports: []
-    volumes:
-    - ./egress/envoy.local.yaml:/etc/envoy/envoy.yaml:ro
-    restart: unless-stopped
-    cap_drop:
-    - ALL
-    security_opt:
-    - no-new-privileges:true
-    read_only: true
   vv-lore:
     container_name: vv-lore
     cap_drop:

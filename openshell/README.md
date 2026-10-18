@@ -94,17 +94,35 @@ partial cross-build outputs:
 ```bash
 (
 set -euo pipefail
-test ! -e state/openshell/supervisor-source
-git -C ../openshell worktree add --detach "$PWD/state/openshell/supervisor-source" \
-  162dad88473def11d69a2867832c10342e54248b
+test ! -e state/openshell/supervisor-source-45f3b534
+git -C ../openshell worktree add --detach "$PWD/state/openshell/supervisor-source-45f3b534" \
+  45f3b534c75866e338000fc84b14e96c50b1b6ac
 (
-  cd state/openshell/supervisor-source
-  IMAGE_REGISTRY=veoveo IMAGE_TAG=veoveo-grpc mise run build:docker:supervisor
+  cd state/openshell/supervisor-source-45f3b534
+  IMAGE_REGISTRY=veoveo IMAGE_TAG=native-ingress mise run build:docker:supervisor
 )
 docker build -f openshell/Supervisor.Dockerfile \
-  --build-context ca=./tls/ca -t veoveo/supervisor:local .
+  --build-context ca=./tls/ca --build-arg BASE=veoveo/supervisor:native-ingress \
+  -t veoveo/supervisor:local .
 )
 ```
+
+Select the resulting immutable image ID with the native gateway's
+`OPENSHELL_SUPERVISOR_IMAGE` setting. Set
+`OPENSHELL_ENABLE_LOOPBACK_SERVICE_HTTP=false` so native service exposures advertise
+HTTPS. Back up private gateway configuration before restarting its Homebrew service.
+The Docker driver selects the supervisor image when the gateway starts and
+reconciles supervisors for **all existing running sandboxes**, including unrelated
+fixtures. Plan gateway restarts for that scope. Native sandbox stop/start also
+recreates its supervisor while retaining sandbox identity, workload, named volumes
+and exposure. Merely restarting the application process does not establish the new
+supervisor. Verify the actual supervisor and workload image IDs before acceptance.
+The selected revision includes native service DNS, scoped gateway TLS, credential
+mediation and official MCP Tasks-extension inspection. The execution checklist
+records which paths have been qualified. Run the focused
+`first-path service-ingress --image sha256:PROBE_IMAGE_ID` qualification from
+`veoveo-qualify-openshell` against fresh sandboxes. Its README describes the probe
+image build and measured limits; Hub/Time application acceptance is separate.
 
 The first factory has no inference provider and makes no model calls.
 
@@ -194,3 +212,17 @@ branch isolation. Protected branches and ordinary human permissions keep their
 native meaning. See the [hook contract](../../lore/docs/reference/factory-branch-hook.md).
 Entra/customer issuers, interactive human Lore login, Linux/CUDA and broader
 composition are separate qualifications in the [execution plan](../../veoveo-docs/OPENSHELL_HARDCUT_PLAN.md).
+
+## Hub and Time preparation
+
+Use the [local identity, catalog and native runtime preparation](HUB_TIME.md) after
+the qualified ingress fixture. Its trusted helper configures dedicated IdP clients
+and component files without deploying workloads. Actual Hub/Time qualification
+and the prepared Lore/factory build remain execution gates.
+
+## Prepared Time factory
+
+The [prepared Time workflow](FACTORY_TIME.md) adds separate standard policies and
+profiles for a trusted source publisher and bounded factory. The original fixture
+policy and qualification flow above remain separate. Do not publish source or run
+a model until the execution checklist has accepted deployed Hub/Time.

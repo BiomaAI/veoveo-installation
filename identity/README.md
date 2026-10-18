@@ -2,17 +2,17 @@
 
 Local development uses persistent Keycloak. The remote Linux reference uses
 Microsoft Entra ID. Installers may keep the bundled Keycloak service or configure
-another OIDC provider; Gateway authorization, roles and resource tokens remain
-Veoveo's responsibility. No Lore fork is involved.
+another OIDC provider; Hub authorization, roles and resource tokens remain
+Veoveo's responsibility. The qualified local Lore path uses its maintained auth
+patches and native pre-push hook.
 
 ## Persistent local Keycloak
 
-After creating the installation CA and starting the Gateway as described in the
-installation README, run from the installation root:
+After creating the installation CA and preparing the ignored `.env`, run from
+the installation root:
 
 ```sh
 ./identity/provision
-./identity/configure-gateway
 ```
 
 Provisioning enables `COMPOSE_PROFILES=keycloak` in the ignored `.env`. Keycloak
@@ -28,14 +28,18 @@ resetting a component's development state.
 | OIDC issuer | `https://auth.localhost:8443/realms/veoveo` |
 | Account and password management | `https://auth.localhost:8443/realms/veoveo/account/` |
 | Keycloak administration | `https://auth.localhost:8443/admin/` |
-| Gateway browser entry | `https://gateway.localhost:8443/oauth/authorize` |
-| Gateway OIDC callback | `https://gateway.localhost:8443/oauth/callback` |
 
-The local browser and trusted Gateway resolve the same issuer hostname. macOS
-resolves `*.localhost` to loopback; on Linux hosts without that behavior add
-`127.0.0.1 auth.localhost gateway.localhost` to `/etc/hosts`. Containers resolve
-these names through Docker's aliases for the TLS edge. `.localhost` bypasses the
-outbound dependency proxy in trusted runtimes.
+The local browser resolves `auth.localhost` to the loopback HTTPS listener. On
+Linux hosts without automatic `.localhost` resolution, add
+`127.0.0.1 auth.localhost` to `/etc/hosts`. Bootstrap containers resolve the issuer
+through the identity edge's Docker alias.
+
+This bootstrap exposes only Keycloak. Native OpenShell service ingress has been
+qualified with sandbox DNS, matching request authority and verified TLS. Actual
+Hub and Time application qualification remains pending; follow the
+[native setup](../openshell/HUB_TIME.md) and execution checklist. This
+Compose/Envoy stack provides no Hub route or application alias. The former Docker
+application restart path is removed; manage Hub through its native workload.
 
 ### macOS certificate trust
 
@@ -75,6 +79,47 @@ each client before switching endpoints. Linux clients use their platform's trust
 store. An externally hosted issuer with a publicly trusted chain needs no local
 Veoveo CA trust for its login endpoint.
 
+### Online public keys from native sandboxes
+
+Hub can fetch the realm's live JWKS through the existing identity listener at
+`https://host.openshell.internal:8443/realms/veoveo/protocol/openid-connect/certs`.
+The native host alias provides routing. Its URL, TLS SNI and HTTP authority remain
+`host.openshell.internal:8443`; do not substitute a Host header or disable TLS
+verification. Admit only the Hub executable, that exact host/port/path and GET in
+its native network policy. The selected supervisor image must contain the public
+installation CA for upstream verification; clients use provisioned workload roots.
+
+This alias serves only GET on that exact public-key path. Other alias paths and
+methods are refused. The issuer, token endpoint, browser and administrator URLs
+remain under `auth.localhost:8443`. Canonical forwarding headers still identify
+that issuer. This is a public JWKS route on the retained identity listener, not a
+Hub application route or a new proxy. Actual sandbox fetching and key-rotation
+acceptance require deployed qualification.
+
+Fresh identity leaves include both DNS names and the existing loopback IP.
+Ordinary provisioning preserves an existing leaf unchanged. To add the alias to
+an existing installation, explicitly renew only the identity certificate:
+
+```sh
+./identity/provision --renew-identity-certificate
+```
+
+This action requires the existing complete leaf pair and installation CA. It
+reuses the leaf private key, validates the new chain and names, privately backs up
+both current leaf files under `state/identity/tls-backups/`, then atomically replaces
+the certificate. It changes neither CA files nor identity/database credentials and
+does not start or restart services. Incomplete material fails without replacement.
+Preserve the backup directory with the other private operator state.
+
+After reviewing the new certificate, reload only the existing HTTPS listener:
+
+```sh
+docker compose up -d --no-deps --force-recreate vv-identity-edge
+```
+
+No new root trust installation is needed. Keep existing CA trust and all Keycloak,
+Lore, application and native OpenShell identities intact.
+
 ### Local credentials
 
 Initial user and administrator details live in `state/identity/credentials.json`,
@@ -86,25 +131,22 @@ password synchronization mechanism. Re-running provisioning preserves database
 users and passwords. The temporary bootstrap service account and its container
 environment credential are removed after setup.
 
-The confidential `veoveo-gateway` client uses authorization code + S256 PKCE, an
-exact callback URI, and no password or service-account grants. Human membership
-uses the stable `sub`, not the username. No email or personal profile fields are
-required. Imported users receive Keycloak's standard default roles for managing
-their own account; Veoveo resource membership is granted separately. Validate the
-actual account console as well as the Gateway flow: browser requests carry an
-`Origin` header, and the console requires these account permissions.
-The local browser client has an exact loopback callback at
-`http://127.0.0.1:18555/callback`; it is an integration client, not a shipped UI.
-The configuration helper writes the OIDC secret into the existing trusted
-`gateway.env`, so the normal Gateway launch continues to work. It restarts a running
-Gateway while retaining its process configuration.
+Provisioning creates the permanent identity realm, users and account permissions.
+It does not create a Hub OIDC client or choose an application callback origin.
+Existing private credentials and IdP data are preserved; the former application
+client is not a native Hub setup instruction. Prepare application client/claims
+and catalog configuration with the Hub integration after its native origin is
+qualified. Human sign-in alone must not grant application membership.
 
 Envoy binds the browser listener to `127.0.0.1:8443`. PostgreSQL, Keycloak HTTP and
 its management port are unpublished. Database and Keycloak run as non-root, with
 all capabilities dropped and no-new-privileges. The database owner has no
-superuser/create-role/create-database privileges. Only the trusted Gateway gets
-the confidential OIDC client secret. Coding containers receive no identity
-credentials, runtime mounts or route to the identity network. Environment files,
+superuser/create-role/create-database privileges. An interactive Hub OIDC client's
+credentials belong only to the approved trusted Hub. Native application and
+management client secrets stay in OpenShell credential custody; Hub's external
+client admission metadata does not require those secrets.
+Factory workloads receive no identity administration credentials, bootstrap
+mounts or route to the identity network. Environment files,
 private keys and provisioning state remain ignored and outside build contexts.
 Envoy removes caller-supplied forwarding headers before adding the configured
 HTTPS origin. Preserve that mutation order; removing those headers afterwards
@@ -121,7 +163,7 @@ normal encrypted backup process too. Test restoration before relying on a backup
 
 Bundled Keycloak is a supported provider choice, not a required Veoveo dependency.
 For a network installation, give Keycloak its own HTTPS hostname, adjust
-`KC_HOSTNAME`, Envoy's hosts/certificate/forwarded headers, the Gateway's issuer,
+`KC_HOSTNAME`, Envoy's hosts/certificate/forwarded headers, the Hub's issuer,
 client callback and identity configuration together. Keep the database and
 management interface private. Use the provider's supported clustering and backup
 configuration when the installation needs high availability. A local loopback
@@ -129,21 +171,21 @@ configuration is not a public production ingress configuration.
 
 For Entra, omit the `keycloak` Compose profile and its three services. Start with
 [entra.example.json](entra.example.json), a configuration fragment rather than a
-complete Gateway installation. Replace `TENANT_ID`, `APPLICATION_CLIENT_ID`, the
+complete Hub installation. Replace `TENANT_ID`, `APPLICATION_CLIENT_ID`, the
 installation origin, resource and tenant mapping; merge entries by ID into the
-installation's Gateway configuration. Point the relevant profile and authorization
+installation's Hub configuration. Point the relevant profile and authorization
 server's `identityProvider` to `entra`, enable `oidc_authorization_code_pkce`, and
-configure the public Gateway authorization/token endpoints and client registration.
+configure the public Hub authorization/token endpoints and client registration.
 Grant roles explicitly to issuer + stable object ID principals; sign-in alone must
 not confer installation membership.
 
 Register a single-tenant confidential **Web** application in Entra with the exact
 `https://veoveo.example.com/oauth/callback` redirect. Supply its credential only to
-the trusted Gateway through its configured secret source. Use the tenant-specific
+the trusted Hub through its configured secret source. Use the tenant-specific
 v2 issuer; do not use `common` or `organizations`. Permit the configured Entra
-JWKS/token host through the trusted egress proxy and expose the Gateway's human
-OAuth routes through the reference's authenticated HTTPS ingress. The current
-callback/share-only tunnel does not expose those routes. Follow Microsoft's
+JWKS/token host through the approved native egress policy and qualify the Hub's
+human OAuth routes through the selected authenticated HTTPS ingress. Local
+bootstrap does not provision that application ingress. Follow Microsoft's
 [OIDC metadata](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc)
 and [authorization code flow](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow)
 documentation. Entra requires the reference tenant and app registration; this
