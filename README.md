@@ -63,11 +63,20 @@ volumes and signing key survive the configuration restart.
 The restricted Hub forwarder completed a scheduled credential renewal at
 21:06:55 UTC, observed without manual rotation.
 
-The administrator's Entra-to-Hub PKCE login and application-token signature checks
-pass. User-authenticated Hub MCP calls and transfers, Tasks, two-principal
-permissions, subscriptions, application credential renewal and restart persistence
-remain to be qualified. The ordinary member's interactive sign-in is pending. The real signed WaveSpeed
-callback and final OpenCode/MiMo run are also pending; this Linux deployment has
+Administrator and ordinary-member Entra-to-Hub PKCE logins and independent
+application-token signature/identity checks pass. Both distinct grants are in native
+credential custody. The SDK client discovers 40 tools through the public Hub;
+fresh typed Time calls pass for both identities after the source-derived original
+access-token expiry bounds, with unchanged native references and sandbox process.
+All seven deployed Time cases pass, including permission refusal, Task completion,
+cancellation, subscriptions and reconnect. Five private Artifact cases pass.
+The corrected large-transfer fixture completed multipart upload and server
+verification of 1,076,887,552 bytes, but its subscription ended before the test
+observed completion. The test is being aligned with the existing SDK subscription
+reconciliation path; independent digest/range/deletion acceptance remains pending.
+Full Artifact qualification, fake-provider Media and restart persistence remain open.
+The real signed WaveSpeed callback and final OpenCode/MiMo run are also pending;
+this Linux deployment has
 made no paid generation or model-driven acceptance call. GPU/CUDA and general
 environment composition remain separate work.
 
