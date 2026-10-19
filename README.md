@@ -35,7 +35,7 @@ credentials or a connector. Other hosts must select their own verified CA path.
 | Component | Selected source revision |
 | --- | --- |
 | OpenShell | `6589a918a7a84640969f9f77b852695e210d713f` |
-| Hub | `00a7e7be6629a6f4faf786bbc4ae0369b3cbd5e8` |
+| Hub | `ec9f7f59be0e74135e5ed8179e65e360c701cf6c` |
 | Time | `90eabf9d3a103075c2aff907f008cf63f341f822` |
 | Artifact | `83d6910e4e889bb143ecac7145f791250715da47` |
 | Media | `20e2c6edb13d86cf981cf78e2a45fa41cbc94ff5` |
@@ -71,9 +71,12 @@ access-token expiry bounds, with unchanged native references and sandbox process
 All seven deployed Time cases pass, including permission refusal, Task completion,
 cancellation, subscriptions and reconnect. Five private Artifact cases pass.
 The corrected large-transfer fixture completed multipart upload and server
-verification of 1,076,887,552 bytes, but its subscription ended before the test
-observed completion. The test is being aligned with the existing SDK subscription
-reconciliation path; independent digest/range/deletion acceptance remains pending.
+verification of 1,076,887,552 bytes, but Hub converted the ended upstream listener
+into an internal error before the test observed completion. Hub's correction now
+preserves normal listener completion so the existing SDK can re-subscribe and
+reconcile state. Its HTTP-disconnect regression and both platform component gates
+pass, and the corrected revision is deployed with public discovery and a routed
+Time call verified. The full large-object digest/range/deletion case remains pending.
 Full Artifact qualification, fake-provider Media and restart persistence remain open.
 The real signed WaveSpeed callback and final OpenCode/MiMo run are also pending;
 this Linux deployment has
