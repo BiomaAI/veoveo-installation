@@ -36,9 +36,9 @@ credentials or a connector. Other hosts must select their own verified CA path.
 | --- | --- |
 | OpenShell | `6589a918a7a84640969f9f77b852695e210d713f` |
 | Hub | `ec9f7f59be0e74135e5ed8179e65e360c701cf6c` |
-| Time | `90eabf9d3a103075c2aff907f008cf63f341f822` |
-| Artifact | `83d6910e4e889bb143ecac7145f791250715da47` |
-| Media | `20e2c6edb13d86cf981cf78e2a45fa41cbc94ff5` |
+| Time | `9874293db5ffdc6be260dd60094e7b1f97fe5e3c` |
+| Artifact | `ce0a766e3556ce02f899b9dc37466f5d1be013c0` |
+| Media | `774be1eddfe387a95a461a88c7a0b2b2d48d84c7` |
 
 Build through each component's existing procedure and select its resulting immutable
 image in native OpenShell. These pins do not claim registry publication. Exact local
@@ -78,10 +78,12 @@ reconcile state. Its HTTP-disconnect regression and both platform component gate
 pass, and the corrected revision is deployed with public discovery and a routed
 Time call verified. The subsequent large case exposed the SDK's separate limit of
 three total listener openings: the client stopped following before the backend
-completed verification successfully. The client recovery correction is in progress;
-the full large-object digest/range/deletion case remains pending. Time and Media
-corrections for the standard missing-Tasks-capability error are published with
-passing Mac and Linux component checks, but are not deployed yet.
+completed verification successfully. SDK recovery correction `4839146` now passes
+both platform component gates and is adopted by the updated Artifact and Media
+clients. Time's and Media's standard missing-Tasks-capability corrections also pass
+both platform gates. The selected service revisions above are deployed and Ready;
+the full large-object digest/range/deletion case and updated deployed suites remain
+pending.
 Full Artifact qualification, fake-provider Media and restart persistence remain open.
 The real signed WaveSpeed callback and final OpenCode/MiMo run are also pending;
 this Linux deployment has
