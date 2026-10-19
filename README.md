@@ -35,10 +35,10 @@ credentials or a connector. Other hosts must select their own verified CA path.
 | Component | Selected source revision |
 | --- | --- |
 | OpenShell | `6589a918a7a84640969f9f77b852695e210d713f` |
-| Hub | `ec9f7f59be0e74135e5ed8179e65e360c701cf6c` |
-| Time | `9874293db5ffdc6be260dd60094e7b1f97fe5e3c` |
-| Artifact | `ce0a766e3556ce02f899b9dc37466f5d1be013c0` |
-| Media | `774be1eddfe387a95a461a88c7a0b2b2d48d84c7` |
+| Hub | `ed6778f6a7e61df4f4c42241a589d9450f2bd63f` |
+| Time | `e607b2e734a307965951022945b3a1383fb51e94` |
+| Artifact | `00c8e93f5ca3ffe9137773754a4945c6d349b3bf` |
+| Media | `4e8504b2c9bc72b0b249a8cf122e29983634d2e8` |
 
 Build through each component's existing procedure and select its resulting immutable
 image in native OpenShell. These pins do not claim registry publication. Exact local
@@ -47,62 +47,83 @@ image identities and runtime receipts belong in the
 
 ## Qualification status
 
-As of 2026-10-18, native Linux builds and component checks pass. Native OpenShell
-operator login through Entra is verified, and the reference tunnel is connected.
-Fresh PostgreSQL is healthy. SeaweedFS verifies TLS and denies anonymous S3 requests
-through both its origin and public hostname. Hub, Time, Artifact, Media and the
-synthetic provider fixture are Ready in native OpenShell sandboxes. Hub passes
-canonical public discovery/JWKS checks; service registration and database migrations
-pass. Artifact's bucket-scoped storage identity passes object and multipart
-operations and is denied access to an unrelated bucket. The fixture holds fake
-credentials only; it has no real WaveSpeed credentials.
-Media's native/public callback ingress passes Host admission after selecting the
-SDK's existing loopback-host allowance. Unsigned callback probes are rejected;
-this does not yet qualify a real provider event. The same sandbox, persistent
-volumes and signing key survive the configuration restart.
-The restricted Hub forwarder completed a scheduled credential renewal at
-21:06:55 UTC, observed without manual rotation.
+Remote access is restored. All seven selected source repositories are published
+and pass their component gates both on Mac (Linux ARM64 containers) and on the
+actual Linux x86_64 host: Core `433ed5f`, SDK `b0b8d86`, Hub `ed6778f`, Time
+`e607b2e`, Artifact `00c8e93`, Media `4e8504b` and MCP template `b39a604`.
+Matching runtime builds pass, and all four fresh native application sandboxes plus
+the synthetic provider fixture are Ready at the revisions selected above.
+OpenShell remains at `6589a918`.
 
-Administrator and ordinary-member Entra-to-Hub PKCE logins and independent
-application-token signature/identity checks pass. Both distinct grants are in native
-credential custody. The SDK client discovers 40 tools through the public Hub;
-fresh typed Time calls pass for both identities after the source-derived original
-access-token expiry bounds, with unchanged native references and sandbox process.
-All seven deployed Time cases pass, including permission refusal, Task completion,
-cancellation, subscriptions and reconnect. Five private Artifact cases pass.
-The corrected large-transfer fixture completed multipart upload and server
-verification of 1,076,887,552 bytes, but Hub converted the ended upstream listener
-into an internal error before the test observed completion. Hub's correction now
-preserves normal listener completion so the existing SDK can re-subscribe and
-reconcile state. Its HTTP-disconnect regression and both platform component gates
-pass, and the corrected revision is deployed with public discovery and a routed
-Time call verified. The subsequent large case exposed the SDK's separate limit of
-three total listener openings: the client stopped following before the backend
-completed verification successfully. SDK recovery correction `4839146` now passes
-both platform component gates and is adopted by the updated Artifact and Media
-clients. Time's and Media's standard missing-Tasks-capability corrections also pass
-both platform gates. The selected service revisions above are deployed and Ready.
-The updated large-object case now passes: 1,076,887,552 bytes in 65 multipart
-parts, whole-content checksum comparison, a 200-byte boundary range, and deletion
-with stored-byte release. Native Exec exits zero; the test takes 419.65 seconds
-(422.216 seconds between recorded parent timestamps). This does not prove an
-uninterrupted connection or a full-object download. Fake-provider Media and
-restart persistence remain open.
-The real signed WaveSpeed callback and final OpenCode/MiMo run are also pending;
-this Linux deployment has
-made no paid generation or model-driven acceptance call. GPU/CUDA and general
-environment composition remain separate work.
+The authorized disposable PostgreSQL/SeaweedFS application-state reset is complete,
+without backups or history migration. Source and trusted installation/identity
+configuration remain rebuild inputs. This development reset is not a production
+migration procedure; normal durable ownership still applies across routine
+sandbox restarts.
 
-The next cutover selects the newly merged typed-contract stack after its source
-checks pass. Application data is disposable during this development phase:
-reset old registrations and Task/results state rather than adding migrations,
-compatibility decoders or backups. The currently deployed revisions and their
-receipts above remain distinct from the new candidates. Remote access is down;
-the reset and fresh-stack deployment have not run.
+Native OpenShell Entra operator authentication and the reference tunnel are
+verified. Fresh administrator and ordinary-member Entra-to-Hub PKCE grants pass
+independent signature and identity checks and are restored to native credential
+custody. These are distinct human principals; the positive caller has both
+administrator and billed authority. The fixture holds fake credentials only,
+with no real WaveSpeed credentials.
 
-The operator selected empty application state and removal of the retired Linux
-stack. That development reset is not a production migration procedure. New state
-and identities must persist across subsequent restarts.
+Public S3 TLS is verified. Artifact's dedicated storage key is denied both List
+and Get access to an existing unrelated bucket/object. `ListBuckets` returns the
+filtered visible bucket set, and the administrative `ListUsers` request returns
+HTTP 403. These checks do not yet qualify the new stack's full multipart flow.
+Media's signed-callback ingress previously passed Host admission and refused
+missing/wrong signatures. One real signed Events completion now passes, as below.
+
+Time's fresh seven-case baseline passes in 14.61 seconds libtest (14.662 seconds
+outer Exec). Artifact's fresh six-case private baseline passes in 406.48 seconds
+libtest (406.534 seconds outer Exec), including the large unknown-size multipart
+case. Media's six-case fake baseline also passes in 51.28 seconds libtest
+(51.336316 seconds outer Exec). All three terminal restart verifies pass on the
+same prepared records; initial Artifact/Media Ready-only failures are retained,
+and routed application reads preceded successful verifies. Media's in-flight
+Media+Hub restart passes in 62.00 seconds with the same Task/prediction, one
+independently observed fake submission and pushed completion. Both roles' fresh
+calls succeed beyond the conservative source-derived original-JWT expiry bound
+in one SDK runner with unchanged opaque handles; this is not uninterrupted-stream
+or decoded-token-expiry evidence. Time in-flight remains inconclusive/deferred:
+the valid attempt reached Completed before its post-restart Working check, and a
+later harness stopped before continuation because it read the wrong output.
+Final bounded MiMo qualification remains incomplete after the timed-out attempt
+recorded below; it used the real Artifact retrieval scenario. Earlier frozen-source
+qualification includes the complete 1,076,887,552-byte upload in 65 parts,
+server checksum verification, a 200-byte boundary range, deletion and stored-byte
+release (419.65 seconds). That historical pass does not qualify the newly deployed
+typed-contract stack. See the
+[execution checklist](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md#reference-linux-deployment-and-signed-wavespeed-webhook-goal)
+for its exact source/runtime receipts and current gates.
+
+One real Linux WaveSpeed signed Events generation now passes independently of
+the remaining regression/restart gates. `wavespeed-ai/flux-schnell` used one image,
+seed 42 and 1024 × 1024 PNG output, with the orange-robot/green-seedling prompt
+recorded in the [dated receipt](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md#linux-real-wavespeed-signed-events-receipt--2026-10-19).
+The 26.034106-second acceptance interval includes callback, storage and billing;
+it is not pure inference time. The accepted/applied final callback settled the
+generation with zero status checks; one separate billing check confirms per-Task
+estimate and actual USD 0.003. Independent full download and decode match the
+private Artifact: PNG 1024 × 1024, 883,996 bytes, SHA-256
+`007af757d14221e544098adc5a1e37488f7e57818c85c9e3d91e97587d646b96`.
+An initial catalog refusal created no Task or dispatch; correcting the existing
+native provider credential resolved its underlying HTTP 401. Independent retrieval
+needed one exact SDK-runner tool-policy addition. Bounded native logs show one
+admitted generation POST, not a lossless provider request ledger.
+
+One authorized final OpenCode/MiMo attempt used explicit Build and
+`deepinfra/XiaomiMiMo/MiMo-V2.6-Pro`, eight steps and a 240-second model deadline,
+with its own OAuth grant and no Media generation. It timed out without completed
+tool results or a saved file. The persisted session has an empty reasoning-start
+part; subsequent delay and provider billing are unknown, not zero. Real restoration
+had native Ready evidence, but its catalog response was not retained. Final client
+qualification remains incomplete. No replacement run was made; diagnose the
+timeout before another bounded attempt. The exact [attempt receipt](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md#reference-linux-deployment-and-signed-wavespeed-webhook-goal)
+retains session and timing limits. The independently decoded real Artifact and
+signed callback remain qualified; no second paid generation is needed. GPU/CUDA
+and general environment composition remain separate work.
 
 ## Credentials and template updates
 
