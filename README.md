@@ -32,13 +32,28 @@ CA path. The tunnel token stays private. Apply its `ingress` array through the
 existing remotely managed tunnel configuration; the file does not create DNS,
 credentials or a connector. Other hosts must select their own verified CA path.
 
+[The object API configuration rule](openshell/bioma/cloudflare-object-api.json)
+selects Cloudflare's native `http_config_settings` override: `bic=false` only for
+`veoveo-objects.bioma.ai`. Signed S3 transfers are non-browser traffic; origin
+signatures, verified TLS and all other hosts/security settings remain in force.
+Apply/read back through the existing operator Rulesets API as described in the
+[reference procedure](openshell/REFERENCE.md#cloudflare-object-api-setting-bioma-selection).
+The rule is applied and read back; global Browser Integrity Check remains on.
+Default Python and curl signed transfers pass with exact bytes/hash/PNG, while
+unsigned and tampered signatures retain origin 403 refusals. No UA override, TLS
+bypass or proxy was used. No browser impersonation is an installation step.
+
 | Component | Selected source revision |
 | --- | --- |
 | OpenShell | `6589a918a7a84640969f9f77b852695e210d713f` |
 | Hub | `ed6778f6a7e61df4f4c42241a589d9450f2bd63f` |
-| Time | `e607b2e734a307965951022945b3a1383fb51e94` |
+| Time | `d70ac8e2f9bdfb1c012ee744e5cd119ce4bca1dd` |
 | Artifact | `00c8e93f5ca3ffe9137773754a4945c6d349b3bf` |
 | Media | `4e8504b2c9bc72b0b249a8cf122e29983634d2e8` |
+
+The selected Time metadata follow-up is published, gated and deployed; its new
+seven-case baseline passes in 14.84 seconds. Earlier baseline/recovery receipts
+below retain their historical `e607b2e` source.
 
 Build through each component's existing procedure and select its resulting immutable
 image in native OpenShell. These pins do not claim registry publication. Exact local
@@ -47,12 +62,12 @@ image identities and runtime receipts belong in the
 
 ## Qualification status
 
-Remote access is restored. All seven selected source repositories are published
+Remote access is restored. All seven baseline source repositories are published
 and pass their component gates both on Mac (Linux ARM64 containers) and on the
 actual Linux x86_64 host: Core `433ed5f`, SDK `b0b8d86`, Hub `ed6778f`, Time
 `e607b2e`, Artifact `00c8e93`, Media `4e8504b` and MCP template `b39a604`.
 Matching runtime builds pass, and all four fresh native application sandboxes plus
-the synthetic provider fixture are Ready at the revisions selected above.
+the synthetic provider fixture are Ready at those baseline revisions.
 OpenShell remains at `6589a918`.
 
 The authorized disposable PostgreSQL/SeaweedFS application-state reset is complete,
@@ -91,8 +106,8 @@ or decoded-token-expiry evidence. Time's reviewed in-flight restart now passes i
 24.91 seconds with the same Task Working after restart, a reopened subscription,
 pushed completion and the expected 64-window result. Earlier slow-boundary and
 invalid-harness attempts remain historical, not product failure claims. Final
-bounded MiMo qualification remains incomplete after the two timed-out attempts
-recorded below; both used the real Artifact retrieval scenario. Earlier frozen-source
+bounded MiMo qualification now passes the complete scenario; the three timed-out
+attempts below are historical and all used the real Artifact retrieval scenario. Earlier frozen-source
 qualification includes the complete 1,076,887,552-byte upload in 65 parts,
 server checksum verification, a 200-byte boundary range, deletion and stored-byte
 release (419.65 seconds). That historical pass does not qualify the newly deployed
@@ -115,7 +130,7 @@ native provider credential resolved its underlying HTTP 401. Independent retriev
 needed one exact SDK-runner tool-policy addition. Bounded native logs show one
 admitted generation POST, not a lossless provider request ledger.
 
-Two bounded OpenCode/MiMo attempts used explicit Build and
+The first two bounded OpenCode/MiMo attempts used explicit Build and
 `deepinfra/XiaomiMiMo/MiMo-V2.6-Pro`, eight steps and a 240-second model deadline,
 with their own OAuth grant and no Media generation. Both timed out without
 completed tool results/accounting or a saved file; provider activity and billing
@@ -127,9 +142,63 @@ attempts; model phase 240.003101 seconds, total 242.127631 seconds. The local
 synthetic cancellation check passed without inference. The revised live-observer
 fixture also passes: one synthetic request/frame, nonempty reasoning delta counted
 in a private metadata-only log with no raw text retained, interruption and claim
-release (8.599 ms cleanup). The current observed 600-second attempt retains the
-same eight steps and generation denial; its outcome and final client qualification
-remain pending.
+release (8.599 ms cleanup). The third, observed 600-second attempt also timed out:
+07:08:38.339632–07:18:39.833546 UTC, 600.001049 seconds model phase, 601.463073
+seconds total. It counted 1,624 reasoning deltas / 61,086 characters without tools,
+finalized accounting or output; native interruption took 37.617 ms and released
+its claim with zero resumes. Source review finds default reasoning omitted and
+an output allowance up to 131,072 tokens, not an eight-step reasoning budget.
+A new same-model `#none` candidate selects the native supported non-thinking
+toggle while retaining all scenario/permission/Tasks boundaries. Local capture
+passes: exact `reasoning.enabled=false`, identical 12 local tool schemas and two
+intentional refusals with released claims, no inference. The first `#none` run
+ended unsuccessfully at eight steps after 65.823 seconds: two local naming/search
+errors and read-only resource discovery, without an intended MCP operation or file.
+An actual-project localhost refusal probe then measured normal asynchronous inventory
+growth from 12 to 50 tools in 101 ms, including the required direct MCP tools and
+excluding generation. The corrected prompt separates direct MCP calls from Code Mode
+resource helpers. Its same-model 16-step / 600-second run was partial:
+2026-10-19 07:40:44.824397–07:43:29.677098 UTC, 164.850767 seconds total /
+163.212114 seconds model phase, session `ses_eace4ea38ffeCdYeXWcDCUKj8w`.
+The retained download verifies as an 883,996-byte PNG, 1024 × 1024 RGB, SHA-256
+`007af757d14221e544098adc5a1e37488f7e57818c85c9e3d91e97587d646b96`.
+The single Time schedule call was rejected for a missing `calendar-` ID prefix;
+its published schema omitted that prefix/full local-date/time metadata. No Time
+Task was created. Local Code Mode `.arrayBuffer()` / `crypto.subtle.digest` errors
+preceded successful download. CLI exit 0 is not semantic acceptance. Durable session
+cost is USD 0.0850859424; the 15-step CLI subtotal is incomplete. The Time metadata
+fix is published at `d70ac8e` (tree `b4ac708`); both canonical Docker checks pass
+141 tests / 10 skipped each, on Mac-hosted Linux ARM64 and actual Linux AMD64.
+Matching runtime and QA rollout now pass the new seven-case Time baseline in
+14.84 seconds. The live Hub catalog has 39 tools / 21 Time tools and exposes the
+calendar prefix, 10–128-character bounds and full local-date/time metadata.
+No new generation ran. The later 16-step / 600-second same-model run also failed
+semantic acceptance (CLI exit 0): session `ses_eacc6751cffe60j73RL4fVYA1X`,
+424.697897 seconds model phase / 425.959552 seconds total. Default Python signed
+GETs received HTTP 403 / body code 1010 before expiry. A browser-like User-Agent
+case eventually network-downloaded the exact 883,996-byte Artifact, not a local
+copy, but the model made no Time resolution or schedule call. No Time Task was
+created. At that checkpoint deterministic/recovery gates passed while final client
+acceptance remained open.
+The object-host-only native Browser Integrity Check rule above is applied and
+qualified: default Python/curl signed GETs return 200; unsigned AccessDenied and
+tampered SignatureDoesNotMatch remain 403.
+
+The final Time-first run now passes semantic acceptance: 2026-10-19
+08:39:08.179348–08:40:43.145956 UTC, 94.966864 seconds total / 92.797675 seconds
+model phase, using the same exact MiMo `#none` variant, 16-step / 600-second bounds
+and its own OAuth grant. All eight tool envelopes completed without errors: two
+native time resolutions, exactly one completed Time Task with one occurrence,
+one filtered Flux catalog match, retained Artifact discovery/provenance, one signed
+download request and one native shell network download. The fresh exclusive 0600
+file is the exact 883,996-byte PNG, with unchanged signed URL/method/headers and
+no UA override, TLS bypass or local copy. Durable session cost is USD 0.0223635068
+(41,621 input / 4,080 output / 254,688 cache-read / zero reasoning tokens); its
+claim is released with zero resumes. No generation or new Media Task ran. The
+[dated final receipt](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md#linux-final-time-first-opencode-mimo-receipt--2026-10-19)
+records authoritative Task reconciliation and proof limits. This closes the final
+client gate; the earlier failed attempts remain historical. No live push-versus-poll
+or capability-body wire claim is made. No second paid generation was needed.
 The free restored Media catalog/member-refusal case also passes (0.38 seconds),
 without a generation or an exact selected-model assertion. See the exact
 [attempt receipts](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md#reference-linux-deployment-and-signed-wavespeed-webhook-goal).

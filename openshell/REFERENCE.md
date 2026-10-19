@@ -291,7 +291,65 @@ retaining only exact-session types/counts/timings/delta lengths, plus an explici
 240/600-second deadline; no raw reasoning/tool input is retained. Its local observer
 fixture passes with a positive-length reasoning delta in the private live log,
 no raw text retained, terminal Interrupted and released claim (8.599 ms cleanup).
-The observed 600-second final attempt is underway; its outcome remains pending.
+The third, observed 600-second attempt also timed out at 07:18:39.833546 UTC:
+1,624 reasoning deltas / 61,086 characters, no completed tools/accounting or saved
+file. Native interruption took 37.617 ms; its claim is released with zero resumes.
+Source review finds default reasoning omitted and a primary output allowance up
+to 131,072 tokens. A new same-model `#none` candidate selects the supported native
+toggle (`reasoning.enabled=false`) with the same scenario, permissions and Tasks;
+local serialization/tool-inventory capture passes with the exact body and
+identical 12 local schemas, two intentional refusals, no inference and released
+claims. The first `#none` run ended unsuccessfully at eight steps after 65.823
+seconds: two local naming/search-shape errors followed by read-only resource discovery,
+without an intended MCP operation or file. The actual-project localhost refusal
+probe measured normal asynchronous inventory growth from 12 to 50 tools in 101 ms;
+required direct MCP tools were present and generation absent. The corrected prompt
+separates direct MCP calls from Code Mode resource helpers. Its 16-step / 600-second
+`#none` run was partial: 2026-10-19 07:40:44.824397–07:43:29.677098 UTC,
+164.850767 seconds total / 163.212114 seconds model phase, session
+`ses_eace4ea38ffeCdYeXWcDCUKj8w`. The retained download independently verifies as
+an 883,996-byte PNG, 1024 × 1024 RGB, SHA-256
+`007af757d14221e544098adc5a1e37488f7e57818c85c9e3d91e97587d646b96`.
+The single Time schedule call rejected the missing `calendar-` ID prefix; published
+schema metadata also failed to describe full local date/time. No Time Task was
+created. Local Code Mode `.arrayBuffer()` / `crypto.subtle.digest` assumptions caused
+errors before successful download. CLI exit 0 is not semantic acceptance. Complete
+durable session cost is USD 0.0850859424; the CLI subtotal is incomplete. Time's
+schema-only correction is published at `d70ac8e` (tree `b4ac708`). Both canonical
+Docker checks pass 141 tests / 10 skipped each: Mac-hosted Linux ARM64 and actual
+reference Linux AMD64. Matching runtime/QA rollout now passes seven Time cases
+in 14.84 seconds; the live Hub catalog has 39 tools / 21 Time tools and the calendar
+prefix, 10–128-character bounds and full local-date/time metadata. For same-state
+QA recreation, recompose the authored base policy with the same provider; effective
+policy export already contains a synthetic provider key. Effective policy equivalence,
+provider/credential selectors, Time public-key fingerprint and RW state mount are
+confirmed unchanged; the retained member-visible Task still reads Completed with
+64 occurrences and the same timestamps. No new generation ran. The later 16-step
+same-model run, session `ses_eacc6751cffe60j73RL4fVYA1X`, also failed semantic
+acceptance after 424.697897 seconds model phase / 425.959552 seconds total despite
+CLI exit 0. Default Python signed GETs received HTTP 403 / body code 1010 before
+expiry; a browser-like User-Agent case eventually network-downloaded the exact
+bytes, not a local copy. No Time resolution/schedule call or Task occurred.
+At that checkpoint deterministic/recovery gates passed while final client acceptance
+remained open. The narrow
+native object API rule below is applied/read back and passes default-client
+signed transfers plus unsigned/tampered-signature refusals.
+
+The final Time-first run now passes semantic acceptance: 2026-10-19
+08:39:08.179348–08:40:43.145956 UTC, 94.966864 seconds total / 92.797675 seconds
+model phase, using the same exact MiMo `#none` variant, 16-step / 600-second bounds
+and its own OAuth grant. All eight tool envelopes completed without errors: two
+native time resolutions, exactly one completed Time Task with one occurrence,
+one filtered Flux catalog match, retained Artifact discovery/provenance, one signed
+download request and one native shell network download. The fresh exclusive 0600
+file is the exact 883,996-byte PNG, with unchanged signed URL/method/headers and
+no UA override, TLS bypass or local copy. Durable session cost is USD 0.0223635068
+(41,621 input / 4,080 output / 254,688 cache-read / zero reasoning tokens); its
+claim is released with zero resumes. No generation or new Media Task ran. The
+[dated final receipt](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md#linux-final-time-first-opencode-mimo-receipt--2026-10-19)
+records authoritative Task reconciliation and proof limits. This closes the final
+client gate; the earlier failed attempts remain historical. No live push-versus-poll
+or capability-body wire claim is made.
 Reasoning deltas are live-only until the final full-value event, so its empty
 persisted start does not prove no streamed reasoning arrived. See the
 [current qualification receipts](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md#reference-linux-deployment-and-signed-wavespeed-webhook-goal).
@@ -330,6 +388,41 @@ Keep the startup-approved ForwardTcp bindings and logical service bases unchange
 Time `http://time.internal:8800`, Artifact `http://artifact.internal:8801`, and Media
 `http://media.internal:8802`. Time and Artifact need no public exposure or public
 origin. Their private calls retain logical Host and audience through ForwardTcp.
+
+### Cloudflare object API setting (Bioma selection)
+
+The reviewed native payload [bioma/cloudflare-object-api.json](bioma/cloudflare-object-api.json)
+creates the zone `http_config_settings` phase ruleset with one enabled rule:
+`http.host eq "veoveo-objects.bioma.ai"`, action `set_config`, parameters
+`{"bic": false}`. It overrides Browser Integrity Check only for that object API
+hostname. Global Browser Integrity Check, other hosts, origin signature validation,
+TLS, authentication and the remaining bot/DDoS settings are unchanged.
+
+Use the existing trusted operator's authenticated Cloudflare Rulesets API. First
+list `GET /client/v4/zones/{zone_id}/rulesets`; when no `http_config_settings`
+phase ruleset exists, submit the JSON file unchanged as the body of
+`POST /client/v4/zones/{zone_id}/rulesets`. Read back the resulting phase entrypoint
+and verify the single rule's ref, exact hostname and sole `bic=false` setting.
+If a phase ruleset already exists, preserve its other rules and add/update only
+`veoveo_objects_api_no_bic`; do not replace unrelated configuration with this
+create payload. Credentials and API responses stay in trusted private operator
+state, never in this repository or service sandboxes. See Cloudflare's official
+[API procedure](https://developers.cloudflare.com/rules/configuration-rules/create-api/)
+and [`bic` setting](https://developers.cloudflare.com/rules/configuration-rules/settings/#browser-integrity-check).
+
+The final client's default Python transfer received HTTP 403 / body error 1010
+before URL expiry. A model-added browser-like User-Agent later obtained the exact
+bytes, but is not the intended API configuration. The native rule was applied and
+read back on 2026-10-19 at 08:36:22.683664 UTC; global Browser Integrity Check stays
+on. Post-edge signed GETs pass with default Python (200/682.388 ms) and curl
+(200/424.357 ms), both exact 883,996-byte PNGs with the expected digest. Unsigned
+requests remain 403 AccessDenied (205.016 ms); tampered signatures remain 403
+SignatureDoesNotMatch (194.681 ms). No UA override, TLS bypass or proxy was used.
+The private `opencode-reference-post-edge-20261019/transfer-receipt.json` records
+this bounded check, SHA-256
+`c6c11ba38519dd12cad206a27682f3cffb0c4d47de718d5b9b5935833e0b3c99`.
+Retain origin signature enforcement; no source fallback, extra proxy or browser-header
+workaround. Final model-driven acceptance is still a separate open gate.
 
 ### Media Host admission for native HTTP exposure
 
