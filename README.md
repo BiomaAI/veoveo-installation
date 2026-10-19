@@ -81,14 +81,24 @@ three total listener openings: the client stopped following before the backend
 completed verification successfully. SDK recovery correction `4839146` now passes
 both platform component gates and is adopted by the updated Artifact and Media
 clients. Time's and Media's standard missing-Tasks-capability corrections also pass
-both platform gates. The selected service revisions above are deployed and Ready;
-the full large-object digest/range/deletion case and updated deployed suites remain
-pending.
-Full Artifact qualification, fake-provider Media and restart persistence remain open.
+both platform gates. The selected service revisions above are deployed and Ready.
+The updated large-object case now passes: 1,076,887,552 bytes in 65 multipart
+parts, whole-content checksum comparison, a 200-byte boundary range, and deletion
+with stored-byte release. Native Exec exits zero; the test takes 419.65 seconds
+(422.216 seconds between recorded parent timestamps). This does not prove an
+uninterrupted connection or a full-object download. Fake-provider Media and
+restart persistence remain open.
 The real signed WaveSpeed callback and final OpenCode/MiMo run are also pending;
 this Linux deployment has
 made no paid generation or model-driven acceptance call. GPU/CUDA and general
 environment composition remain separate work.
+
+The next cutover selects the newly merged typed-contract stack after its source
+checks pass. Application data is disposable during this development phase:
+reset old registrations and Task/results state rather than adding migrations,
+compatibility decoders or backups. The currently deployed revisions and their
+receipts above remain distinct from the new candidates. Remote access is down;
+the reset and fresh-stack deployment have not run.
 
 The operator selected empty application state and removal of the retired Linux
 stack. That development reset is not a production migration procedure. New state
