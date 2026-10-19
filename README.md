@@ -14,6 +14,11 @@ PostgreSQL and SeaweedFS use the template's trusted bootstrap. Microsoft Entra
 authenticates the operator and Hub users. Hub issues application grants and retains
 full MCP Tasks support.
 
+The reusable application PostgreSQL image adds pgvector 0.8.7 and PostGIS 3.6.4.
+Follow its [build, existing-database enablement and service-role checks](postgres/README.md);
+these additions preserve the current service/schema ownership. Source preparation
+is not a runtime qualification receipt.
+
 | Entry point | Purpose |
 | --- | --- |
 | `https://veoveo.bioma.ai` | Hub OAuth and MCP; only Media's signed callback path routes directly to Media |
