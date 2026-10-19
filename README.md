@@ -71,7 +71,8 @@ with no real WaveSpeed credentials.
 Public S3 TLS is verified. Artifact's dedicated storage key is denied both List
 and Get access to an existing unrelated bucket/object. `ListBuckets` returns the
 filtered visible bucket set, and the administrative `ListUsers` request returns
-HTTP 403. These checks do not yet qualify the new stack's full multipart flow.
+HTTP 403. These isolation checks alone do not prove multipart behavior; the
+separate fresh six-case baseline below includes the full large multipart proof.
 Media's signed-callback ingress previously passed Host admission and refused
 missing/wrong signatures. One real signed Events completion now passes, as below.
 
@@ -86,11 +87,12 @@ Media+Hub restart passes in 62.00 seconds with the same Task/prediction, one
 independently observed fake submission and pushed completion. Both roles' fresh
 calls succeed beyond the conservative source-derived original-JWT expiry bound
 in one SDK runner with unchanged opaque handles; this is not uninterrupted-stream
-or decoded-token-expiry evidence. Time in-flight remains inconclusive/deferred:
-the valid attempt reached Completed before its post-restart Working check, and a
-later harness stopped before continuation because it read the wrong output.
-Final bounded MiMo qualification remains incomplete after the timed-out attempt
-recorded below; it used the real Artifact retrieval scenario. Earlier frozen-source
+or decoded-token-expiry evidence. Time's reviewed in-flight restart now passes in
+24.91 seconds with the same Task Working after restart, a reopened subscription,
+pushed completion and the expected 64-window result. Earlier slow-boundary and
+invalid-harness attempts remain historical, not product failure claims. Final
+bounded MiMo qualification remains incomplete after the two timed-out attempts
+recorded below; both used the real Artifact retrieval scenario. Earlier frozen-source
 qualification includes the complete 1,076,887,552-byte upload in 65 parts,
 server checksum verification, a 200-byte boundary range, deletion and stored-byte
 release (419.65 seconds). That historical pass does not qualify the newly deployed
@@ -113,17 +115,27 @@ native provider credential resolved its underlying HTTP 401. Independent retriev
 needed one exact SDK-runner tool-policy addition. Bounded native logs show one
 admitted generation POST, not a lossless provider request ledger.
 
-One authorized final OpenCode/MiMo attempt used explicit Build and
+Two bounded OpenCode/MiMo attempts used explicit Build and
 `deepinfra/XiaomiMiMo/MiMo-V2.6-Pro`, eight steps and a 240-second model deadline,
-with its own OAuth grant and no Media generation. It timed out without completed
-tool results or a saved file. The persisted session has an empty reasoning-start
-part; subsequent delay and provider billing are unknown, not zero. Real restoration
-had native Ready evidence, but its catalog response was not retained. Final client
-qualification remains incomplete. No replacement run was made; diagnose the
-timeout before another bounded attempt. The exact [attempt receipt](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md#reference-linux-deployment-and-signed-wavespeed-webhook-goal)
-retains session and timing limits. The independently decoded real Artifact and
-signed callback remain qualified; no second paid generation is needed. GPU/CUDA
-and general environment composition remain separate work.
+with their own OAuth grant and no Media generation. Both timed out without
+completed tool results/accounting or a saved file; provider activity and billing
+are not measured by those incomplete receipts. The first killed process left a
+recoverable claim; native standalone deletion retired that disposable session
+after retaining evidence. The corrected second attempt (06:57:25.554651 UTC)
+used supported native interruption: 39.06 ms cleanup, claim released, zero resume
+attempts; model phase 240.003101 seconds, total 242.127631 seconds. The local
+synthetic cancellation check passed without inference. The revised live-observer
+fixture also passes: one synthetic request/frame, nonempty reasoning delta counted
+in a private metadata-only log with no raw text retained, interruption and claim
+release (8.599 ms cleanup). The current observed 600-second attempt retains the
+same eight steps and generation denial; its outcome and final client qualification
+remain pending.
+The free restored Media catalog/member-refusal case also passes (0.38 seconds),
+without a generation or an exact selected-model assertion. See the exact
+[attempt receipts](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md#reference-linux-deployment-and-signed-wavespeed-webhook-goal).
+The independently decoded real Artifact and signed callback remain qualified;
+no second paid generation is needed. GPU/CUDA and general environment composition
+remain separate work.
 
 ## Credentials and template updates
 

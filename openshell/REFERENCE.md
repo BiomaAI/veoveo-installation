@@ -263,6 +263,39 @@ of initial mint completion plus the configured 900 seconds, identify it as a
 source/configuration-derived bound, and verify fresh calls after it without manual
 rotation. A call after only the native lease is not post-JWT-expiry proof.
 
+### Bounded OpenCode execution and durable cancellation
+
+A deadline must interrupt the active session while its owning private server is
+still alive: use the supported `POST /api/session/{sessionID}/interrupt?resume=false`,
+then wait a bounded interval for the session's terminal outcome and idle timestamp
+before stopping owned processes. Native user interruption releases the durable
+execution claim; process shutdown or SIGKILL can preserve it for managed startup
+recovery. An idle, locally unowned interruption is a no-op, not orphan cancellation.
+Know the session identity before execution; an empty `POST /api/session` followed
+by `run --session` uses the existing native contract without starting a model at
+creation. Record remaining or unknown claim state if cleanup cannot be confirmed.
+
+The first Linux final attempt reached its 240-second bound without completed tool
+results or a saved file. Its disposable orphaned session was removed through the
+native `session delete --standalone` path with warming disabled, after retaining
+sanitized metadata; read-only verification confirms the claim is absent. Immutable
+attempt evidence remains private. The revised launcher passes its local synthetic
+SSE cancellation check: one request/frame, terminal Interrupted, released claim
+and closed connection, with 10.465 ms cleanup and no external inference. The later
+corrected bounded MiMo attempt began at 06:57:25.554651 UTC and also reached its
+240-second model bound without completed tools/accounting or output. Native user
+interruption completed in 39.06 ms and released its claim with zero resume attempts.
+The earlier no-replacement statement describes the first checkpoint. A new
+reviewed candidate adds the existing authenticated native live-event stream,
+retaining only exact-session types/counts/timings/delta lengths, plus an explicit
+240/600-second deadline; no raw reasoning/tool input is retained. Its local observer
+fixture passes with a positive-length reasoning delta in the private live log,
+no raw text retained, terminal Interrupted and released claim (8.599 ms cleanup).
+The observed 600-second final attempt is underway; its outcome remains pending.
+Reasoning deltas are live-only until the final full-value event, so its empty
+persisted start does not prove no streamed reasoning arrived. See the
+[current qualification receipts](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md#reference-linux-deployment-and-signed-wavespeed-webhook-goal).
+
 ### Canonical Hub authority and private service placement
 
 Service registration uses the existing per-service initial-access providers.
