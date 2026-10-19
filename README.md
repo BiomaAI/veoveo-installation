@@ -76,7 +76,12 @@ into an internal error before the test observed completion. Hub's correction now
 preserves normal listener completion so the existing SDK can re-subscribe and
 reconcile state. Its HTTP-disconnect regression and both platform component gates
 pass, and the corrected revision is deployed with public discovery and a routed
-Time call verified. The full large-object digest/range/deletion case remains pending.
+Time call verified. The subsequent large case exposed the SDK's separate limit of
+three total listener openings: the client stopped following before the backend
+completed verification successfully. The client recovery correction is in progress;
+the full large-object digest/range/deletion case remains pending. Time and Media
+corrections for the standard missing-Tasks-capability error are published with
+passing Mac and Linux component checks, but are not deployed yet.
 Full Artifact qualification, fake-provider Media and restart persistence remain open.
 The real signed WaveSpeed callback and final OpenCode/MiMo run are also pending;
 this Linux deployment has
