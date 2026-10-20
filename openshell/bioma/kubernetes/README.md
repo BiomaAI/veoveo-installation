@@ -76,6 +76,17 @@ Keep native `Read:lore` and `Read:artifacts` in their respective existing S3
 identities alongside object-scoped actions: HeadBucket needs bucket-root read,
 not just object read or List. Do not rewrite signed object Host/path/query/headers.
 
+The native Kubernetes destination-CA input requires gateway fix
+`f39b1fee81891646b57441d15d0d6e3a0c890385`; selection of its validated image remains
+builder-owned. The public ConfigMap is `openshell/platform-destination-roots-v1`,
+key `ca.crt`, with gateway mount `/etc/openshell/platform-ca`. The generic values
+select `additional_ca_bundle=/etc/openshell/platform-ca/ca.crt`. It contains only
+the current public gateway, Lore and Seaweed roots. A workload-only CA mount is
+not supervisor trust. Keep the database CA mount when composing private Helm
+volume overrides. This source update neither selects a new image digest nor
+changes running supervisor generations.
+
+
 The selected `tunnel.yaml` retains the existing **remotely managed** tunnel.
 Create native Secret `public-tunnel` in `veoveo-system`, key `token`, from the
 existing private tunnel token file. `cloudflared tunnel run --token-file` reads
