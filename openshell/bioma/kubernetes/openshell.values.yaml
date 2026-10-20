@@ -22,3 +22,8 @@ gatewayConfig:
     scopes_claim: roles
     admin_role: openshell-admin
     user_role: openshell-user
+
+# Match the trusted application and Factory/Computer image seed identity.
+server:
+  sandboxUid: 10001
+  sandboxGid: 10001
