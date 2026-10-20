@@ -78,7 +78,7 @@ network_policies:
   fixture_controls:
     endpoints:
     - host: vv-services--media-provider--http.openshell.localhost
-      port: 17670
+      port: 8080
       path: /testing/**
       protocol: rest
       enforcement: enforce
