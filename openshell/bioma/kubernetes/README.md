@@ -179,8 +179,8 @@ Private-registry image rows use prefix
 | Hub | `9b83c26e9bdc926b054d089fd87ca26e3cba6f31` | `veoveo-hub@sha256:be9176ea306016a507fd358034d4630caac8c6a91a2f4a25807b251422b91638` |
 | Time | `d70ac8e2f9bdfb1c012ee744e5cd119ce4bca1dd` | `veoveo-mcp-time@sha256:255c50ff5fd90e59cf76842ef8e3fcd21ace8ff0a15ca7f7fa1ec32ab5f796b3` |
 | Artifact | `00c8e93f5ca3ffe9137773754a4945c6d349b3bf` | `veoveo-mcp-artifact@sha256:06ebc0f44421f8308d27a773945644beaf51981a6d95e837dc5fdc77e10114ce` |
-| Media | `4e8504b2c9bc72b0b249a8cf122e29983634d2e8` | `veoveo-mcp-media@sha256:d1aefc0567b1376336ca0f9e1404a77b7dd124b5bc5e4647ffaaa435a136c22a` |
-| Synthetic Media provider | Same Media source | `veoveo-mcp-media-provider@sha256:398f86bbda316b6cd40b2a88c332fadc6fcc809ca53f91b713fb6322227080d4` |
+| Media | `f01cdb0b772a87e20835f5b88be18910a7785e54` | `veoveo-mcp-media@sha256:2da66a129757e3d54e379bb8a34c2b15da8b768681cd00702229ec44d838a920` |
+| Synthetic Media provider | `4e8504b2c9bc72b0b249a8cf122e29983634d2e8` | `veoveo-mcp-media-provider@sha256:398f86bbda316b6cd40b2a88c332fadc6fcc809ca53f91b713fb6322227080d4` |
 | Lore | `6b7a0e598b8fbbaed82c777109135ddb25873bbf` | `veoveo-lore@sha256:5bb1e4ebdbbfca67e8b265532dd9897f9ea33366f26a1b945d81eb9a7320cb6c` |
 | Factory | Installation `d9f6bf59b9e0fe908c661701a6313cb8abc15c80` | `veoveo-factory@sha256:89e70eac86d2ea3a3dc1a245942b5535cda768cd2bb4f0d36f8add85378a98e5` |
 | Computer | Same installation; OpenCode `4bd4891e9e3d67460eb43dcfcdefb5172c1279ff` | `veoveo-computer@sha256:5263868037398bfcfb8401cbf898d2a556f7c90d88c0b8f57588cd5131b82b1f` |
@@ -241,15 +241,29 @@ Measured deployed cases:
   223.15 seconds, including 1-GiB multipart/range/release. This is deployed service
   acceptance, separate from component tests and any model-driven scenario.
 
-Media registered at 09:02:46.796 UTC and completed native provider startup status
-checks at 09:02:47.046 UTC; its exact selected image is Ready with zero restarts.
-This proves registration/startup connectivity, not a completed synthetic Task.
-Media Kubernetes Task acceptance, Computer terminal/WebSocket qualification,
-remaining service recovery and final host reboot checks are pending. The fixture is synthetic; historical real-provider
-callbacks do not qualify its current Kubernetes path. Final bounded OpenCode
-acceptance is also pending and must select only
-`deepinfra/XiaomiMiMo/MiMo-V2.6-Pro` after deterministic/deployed gates; no paid
-model call was made for this documentation checkpoint.
+Media's six serial synthetic deployed cases passed in 49.06 seconds using source
+`f01cdb0b772a87e20835f5b88be18910a7785e54`; its matching QA image digest is
+`sha256:a6ba2faddd3b3c6320538bbc64d0a37e0e01b001bd7f4e2201685b32428b0c0f`.
+A separate in-flight Task survived scoped Hub and Media restarts in 112.42 seconds:
+Task `gtr_Bz2Fxto2vKUNu5zlnEcA9IDtHVc5egJxIJKzTZZba_8`, prediction
+`01a158cb17c37c71a192c2a62c4f4b52`, output 65,536 bytes with SHA-256
+`c6ee57f09dbd4b0e5c6072ec59f2bbce2decf3ef9b1c695af802f26ae28931ce`.
+The initial suite passed four of six cases. The corrections make duplicate run
+recording tenant-safe and make the Artifact client reject a terminal failed upload
+on retry. Media now admits the exact public signed-upload authority with TLS
+passthrough. The original transfer error was not retained, so that past cause is
+unmeasured; the fresh suite proves the corrected path. Media consumes Artifact
+client `58f9fbd2ceab7f267144676284b62bf756945427`, now included in Artifact main
+`9a535440d989e24021ae172f71f3f5c08aa2703b`; the deployed Artifact server remains
+`00c8e93` and the fixture remains `4e8504b` with the unchanged images above.
+These outputs are synthetic byte fixtures, not inference or valid media encoding.
+Full host reboot/recovery and final bounded OpenCode acceptance remain pending;
+the latter must select only `deepinfra/XiaomiMiMo/MiMo-V2.6-Pro` after the other
+gates. No model call was made for this documentation update.
+
+The six-case log is retained in the QA workspace as
+`/sandbox/.media-acceptance-f01cdb0-20261020.log` (2,522 bytes, SHA-256
+`4a8d3c5b9ddbdfd35f652ca8c81394521aafe6b91b00623357e9dc6dd3ec0e47`).
 
 Retained evidence: Linux `/tmp/k3s-foundation-20261019/` (including `destination-ca/`,
 `native-dns-supervisor/`, `hub-reconcile/`, `computer-v2/`, `lore-computer/`),
