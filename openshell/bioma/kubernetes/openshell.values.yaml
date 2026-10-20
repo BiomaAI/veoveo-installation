@@ -1,10 +1,10 @@
-# Verified Linux amd64: gateway2c9fe478, supervisord7a99008, unchanged runtime846de5fa.
+# Verified Linux amd64: gateway53e36658, supervisor d7a99008, unchanged runtime846de5fa.
 # Public immutable selections; image changes take effect only on explicit operator apply.
 gateway:
   image:
     registry: registry.cloudflare.com/cd9522254303bfb3d2322a0d9b82764f
     repository: gateway
-    digest: sha256:b36083f28400e0136521bfa72ffdf91aaddbf0b0f9a6345bd261963080692d95
+    digest: sha256:1bdeade25a8239b7c385924915de59f520be3c48322f79ef4be62d7ce5801564
 supervisor:
   image:
     registry: registry.cloudflare.com/cd9522254303bfb3d2322a0d9b82764f

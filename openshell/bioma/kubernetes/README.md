@@ -4,13 +4,15 @@ Current placement is Linux x86_64 K3s; the selected Kubernetes foundation and
 application images are deployed. This source branch imports reusable template
 `dd824156c1bcb9eb7c34e22b70781cec8587ebc2`, with reviewed follow-ups through
 `94c7ff08f661e0365d949909ab64dc5cfd7afe2f`; files directly under `openshell/bioma/`
-remain historical selections. The second full-host reboot exposed an unresolved
-native sandbox recovery failure. Bootstrap Secret mount errors preceded gateway
-suspension, but the causal relationship is not established. No post-reboot manual
-Starts have been issued, so automatic recovery is not qualified. The dated
-checkpoint below distinguishes earlier deployed cases from this pending recovery
-gate and final model acceptance. Mac native development/test fixtures remain in
-the generic template.
+remain historical selections. A third coordinated full-host reboot recovered all
+nine owned `restart_policy=always` services, Computers and QA sandboxes
+automatically, with fresh runtime generations and all 25 PVC bindings retained.
+The `never` Time QA runner remained stopped as expected; it was started later only
+for its verifier. The selected gateway is now `53e36658` and the final bounded
+OpenCode acceptance passed with the explicitly selected MiMo model. See the dated
+checkpoint below for evidence, the earlier second-reboot failure, and the exact
+boundaries of each result. Mac native development/test fixtures remain in the
+generic template.
 
 ## Foundation inputs
 
@@ -24,7 +26,7 @@ public Bioma inputs where they replace generic placeholders:
 | Agent Sandbox | `kubectl apply -k kubernetes/agent-sandbox` (official 1.0.6, amd64 digest) |
 | CloudNativePG | Official chart 0.29.1/operator 1.30.1; `postgres.yaml` here |
 | SeaweedFS | Official chart 4.48.0 and `kubernetes/seaweedfs.values.yaml` |
-| OpenShell | Maintained source b849a25c (chart/runtime base 846de5fa) and `kubernetes/openshell.values.yaml` plus `openshell.values.yaml` here |
+| OpenShell | Maintained source 53e36658 (runtime base 846de5fa) and `kubernetes/openshell.values.yaml` plus `openshell.values.yaml` here |
 | Native Lore | `kubernetes/lore.yaml` and `lore.toml` here; current reviewed image recorded below |
 | Existing tunnel | `tunnel.yaml` plus native remote API body `cloudflared-ingress.json` here |
 | Hub bootstrap fragment | `hub.example.json` here, merged into complete private trusted configuration |
@@ -32,16 +34,15 @@ public Bioma inputs where they replace generic placeholders:
 | Native discovery bootstrap | `bootstrap.json` here |
 
 The immutable Linux image/source selections are recorded in the dated checkpoint
-below. Current selected gateway source `2c9fe478f49773998d8602f8da68fce0864343fd`
-includes destination-CA staging and degraded handling for a Pending supervisor;
+below. Current gateway source `53e3665811a72dd1555edb18aeb4fedef4158dbd` includes
+destination-CA staging, GPU propagation and admitted terminal-supervisor recovery;
 selected supervisor source `d7a990083214e8a618f05b1b471aeeac6d9aa82a` includes
 expired launch-bundle recovery. The unchanged sandbox runtime remains from base
-`846de5fa`. A previously running supervisor may retain its earlier generation
-image and roots; selecting new defaults does not implicitly restart it. The
-Postgres extension image is verified 18.6 with UID/GID 999:999. Do not use the old
-host-gateway or superseded UID-1000 Computer images as current runtime selections.
-The committed `openshell.values.yaml` selects the immutable gateway, supervisor and
-runtime digests shown below.
+`846de5fa`. Running generations adopted the selected supervisor on the coordinated
+Starts before the third reboot. The Postgres extension image is verified 18.6 with
+UID/GID 999:999. Do not use the old host-gateway or superseded UID-1000 Computer
+images as current runtime selections. The committed `openshell.values.yaml` selects
+the live immutable gateway, supervisor and runtime digests shown below.
 Private database/identity inputs remain operator-owned; do not reintroduce stale
 image overrides when composing them. Reapplying an old digest is not qualification.
 
@@ -90,10 +91,11 @@ action to Lore. Keep native `Read:lore` and `Read:artifacts` in their respective
 identities alongside object-scoped actions: HeadBucket needs bucket-root read,
 not just object read or List. Do not rewrite signed object Host/path/query/headers.
 
-The native Kubernetes destination-CA input and pending-supervisor classification
-are selected from gateway `2c9fe478f49773998d8602f8da68fce0864343fd`; native
-Service-DNS resolution and expired launch-bundle recovery are selected from
-supervisor `d7a990083214e8a618f05b1b471aeeac6d9aa82a`. The public ConfigMap is
+The native Kubernetes destination-CA input, pending-supervisor classification and
+terminal infrastructure-loss recovery are selected from gateway
+`53e3665811a72dd1555edb18aeb4fedef4158dbd`; native Service-DNS resolution and
+expired launch-bundle recovery are selected from supervisor
+`d7a990083214e8a618f05b1b471aeeac6d9aa82a`. The public ConfigMap is
 `openshell/platform-destination-roots-v1`,
 key `ca.crt`, with gateway mount `/etc/openshell/platform-ca`. The generic values
 select `additional_ca_bundle=/etc/openshell/platform-ca/ca.crt`. It contains only
@@ -172,14 +174,14 @@ These records describe Linux amd64 deployment and retained receipts, not a claim
 that every application or recovery scenario passed. Component checks, deployed
 probes and final model acceptance are separate. Source pins below identify
 maintained VeoveoAI fork revisions, not upstream releases or reproducible builds.
-OpenShell integration `b849a25c` is now published on the maintained fork's `main`.
+OpenShell integration `53e3665811a72dd1555edb18aeb4fedef4158dbd` is published on the maintained fork's `main`.
 
 Private-registry image rows use prefix
 `registry.cloudflare.com/cd9522254303bfb3d2322a0d9b82764f/`:
 
 | Component | Actual source | Immutable image after that prefix |
 | --- | --- | --- |
-| Gateway | `2c9fe478f49773998d8602f8da68fce0864343fd` | `gateway@sha256:b36083f28400e0136521bfa72ffdf91aaddbf0b0f9a6345bd261963080692d95` |
+| Gateway | `53e3665811a72dd1555edb18aeb4fedef4158dbd` | `gateway@sha256:1bdeade25a8239b7c385924915de59f520be3c48322f79ef4be62d7ce5801564` |
 | Supervisor, new generations | `d7a990083214e8a618f05b1b471aeeac6d9aa82a` | `supervisor@sha256:f1d8f896daa08d85f8667a595c82544d93cbe73f2d16250387ab484ee5a286d2` |
 | Sandbox runtime | `846de5fa01234a22827915b3f4e5b9092367078b` | `openshell/sandbox@sha256:5177d0c76e2119a09a3af290ebc1da625a1e9fdf3ddcad7485bc973585f1e9bf` |
 | Hub | `9b83c26e9bdc926b054d089fd87ca26e3cba6f31` | `veoveo-hub@sha256:be9176ea306016a507fd358034d4630caac8c6a91a2f4a25807b251422b91638` |
@@ -189,14 +191,15 @@ Private-registry image rows use prefix
 | Synthetic Media provider | `4e8504b2c9bc72b0b249a8cf122e29983634d2e8` | `veoveo-mcp-media-provider@sha256:398f86bbda316b6cd40b2a88c332fadc6fcc809ca53f91b713fb6322227080d4` |
 | Lore | `6b7a0e598b8fbbaed82c777109135ddb25873bbf` | `veoveo-lore@sha256:5bb1e4ebdbbfca67e8b265532dd9897f9ea33366f26a1b945d81eb9a7320cb6c` |
 | Factory | Installation `d9f6bf59b9e0fe908c661701a6313cb8abc15c80` | `veoveo-factory@sha256:89e70eac86d2ea3a3dc1a245942b5535cda768cd2bb4f0d36f8add85378a98e5` |
-| Computer | Same installation; OpenCode `4bd4891e9e3d67460eb43dcfcdefb5172c1279ff` | `veoveo-computer@sha256:5263868037398bfcfb8401cbf898d2a556f7c90d88c0b8f57588cd5131b82b1f` |
+| Computer | Installation build input `d9f6bf59b9e0fe908c661701a6313cb8abc15c80`; OpenCode `ed62aad52c80ecdf4297310ce84305aff5717b7d` | `veoveo-computer@sha256:12c2ba83bd6f3dea715d1f8ab25ee20dd81dfb8145868f9a193f73cb4ce695d4` |
 | PostgreSQL extensions | PostgreSQL18.6/vector0.8.7/PostGIS3.6.4 | `veoveo-postgres:18.6-vector0.8.7-postgis3.6.4-k3s@sha256:feacb84577fdca909cd0e3306784f9af84d083222dab00421244a1376520c28a` |
 
 At the pre-first-reboot checkpoint, the retained Hub supervisor was from the
 earlier matching base image
 `openshell/supervisor@sha256:a033e574832c7e857eef7618281b663f0ae881c01286cae4f6ba976fcdce78be`.
-Owned applications adopted selected supervisor `f1d8f896` on the pre-second-reboot
-Starts. That does not qualify recovery after the second reboot.
+Owned applications adopted selected supervisor `f1d8f896` on pre-second-reboot
+Starts. Recovery after that reboot failed and is retained as historical evidence
+below; the third reboot exercised the selected gateway and supervisor images.
 The corrected Factory and Computer run UID/GID 10001 and retain private directory
 permissions. Their earlier UID-1000 digests are superseded.
 
@@ -270,21 +273,64 @@ automatically. At 11:14:26Z, kubelet reported generation-scoped sandbox and
 supervisor bootstrap Secret mount failures (`object not registered`). The gateway
 restarted after a transient PostgreSQL DNS lookup failure and was Ready by
 11:15:06Z; it emitted sandbox suspension events at 11:14:51Z. The event ordering
-is measured, but the causal relationship is not established. After the reboot, the
-`restart_policy=always` Hub, Time,
-Artifact, Media, synthetic provider, Computers, and Artifact/Media QA sandboxes
-had no running Pods and native state `Stopped`/`Suspended`, so application recovery
-remains unqualified. The Time QA runner has `restart_policy=never`; its stopped
-state is expected, not a recovery failure. Native workloads use fresh runtime
-generations after recovery, so Pod UID or generation continuity is not required.
-No manual Starts were issued. Evidence:
+is measured, but the causal relationship is not established. After that reboot,
+the `restart_policy=always` workloads were `Stopped`/`Suspended`; the `never` Time
+QA runner was also stopped, as expected for its policy. The failure was returned to
+the coordinator and fixed in the maintained gateway lifecycle handling. Evidence:
 Linux `/tmp/k3s-expired-bundle-reboot-20261020.json` (SHA-256
 `68b9b30971494810dab9fac8ee6b7eedda7fcc34d824361f7170f313fedecff8`), and filtered
 gateway warnings `/tmp/k3s-second-reboot-gateway-warnings-20261020.log` (SHA-256
-`a208671de72f3cc4d8f2666883a64369b0344f386e5c0bf737e2dd328a9bb351`). The final
-bounded OpenCode acceptance also remains pending; it must select only
-`deepinfra/XiaomiMiMo/MiMo-V2.6-Pro` after recovery and other gates. No model call
-was made for this documentation update.
+`a208671de72f3cc4d8f2666883a64369b0344f386e5c0bf737e2dd328a9bb351`).
+
+A third coordinated full-host reboot was requested at 12:13:32Z; SSH returned at
+12:15:34Z and the recovery snapshot was captured at 12:17:04Z. The boot ID changed
+from `0beca792-4f06-41a8-90c8-09b2852b185a` to
+`5da92057-917b-411a-8539-3271c97d47c9`. Without manual sandbox Starts, all nine
+owned `restart_policy=always` workloads (Hub, Time, Artifact, Media, the synthetic
+Media provider, two Computers, and Artifact/Media QA) reached native `Ready` with
+fresh runtime generations, restart count 1 and null exit codes. Both Computers and
+both service QA sandboxes passed native `exec /bin/true`. All 25 PVC UIDs, phases
+and volume bindings matched preboot. The `never` Time QA runner remained `Stopped`
+with restart count 0 and was started only later to run its prepared verifier. The
+Gateway had an initial transient PostgreSQL DNS failure, then recovered to Ready
+automatically. Evidence: Linux
+`/home/rozgo/.config/veoveo/k3s/evidence/openshell-gateway-53e-recovery-20261020/postboot.json`
+(SHA-256 `7ff98cfe7ec82dab116615cd920fbb117e268c33f999e5858b1f7ef10212b128`).
+The final public checks retained the same saved browser session and Hub control
+revision. The saved session GET returned HTTP 200 in 145.9 ms; the terminal
+WebSocket attach completed in 941 ms (3 frames, 66 output bytes), and public
+control-plane GET returned HTTP 200 in 146.29 ms with the unchanged revision/hash.
+
+The final bounded OpenCode qualification used agent `build` with the explicitly
+selected `deepinfra/XiaomiMiMo/MiMo-V2.6-Pro` (session
+`ses_ea69c1ad3ffeKqVD2BVH1CSrMt`). It lasted 81.283 seconds from persisted user
+message to final assistant response, used seven provider turns under the 8-turn /
+240-second limit, and cost `$0.0131970424`. The scenario inspected the member's
+pinned Lore repository and source, called Time `resolve_time` twice, then expanded
+`calendar-final-k3s` (UTC, daily 09:00–10:00 window, maximum four occurrences).
+Time returned one correct occurrence and `truncated=false`. The final run's
+OpenCode export records 24,202 input tokens, 2,151 output tokens, 697 reasoning
+tokens and 86,784 cached-read tokens. Synchronous Time task
+`01a15964-de30-7e62-90dc-78b8a7def7c2` completed `expand_schedule` successfully
+in 12 ms; earlier matching task `01a1595d-d258-7060-8f2f-db7c667e8fcd` succeeded
+in 70 ms. Both tasks were owned by the same member subject; neither created
+asynchronous operation or step rows. The Linux task receipt is
+`/home/rozgo/.config/veoveo/k3s/evidence/mimo-final-20261020/time-task-receipt.json`
+(SHA-256 `5a4277b0c5a6ba6c1a25712f2a7f38a518693b566d15ea55ac4804ffe1d8f6d4`).
+The filtered final session export is 71,277 bytes, SHA-256
+`e5b3c595b87053ffa0979a961b0cb81ced33fd9ff8acbd016b92a84d10425f08`; all seven
+reasoning content parts were removed while text/tool outcomes and timings were
+retained. The export is stored under the private Linux qualification evidence
+folder and at `/tmp/k3s-final-mimo-qualification-20261020/second-run.json` on Mac.
+
+The first final-run shell attempt referenced unavailable `tools.shell`; tool
+search corrected it without making an external call. An earlier native Lore
+repository-info attempt had failed with `Not authenticated` because it used the
+wrong operator `LORE_AUTH_PATH`; comparison with the Computer process identified
+the image's configured `/sandbox/home/.config/lore/auth` store. Login and
+repository-info were repeated using the configured store, and the actual browser
+PTY command exited 0 with the expected repository/source hashes before final
+model acceptance. No token was copied or new authorization path added.
 
 The six-case log is retained in the QA workspace as
 `/sandbox/.media-acceptance-f01cdb0-20261020.log` (2,522 bytes, SHA-256

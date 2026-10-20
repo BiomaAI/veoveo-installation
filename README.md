@@ -12,16 +12,15 @@ path remains in this Linux branch. Mac source/component/integration development
 and optional local identity fixtures remain in the generic template; no Mac cluster.
 
 Kubernetes foundation and application images are deployed on Linux. Automatic
-sandbox recovery after a full host reboot and final model acceptance remain
-**pending**: the latest reboot left owned sandboxes suspended. Bootstrap Secret
-mount errors preceded suspension, but the causal relationship is unestablished.
-See the [current selected
-status and recovery receipt](openshell/bioma/kubernetes/README.md#qualification-checkpoint--2026-10-20).
-Source integration, controller readiness or old Docker receipts do not establish
-recovery or model acceptance. Images must be immutable Linux amd64 artifacts and
-actual private inputs remain outside Git. Normal runtime adds, removes, routes,
-grants and provisioning defaults use admitted live APIs, not Helm inventories or
-Hub restarts. See the canonical
+recovery passed a third coordinated full-host reboot: all owned Always workloads
+returned Ready in fresh runtime generations without manual Starts, and all 25 PVC
+bindings remained stable. The explicitly selected final MiMo model acceptance also
+passed. The earlier second-reboot failure remains documented with its measured
+event order and bounded causal claim. See the [current selected status, pins and
+receipts](openshell/bioma/kubernetes/README.md#qualification-checkpoint--2026-10-20).
+Images are immutable Linux amd64 artifacts and actual private inputs remain outside
+Git. Normal runtime adds, removes, routes, grants and provisioning defaults use
+admitted live APIs, not Helm inventories or Hub restarts. See the canonical
 [architecture](https://github.com/VeoveoAI/veoveo-docs/blob/main/LORE_OPENSHELL_INTEGRATION.md)
 and [execution plan](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md).
 
