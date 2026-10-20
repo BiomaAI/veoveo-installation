@@ -1,0 +1,24 @@
+# Verified Linux amd64 maintained fork846de5fa; public selections only.
+gateway:
+  image:
+    registry: registry.cloudflare.com/cd9522254303bfb3d2322a0d9b82764f
+    repository: openshell/gateway
+    digest: sha256:66b3121b44778d0d9d68651f0f724cac13cde7b5beaa740b49fdd429b65cd4a2
+supervisor:
+  image:
+    registry: registry.cloudflare.com/cd9522254303bfb3d2322a0d9b82764f
+    repository: openshell/supervisor
+    digest: sha256:a033e574832c7e857eef7618281b663f0ae881c01286cae4f6ba976fcdce78be
+sandboxRuntime:
+  image:
+    registry: registry.cloudflare.com/cd9522254303bfb3d2322a0d9b82764f
+    repository: openshell/sandbox
+    digest: sha256:5177d0c76e2119a09a3af290ebc1da625a1e9fdf3ddcad7485bc973585f1e9bf
+gatewayConfig:
+  openshell.gateway.oidc:
+    issuer: https://login.microsoftonline.com/e0ee3c6a-4f58-4f66-8de4-253226eeed5f/v2.0
+    audience: 8a6d434f-8c4c-4e2c-9756-9b2d94118d17
+    roles_claim: roles
+    scopes_claim: roles
+    admin_role: openshell-admin
+    user_role: openshell-user

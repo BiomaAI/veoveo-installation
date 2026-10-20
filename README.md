@@ -1,3 +1,31 @@
+# Bioma Kubernetes installation
+
+Current Linux architecture: K3s manages CloudNativePG PostgreSQL, official-chart
+SeaweedFS, native Lore, the OpenShell gateway and the existing tunnel. OpenShell's
+native Kubernetes driver owns dynamic Hub/MCP, Computer and factory sandboxes.
+Entra authenticates humans; Hub owns native Lore grants; Lore behavior is unchanged.
+
+Use [current Bioma Kubernetes selections](openshell/bioma/kubernetes/README.md),
+[generic foundation inputs](kubernetes/README.md) and
+[native workload bootstrap](kubernetes/WORKLOADS.md). No platform Compose launch
+path remains in this Linux branch. Mac source/component/integration development
+and optional local identity fixtures remain in the generic template; no Mac cluster.
+
+Kubernetes application deployment/acceptance is **pending**. Source integration,
+controller readiness or old Docker receipts do not establish Kubernetes Computer,
+MCP, Lore, storage recovery or model acceptance. Images must be immutable Linux
+amd64 artifacts and actual private inputs remain outside Git. Normal runtime adds,
+removes, routes, grants and provisioning defaults use admitted live APIs, not Helm
+inventories or Hub restarts. See the canonical
+[architecture](https://github.com/VeoveoAI/veoveo-docs/blob/main/LORE_OPENSHELL_INTEGRATION.md)
+and [execution plan](https://github.com/VeoveoAI/veoveo-docs/blob/main/OPENSHELL_HARDCUT_PLAN.md).
+
+## Historical pre-Kubernetes deployment and receipts
+
+Everything below is preserved historical evidence, not a current Linux launch
+procedure or a claim that the new Kubernetes placement has passed. Old source pins,
+host routes and Compose commands must not select the replacement runtime.
+
 # Bioma Veoveo installation
 
 Bioma's reference deployment at **https://veoveo.bioma.ai**, derived from the

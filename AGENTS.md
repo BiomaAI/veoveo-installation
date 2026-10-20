@@ -6,9 +6,11 @@
   Planning and acceptance evidence belong in `VeoveoAI/veoveo-docs`. Components
   own their build and check logic. Update this repository when its actual deployed
   configuration or qualification status changes.
-- All coding factories and managed MCP workloads use OpenShell's native Docker
-  driver. Use its existing APIs, lifecycle, credential store, policy and diagnostics.
-  Do not add Compose author/application profiles, a token worker or a second launcher.
+- Linux deployment uses K3s foundation controllers and OpenShell's native Kubernetes
+  driver for Hub/MCP, Computer and factory workloads. Mac development/test fixtures
+  remain in the generic template, not this Linux launch path. Use native APIs,
+  lifecycle, credential store, policy and diagnostics. Do not add an orchestrator,
+  Helm sandbox inventory, token worker or second launcher.
 - Use permanent Keycloak locally and provider-agnostic OIDC configuration elsewhere.
   Generic installation must not require Keycloak administration credentials.
 - Real provider tokens, signing keys, operator state, bootstrap volumes and Docker
@@ -20,12 +22,12 @@
   branch guard belongs in Lore's existing pre-push hook and trusted configuration;
   it is not a comprehensive branch authorization or transport-expiry system.
   Credential lifecycle qualification stays separate in native OpenShell controls.
-- The user withdrew Desktop acceptance on 2026-10-17. Follow
-  [the direct Lore credential plan](https://github.com/VeoveoAI/veoveo-docs/blob/main/LORE_DIRECT_OIDC_PLAN.md): IdP
-  issuance, native OpenShell renewal/injection and native Lore resource grants.
-  The Desktop adapter, signer and ingress are retired. Do not restore them or add
-  a machine-token endpoint, new signer or refresh daemon. Historical Desktop results
-  are not active operator instructions or completion gates.
+- Entra authenticates humans. Hub's existing issuer and live revisioned control
+  plane own explicit repository assignments/native Lore tokens; native Lore enforces
+  its unchanged token/permission contract. OpenShell renews/injects factory grants;
+  human Lore refresh remains private to each Computer. Do not restore the withdrawn
+  direct-IdP grant helper, Desktop adapter, signer or ingress, or add a token worker,
+  custom Lore rules, implicit admin/member repository rights or global grants.
 - Never commit credentials. `.env`, TLS/private state and local backups remain
   ignored and excluded from build contexts.
 - During rapid development, application data is disposable for authorized resets

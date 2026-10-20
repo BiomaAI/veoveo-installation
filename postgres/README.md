@@ -1,3 +1,8 @@
+> Historical Docker/local-fixture procedure. Current Bioma Linux deployment uses
+> [Kubernetes inputs](../openshell/bioma/kubernetes/README.md); do not execute old
+> Compose/host-loopback launch steps for the new cluster. Protocol/qualification
+> history remains below; no Kubernetes acceptance is implied.
+
 # PostgreSQL extensions
 
 The application database uses the existing pinned PostgreSQL 18.6 image with

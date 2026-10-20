@@ -1,0 +1,3 @@
+{
+  "loreEndpoint": "grpcs://lore.veoveo-system.svc.cluster.local:41337"
+}
