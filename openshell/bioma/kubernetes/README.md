@@ -72,7 +72,11 @@ password files without surrounding whitespace or a terminal newline: CNPG 1.30.1
 trims that whitespace before applying role passwords. The Secret and client
 credential must match the resulting password; see the
 [managed-role bootstrap contract](../../../kubernetes/README.md#postgresql-and-native-storage-identities).
-Keep native `Read:lore` and `Read:artifacts` in their respective existing S3
+Keep exact `Admin:artifacts` on the existing `veoveo-artifact` native actions
+identity: Artifact always calls CreateBucket before its CORS/lifecycle setup,
+and Seaweed4.48 checks bucket administration even when the bucket already exists.
+Do not grant global `Admin`, IAM administration, other-bucket access, or add this
+action to Lore. Keep native `Read:lore` and `Read:artifacts` in their respective existing S3
 identities alongside object-scoped actions: HeadBucket needs bucket-root read,
 not just object read or List. Do not rewrite signed object Host/path/query/headers.
 
