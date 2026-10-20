@@ -77,6 +77,23 @@ Create `kubernetes.io/basic-auth` Secrets in `veoveo-system`, each with native
 | `openshell-gateway-role` | `openshell_gateway` | Gateway database only |
 | `lore-db` | `server_lore` | Lore schema only |
 
+Generate the initial password files without leading/trailing whitespace or a
+terminal newline. For example, before creating the corresponding Secret:
+
+```sh
+python3 -c 'import pathlib, secrets, sys; pathlib.Path(sys.argv[1]).write_bytes(secrets.token_urlsafe(48).encode("ascii"))' \
+  "$PRIVATE/lore-db.password"
+```
+
+Apply the same file convention to all managed roles. CNPG `1.30.1` explicitly
+calls `strings.TrimSpace(passwordFromSecret)` during
+[native managed-role reconciliation](https://github.com/cloudnative-pg/cloudnative-pg/blob/v1.30.1/internal/management/controller/roles/runnable.go#L340-L375),
+before applying the password to PostgreSQL. Kubernetes Secret bytes can therefore
+contain a terminal LF while the actual database password does not. Do not use
+`echo` to write these password files; use a no-newline write and use that same
+credential in the Secret and application input. URI-encode the credential when
+building a database URL; encoding a stray LF as `%0A` does not remove the mismatch.
+
 The native CNPG Cluster/Database resources own these roles/databases/schema.
 Application migrations remain component-owned. No application shares the gateway
 role. `veoveo_owner` retains the existing trusted `CREATEROLE` bootstrap contract;
@@ -127,6 +144,48 @@ Artifact/Lore identities and their existing
 [Lore](../openshell/lore-storage-policy.json) policies. Do not use a shared admin
 key in applications or replace bucket grants with global permission. Store the
 resulting application credentials only in their own trusted Secret inputs.
+
+For identities configured with Seaweed's native `actions` field, the scoped
+examples include bucket-root read as well as object operations:
+
+```text
+Lore:     ["Read:lore", "Read:lore/*", "Write:lore/*", "List:lore"]
+Artifact: ["Read:artifacts", "Read:artifacts/*", "Write:artifacts/*", "List:artifacts", "Tagging:artifacts/*"]
+```
+
+Seaweed `4.48` routes authenticated `HEAD /<bucket>` through
+[native `ACTION_READ`](https://github.com/seaweedfs/seaweedfs/blob/4.48/weed/s3api/s3api_server.go#L1041-L1045).
+Object-only `Read:<bucket>/*` does not match that bucket-root request, and
+`List:<bucket>` is a different action. Lore and Artifact check bucket availability
+with HeadBucket; successful object PUT/GET/DELETE alone does not prove this check.
+Keep the exact own-bucket read action in the existing identity, without global
+`Read` or `Admin`. These are native action examples, not AWS IAM statement syntax;
+retain the separate reviewed policies when using the attached-policy path.
+
+After creating those existing IAM identities and before application use, bootstrap
+each bucket once through the native TLS-enabled operator shell. Run inside the
+trusted filer Pod so the chart's mounted `/etc/seaweedfs/security.toml` supplies
+`[grpc].ca` and `[grpc.client].cert`/`.key`; do not disable TLS or print that file
+(it also contains signing material):
+
+```sh
+kubectl -n veoveo-system exec -it seaweedfs-filer-0 -- weed shell \
+  -master=seaweedfs-master.veoveo-system.svc.cluster.local:9333 \
+  -filer=seaweedfs-filer.veoveo-system.svc.cluster.local:8888
+```
+
+At the native shell prompt, substitute the **existing configured IAM identity
+names**, not access-key IDs or newly invented identities:
+
+```text
+s3.bucket.create -name artifacts -owner <existing_artifact_identity_name>
+s3.bucket.create -name lore -owner <existing_lore_identity_name>
+```
+
+The owner must match the identity name in native S3 IAM configuration. This is
+trusted installation bootstrap, not an application `Admin` grant or startup Job.
+The command leaves an already-existing bucket unchanged; rerunning it does not
+reassign ownership. Keep the existing separate bucket policies and credentials.
 
 S3 clients use HTTPS on `seaweedfs-s3.veoveo-system.svc.cluster.local:9000`.
 Internal master/volume/filer data and metadata use their explicit local-path PVCs;

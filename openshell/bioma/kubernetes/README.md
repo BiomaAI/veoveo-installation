@@ -2,7 +2,8 @@
 
 Current placement is Linux x86_64 K3s, not the former host Docker/Compose runtime.
 This source branch imports reusable template
-`dd824156c1bcb9eb7c34e22b70781cec8587ebc2`; the old files directly under
+`dd824156c1bcb9eb7c34e22b70781cec8587ebc2`, with reviewed follow-ups through
+`94c7ff08f661e0365d949909ab64dc5cfd7afe2f`; the old files directly under
 `openshell/bioma/` remain unchanged historical selections. Current Kubernetes
 application acceptance is pending. Do not infer it from earlier Docker receipts.
 Mac native development/test fixtures remain in the generic template.
@@ -66,8 +67,14 @@ normal Kubernetes inputs. Native supervisors resolve Service DNS. The S3 TLS lea
 covers both its Service DNS and public signing hostname; the Lore leaf covers
 `lore.veoveo-system.svc.cluster.local`. Public-only trust files remain separate
 from private CA keys. Private native storage.env/client URIs use end-to-end TLS
-and PostgreSQL verify-full with the exact public-CA path. Do not rewrite signed
-object Host/path/query/headers.
+and PostgreSQL verify-full with the exact public-CA path. Generate managed-role
+password files without surrounding whitespace or a terminal newline: CNPG 1.30.1
+trims that whitespace before applying role passwords. The Secret and client
+credential must match the resulting password; see the
+[managed-role bootstrap contract](../../../kubernetes/README.md#postgresql-and-native-storage-identities).
+Keep native `Read:lore` and `Read:artifacts` in their respective existing S3
+identities alongside object-scoped actions: HeadBucket needs bucket-root read,
+not just object read or List. Do not rewrite signed object Host/path/query/headers.
 
 The selected `tunnel.yaml` retains the existing **remotely managed** tunnel.
 Create native Secret `public-tunnel` in `veoveo-system`, key `token`, from the
@@ -105,6 +112,12 @@ Create native workspaces and required provider custody first, verify the actual
 managed namespace, then apply the existing approved configuration/public-CA PVCs
 and one-time Jobs **in that namespace**. Mount trusted config read-only outside
 `/sandbox`. There is no namespace copy controller or per-workspace Helm release.
+The example gateway ID is `openshell`; measured managed namespaces are
+`openshell-openshell-vv-control` and `openshell-openshell-vv-services`. Namespace
+names remain derived installation data (`openshell-<gateway_id>-<workspace>`),
+not a fixed native contract. Use `openshell workspace create --name NAME` and
+verify the actual native namespace before admitting the corresponding PVCs/Jobs.
+These source examples do not rename or restart an existing gateway.
 Computer templates use automatic per-sandbox workspace PVCs, never a shared fixed
 `/sandbox` claim. Default template/policy references are versioned native API data.
 

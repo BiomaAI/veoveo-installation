@@ -40,7 +40,15 @@ trusted hook assignments. The hook is unchanged; an empty map does not prove a
 factory protected-branch scenario. Create `lore-settings` from the native TOML,
 `lore-server-tls` as a TLS Secret, and `lore-storage` from a private env file with
 exact keys `LORE_POSTGRES_URL`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`.
+This `--from-env-file` input uses raw `KEY=value` lines without shell quotes;
+URL-encode the PostgreSQL password inside the single-line URI, using the
+[no-whitespace managed-role credential](README.md#postgresql-and-native-storage-identities).
+Do not preserve an accidental terminal LF that CNPG trims. Hub/Artifact env
+files sourced by their shell entrypoints retain ordinary shell quoting.
 Use `server_lore`, schema/bucket `lore`, and the dedicated native S3 identity.
+Create that bucket once with its existing IAM identity name using the
+[native TLS operator bootstrap](README.md#seaweedfs) before application use; do
+not grant the Lore or Artifact application storage identity `Admin` permission.
 Its PostgreSQL URI uses the Service DNS with `sslmode=verify-full` and
 `sslrootcert=/etc/lore/postgres-ca/postgres-ca.crt`. Create `postgres-client-ca`
 ConfigMap key `postgres-ca.crt` in `veoveo-system` from only the CNPG public CA;
@@ -76,9 +84,9 @@ sets its native exposure Host; S3 routing must **not** set `httpHostHeader`.
 ## Workspace-local trusted service configuration
 
 ```sh
-openshell workspace create vv-control
-openshell workspace create vv-services
-openshell workspace create installation
+openshell workspace create --name vv-control
+openshell workspace create --name vv-services
+openshell workspace create --name installation
 ```
 
 Native `CreateWorkspace` persists the workspace, but does not itself instantiate
@@ -87,9 +95,15 @@ the Kubernetes namespace. Prepare the **required** provider profiles/custody usi
 and the existing registration-provider instructions. The initial native credential
 mint/store calls `ensure_workspace`, which creates the managed namespace. Verify
 the actual resulting namespace before PVC/Job admission; do not create it yourself
-or add a dummy provider merely to trigger it. With gateway ID `veoveo-k3s` and
-workspace `vv-control`, the native name is `openshell-veoveo-k3s-vv-control`.
-The namespace is OpenShell-owned; no per-workspace Helm release.
+or add a dummy provider merely to trigger it. With gateway ID `openshell` and
+workspace `vv-control`, the native name is `openshell-openshell-vv-control`.
+The namespace is OpenShell-owned; no per-workspace Helm release. These example
+values select gateway ID `openshell`; it is installation data, not a fixed namespace
+contract. Native namespaces follow `openshell-<gateway_id>-<workspace>`. The chart
+uses explicit `gatewayConfig["openshell.drivers.kubernetes"].gateway_id` when set,
+otherwise `server.sandboxJwt.gatewayId`, otherwise its fullname. Render the PVC/Job
+namespaces to the actual selected ID and verify the native namespace before use.
+Changing these examples does not rename or restart an existing gateway.
 
 Hub's platform-admin service identity needs the existing six workspace/sandbox/
 provider permissions plus **`config:read`** for native `GetGatewayInfo` backend
@@ -109,10 +123,10 @@ match native default resource admission for workspace `vv-control`.
 
 ```sh
 kubectl apply -f "$PRIVATE/hub-config-pvc.yaml"
-kubectl -n openshell-veoveo-k3s-vv-control wait job/seed-hub-config-v1 \
+kubectl -n openshell-openshell-vv-control wait job/seed-hub-config-v1 \
   --for=condition=Complete --timeout=120s
-kubectl -n openshell-veoveo-k3s-vv-control delete job seed-hub-config-v1
-kubectl -n openshell-veoveo-k3s-vv-control delete secret hub-config-bootstrap
+kubectl -n openshell-openshell-vv-control delete job seed-hub-config-v1
+kubectl -n openshell-openshell-vv-control delete secret hub-config-bootstrap
 ```
 
 `hub-driver-config.json` mounts this exact admitted claim read-only at
@@ -167,10 +181,14 @@ sslmode=verify-full
 sslrootcert=/etc/veoveo/tls/postgres-ca.crt
 ```
 
-Use their distinct actual users/passwords in private URI files; do not place
-credentials in argv. Hub issues narrowed application DB grants from that configured
-server URI, so fixing only Hub's own URI is insufficient. The application mount
-path must match the grant URI. The `database` policy's `tls: skip` means OpenShell
+Set `VEOVEO_DATABASE_URL` with the actual owner username but **no password**;
+supply the matching [no-whitespace managed-role password](README.md#postgresql-and-native-storage-identities)
+separately through shell-sourced `VEOVEO_DATABASE_PASSWORD`.
+Set `VEOVEO_SERVER_DATABASE_URL` with **neither username nor password**. Hub supplies
+the narrowed application role and password through its existing registration grant
+contract. Keep secrets in private configuration, not argv. Both configured URLs
+must retain the Service DNS and TLS options, so fixing only Hub's own URI is
+insufficient. The application mount path must match the grant URI. The `database` policy's `tls: skip` means OpenShell
 passes PostgreSQL's native TLS through; the PostgreSQL client still verifies the
 chain **and Service hostname** with `verify-full`. It does not disable TLS checks.
 
@@ -222,7 +240,7 @@ Hub/Time launch path uses these installation inputs:
 
 ```sh
 openshell sandbox create --workspace vv-control --name hub --from "$HUB_IMAGE_AT_DIGEST" \
-  --policy kubernetes/policies/hub-computer-entra.example.yaml \
+  --policy openshell/bioma/kubernetes/policies/hub-computer-entra.example.yaml \
   --provider vv-hub-native-control --no-auto-providers \
   --driver-config-json "$(cat kubernetes/hub-driver-config.json)" \
   --restart-policy always --detach -- \
@@ -230,7 +248,7 @@ openshell sandbox create --workspace vv-control --name hub --from "$HUB_IMAGE_AT
 openshell service expose --workspace vv-control hub 8080 http \
   --authorization-mode bearer-passthrough
 openshell sandbox create --workspace vv-services --name time --from "$TIME_IMAGE_AT_DIGEST" \
-  --policy kubernetes/policies/time.yaml --provider vv-time-registration --no-auto-providers \
+  --policy openshell/bioma/kubernetes/policies/time.yaml --provider vv-time-registration --no-auto-providers \
   --driver-config-json "$(cat kubernetes/time-driver-config.json)" \
   --restart-policy always --detach \
   --env VEOVEO_HUB_ISSUER="$HUB_ISSUER" \
