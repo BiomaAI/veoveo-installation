@@ -15,8 +15,9 @@ component pins below identify verified source revisions in the maintained Veoveo
 forks, not upstream release versions. Source selection alone is not build or
 deployment acceptance.
 
-- Factory toolchain: installation commit `71e2c0b` or a reviewed descendant retaining
-  the deterministic factory boundary. Select its inspected immutable image ID.
+- Factory toolchain: UID/GID 10001 installation commit
+  `d9f6bf59b9e0fe908c661701a6313cb8abc15c80` or a reviewed descendant retaining
+  the deterministic factory boundary. Select its inspected immutable image digest.
 - Native Lore: source commit `6b7a0e598b8fbbaed82c777109135ddb25873bbf`, retaining
   native OIDC refresh and S3/PostgreSQL storage. Build with the existing
   [Lore Dockerfile](../factory/Lore.Dockerfile)
@@ -26,9 +27,10 @@ deployment acceptance.
   online-only UI and mounted-router navigation. Use the final reviewed native
   platform package directory, with
   `bin/opencode`; an earlier prefix-only package does not contain all these changes.
-- Native OpenShell gateway/driver: `846de5fa01234a22827915b3f4e5b9092367078b`,
-  including native Kubernetes workspace persistence, connected-target forwarding
-  readiness and mediated HTTP/2 stream turnover.
+- Native OpenShell gateway/driver: `b849a25c79177e9306c52a93de82d9dfc879cb92`,
+  published on the maintained fork's `main`, retaining base `846de5fa` Kubernetes workspace persistence, connected-target
+  forwarding readiness and mediated HTTP/2 stream turnover, and adding native
+  destination-CA staging and trusted gateway Service-DNS resolution.
   Select matching reviewed runtime/supervisor images through native configuration.
 
 Source commits and local builds do not establish live deployment or user/model
@@ -100,7 +102,7 @@ fixed retry delay. Current browser-owner/session admission remains mandatory.
 The supported Linux path uses the private Kubernetes Lore Service at
 `grpcs://lore.veoveo-system.svc.cluster.local:41337`. Select that same endpoint in
 the versioned Computer template, Hub deployment data and
-[Kubernetes Computer policy](../openshell/bioma/kubernetes/policies/computer.yaml). The leaf must
+[Kubernetes Computer policy](../kubernetes/policies/computer.yaml). The leaf must
 cover that Service DNS name and the image must trust its installation public CA;
 see [the Kubernetes trust inputs](../kubernetes/WORKLOADS.md#private-service-names-and-trust).
 No Compose-published port or host alias is needed for this Linux path.

@@ -1,14 +1,15 @@
-# Verified Linux amd64 maintained fork846de5fa; public selections only.
+# Verified Linux amd64: gateway0299a1ec, supervisorb849a25c, unchanged runtime846de5fa.
+# Public immutable selections; image changes take effect only on explicit operator apply.
 gateway:
   image:
     registry: registry.cloudflare.com/cd9522254303bfb3d2322a0d9b82764f
-    repository: openshell/gateway
-    digest: sha256:66b3121b44778d0d9d68651f0f724cac13cde7b5beaa740b49fdd429b65cd4a2
+    repository: gateway
+    digest: sha256:add687d9afe99a841db1511ff4c906a297c623b98f1228b8e85ef4429061123a
 supervisor:
   image:
     registry: registry.cloudflare.com/cd9522254303bfb3d2322a0d9b82764f
-    repository: openshell/supervisor
-    digest: sha256:a033e574832c7e857eef7618281b663f0ae881c01286cae4f6ba976fcdce78be
+    repository: supervisor
+    digest: sha256:07e639e0d292f0a6d77417a711465b1d06ef595f9fc34e3f067b8aabacf28581
 sandboxRuntime:
   image:
     registry: registry.cloudflare.com/cd9522254303bfb3d2322a0d9b82764f

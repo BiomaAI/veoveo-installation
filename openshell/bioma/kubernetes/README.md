@@ -36,8 +36,10 @@ retain its earlier generation image and roots; selecting new defaults does not
 implicitly restart it. The Postgres extension image is verified 18.6 with UID/GID
 999:999. Do not use the old host-gateway, superseded UID-1000 Computer images or
 historical component-lock receipts as current runtime selections. The committed
-bootstrap values are combined with the reviewed private image/identity overrides;
-reapplying an old bootstrap digest is not a qualification or update procedure.
+`openshell.values.yaml` selects the exact current gateway/supervisor/runtime digests,
+so the documented Helm command below does not require an undisclosed image override.
+Private database/identity inputs remain operator-owned; do not reintroduce stale
+image overrides when composing them. Reapplying an old digest is not qualification.
 
 ```sh
 helm upgrade --install cilium cilium/cilium --namespace kube-system \
@@ -91,8 +93,9 @@ key `ca.crt`, with gateway mount `/etc/openshell/platform-ca`. The generic value
 select `additional_ca_bundle=/etc/openshell/platform-ca/ca.crt`. It contains only
 the current public gateway, Lore and Seaweed roots. A workload-only CA mount is
 not supervisor trust. Keep the database CA mount when composing private Helm
-volume overrides. This source update neither selects a new image digest nor
-changes running supervisor generations.
+volume overrides. The selected image digests below include these fixes. Source
+changes do not alter running generations; an explicit operator apply remains a
+separate action.
 
 
 The selected `tunnel.yaml` retains the existing **remotely managed** tunnel.
@@ -163,6 +166,7 @@ These records describe Linux amd64 deployment and retained receipts, not a claim
 that every application or recovery scenario passed. Component checks, deployed
 probes and final model acceptance are separate. Source pins below identify
 maintained VeoveoAI fork revisions, not upstream releases or reproducible builds.
+OpenShell integration `b849a25c` is now published on the maintained fork's `main`.
 
 Private-registry image rows use prefix
 `registry.cloudflare.com/cd9522254303bfb3d2322a0d9b82764f/`:
@@ -240,8 +244,8 @@ Measured deployed cases:
 Media registered at 09:02:46.796 UTC and completed native provider startup status
 checks at 09:02:47.046 UTC; its exact selected image is Ready with zero restarts.
 This proves registration/startup connectivity, not a completed synthetic Task.
-Media Kubernetes Task acceptance, remaining service recovery and final host reboot
-checks are pending. The fixture is synthetic; historical real-provider
+Media Kubernetes Task acceptance, Computer terminal/WebSocket qualification,
+remaining service recovery and final host reboot checks are pending. The fixture is synthetic; historical real-provider
 callbacks do not qualify its current Kubernetes path. Final bounded OpenCode
 acceptance is also pending and must select only
 `deepinfra/XiaomiMiMo/MiMo-V2.6-Pro` after deterministic/deployed gates; no paid
