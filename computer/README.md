@@ -10,28 +10,52 @@ The image has no independent browser login, issuer, factory identity or Docker a
 
 ## Reviewed source inputs
 
-Build for one explicit target platform; all three contexts must match it. The
+Build for one explicit target platform; all named contexts must match it. The
 component pins below identify verified source revisions in the maintained VeoveoAI
 forks, not upstream release versions. Source selection alone is not build or
 deployment acceptance.
 
-- Factory toolchain: UID/GID 10001 installation commit
-  `d9f6bf59b9e0fe908c661701a6313cb8abc15c80` or a reviewed descendant retaining
-  the deterministic factory boundary. Select its inspected immutable image digest.
-- Native Lore: source commit `6b7a0e598b8fbbaed82c777109135ddb25873bbf`, retaining
-  native OIDC refresh and S3/PostgreSQL storage. Build with the existing
+- Factory toolchain: this revision's [factory Dockerfile](../factory/Dockerfile),
+  UID/GID 10001, with the Hub SDK CLI at `b2304759b07f3e1d07cd1bf9ec9a182c6dcddd65`.
+  Rebuild it when that pin changes and select its inspected immutable image digest.
+- Native Lore: source commit `bd9da2128acd83963b7168d63af7401409867bc7`, retaining
+  native OIDC refresh and S3/PostgreSQL storage, ending a lagging subscriber's
+  notification stream and reading `LORE_ACCESS_TOKEN` and `LORE_IDENTITY` when their
+  flags are absent, which Computers and factory sandboxes need. Build with the existing
   [Lore Dockerfile](../factory/Lore.Dockerfile)
-  and the selected source/CA named contexts. Use the resulting immutable image ID.
-- OpenCode: source commit `4bd4891e9e3d67460eb43dcfcdefb5172c1279ff`, including
+  and the selected source/CA named contexts. Use the resulting immutable image ID;
+  the same image is Hub's and every factory build's `lore` context.
+- OpenCode: source commit `c5fb62662c9c6fcb5064ef191956ca0da14e1af9`, including
   runtime base paths, trusted-local-proxy admission, mount-scoped browser caches and
-  online-only UI and mounted-router navigation. Use the final reviewed native
+  online-only UI, mounted-router navigation and route-relative titlebar history.
+  The earlier Linux reference image digest was
+  `sha256:12c2ba83bd6f3dea715d1f8ab25ee20dd81dfb8145868f9a193f73cb4ce695d4`.
+  Both fresh owner homepages render. Direct mounted Settings, Back to app,
+  New session and browser Back/Forward retain the Computer prefix. The final
+  bounded exact-model acceptance passed; see the dated
+  [qualification record](../kubernetes/README.md#reference-qualification-checkpoint--2026-10-20). Use the final reviewed native
   platform package directory, with
   `bin/opencode`; an earlier prefix-only package does not contain all these changes.
-- Native OpenShell gateway/driver: `b849a25c79177e9306c52a93de82d9dfc879cb92`,
-  published on the maintained fork's `main`, retaining base `846de5fa` Kubernetes workspace persistence, connected-target
-  forwarding readiness and mediated HTTP/2 stream turnover, and adding native
-  destination-CA staging and trusted gateway Service-DNS resolution.
-  Select matching reviewed runtime/supervisor images through native configuration.
+- Native OpenShell gateway/driver, supervisor and sandbox runtime:
+  `a6ed0ab4119208d99fb3211fe64fb1d0e52adf10` for all three, which adds gRPC on
+  sandbox service routes to `53e3665811a72dd1555edb18aeb4fedef4158dbd`, retaining
+  Kubernetes workspace persistence, connected-target forwarding readiness,
+  destination-CA staging, admitted GPU allocation propagation and native recovery
+  of a terminated admitted supervisor under `always`/`on-failure`. Temporarily
+  Pending Pods and stale controller status preserve running intent; fresh runtime
+  generations replace terminal Pods while retaining supported persistent state.
+  It contains the supervisor of
+  `d7a990083214e8a618f05b1b471aeeac6d9aa82a`, retaining mediated HTTP/2 stream
+  turnover and trusted gateway Service-DNS resolution, and renewing an expired
+  native Kubernetes launch credential pair before policy discovery. Fresh bundles
+  skip rebootstrap to avoid the initial runtime-binding persistence race. The
+  chart and sandbox runtime base is `846de5fa01234a22827915b3f4e5b9092367078b`.
+  Publish the three images to the local registry and select their digests through
+  native configuration. Both Kubernetes Pods deliberately
+  use `Never`; host recovery uses fresh generations rather than restarting an old
+  Pod with its expired bootstrap. The third Linux host reboot restored the owned
+  `always` workloads without manual Starts; mounted browser navigation and the
+  final bounded exact-model acceptance also pass in the recorded scope.
 
 Source commits and local builds do not establish live deployment or user/model
 acceptance. The remote Lore endpoint and its owning deployment must be verified
@@ -49,7 +73,9 @@ docker image inspect --format '{{.Id}}' veoveo/computer:reviewed
 ```
 
 The Dockerfile has no fallback base image, package download or runtime self-update.
-Promote the inspected immutable image identity, never the example tag, into the
+Publish the image to the installation's
+[local registry](../kubernetes/README.md#logs-image-builder-and-registry) as
+`veoveo/computer` and promote its digest there, never the example tag, into the
 trusted native workload template. The inherited factory trust must cover both the
 private Lore service and the selected public/native endpoints. The Factory and
 Lore `ca` named contexts contain only reviewed public `*.crt` files, exactly one
@@ -64,16 +90,17 @@ private key. Supervisor's separate build recipe is unchanged by this input seam.
 
 ## State and native governance
 
-`WORKDIR=/sandbox` is the native persistent-workspace target. `/sandbox/home`
-contains HOME, XDG config/data/state/cache, OpenCode databases and native Lore's
-credential/config/data directories. `/sandbox/projects` holds working trees. The
-image seeds private UID/GID 10001 paths, matching the selected native runtime.
-Docker preserves them through its configured persistent workspace volume and native
-copy-up. Kubernetes uses OpenShell's
-automatic per-sandbox workspace PVC and native image-workdir seeding with sandbox
-UID/fsGroup ownership; do not add a shared explicit `/sandbox` claim or another
-copy-up Job. `/etc/computer` is immutable installation
-configuration outside the persistent mount. No secret is copied into the image.
+`/sandbox` is the person's home: `HOME=/sandbox` and `WORKDIR=/sandbox`, the
+native persistent-workspace target. The platform never writes into it. The image
+has only the empty mount point, owned by UID/GID 10001 like the selected native
+runtime, and sets no XDG or Lore path variables: OpenCode and native Lore create
+their own configuration, data, state and cache directories under `HOME`. Docker
+keeps `/sandbox` in its configured persistent workspace volume. Kubernetes uses
+OpenShell's automatic per-sandbox workspace PVC with sandbox UID/fsGroup ownership;
+its native seeding finds nothing to copy and writes only its own marker. Do not add
+a shared explicit `/sandbox` claim or a copy-up Job. Everything outside `/sandbox`
+and `/tmp` comes with the Computer version and is read-only; `/etc/computer` holds
+the immutable connection configuration. No secret is copied into the image.
 
 The operator imports the global, nonsecret native provider profiles and creates the
 trusted workload template using the existing authenticated native CLI. The example
@@ -99,11 +126,21 @@ gateway when changing them; SSH limits remain unchanged. Warm HTTP requests open
 their native tunnel immediately and fail at an actual configured limit, with no
 fixed retry delay. Current browser-owner/session admission remains mandatory.
 
+`computers.collectAfterSeconds` (reference: 7200) is how long a Computer may stay idle,
+with no browser request through Hub and no network traffic from the Computer, before
+Hub deletes its sandbox. `~` is kept and the next entry creates the sandbox at the
+current version, so collection loses only running programs and `/tmp`, as a restart
+does. Every working agent calls its model through OpenShell's proxy, so an agent at
+work keeps its Computer; a long job with no network traffic does not.
+
 The supported Linux path uses the private Kubernetes Lore Service at
 `grpcs://lore.veoveo-system.svc.cluster.local:41337`. Select that same endpoint in
-the versioned Computer template, Hub deployment data and
-[Kubernetes Computer policy](../kubernetes/policies/computer.yaml). The leaf must
-cover that Service DNS name and the image must trust its installation public CA;
+the versioned Computer template, Hub deployment data and the global
+[`vv-lore` profile](../openshell/providers/lore.yaml), whose inspected endpoint
+Computers share with factory sandboxes; the
+[Kubernetes Computer policy](../kubernetes/policies/computer-v1.yaml) has no Lore
+rule of its own. The leaf must cover that Service DNS name; the image and the
+gateway's proxy must trust its installation public CA;
 see [the Kubernetes trust inputs](../kubernetes/WORKLOADS.md#private-service-names-and-trust).
 No Compose-published port or host alias is needed for this Linux path.
 
@@ -111,18 +148,21 @@ The Mac Docker development fixture above instead uses `host.openshell.internal`
 with its native backend host-gateway pin and a trusted Lore fixture published only
 on host loopback port 41337. Its leaf must cover that hostname, with the same
 end-to-end TLS verification; no host DNS edit is needed. Replace an endpoint only
-as a consistent installation input. The Computer's exact Lore TCP rule uses `tls: skip`
-to pass through the immediate gRPC TLS handshake; Lore still verifies the server
-certificate and hostname. `SSL_CERT_DIR` adds the image's installed public CA
-roots alongside OpenShell's injected `SSL_CERT_FILE`; keep both so native Lore
-trusts the private service and the supervised OAuth route. Set this template input
+as a consistent installation input. The fixture's exact Lore TCP rule in
+[policy.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/computer/policy.yaml) uses `tls: skip` to pass through the immediate gRPC TLS
+handshake. The shared `vv-lore` profile's endpoint is the Kubernetes Service, so the
+fixture's Lore calls carry the provider's placeholder unsubstituted: this fixture
+does not provide the owner's Lore access. On Linux the proxy terminates Lore's TLS on
+the profile's inspected endpoint, and Lore verifies the proxy through OpenShell's
+injected `SSL_CERT_FILE`. `SSL_CERT_DIR` adds the image's installed public CA roots
+alongside it; keep both. Set this template input
 for existing reviewed images; future Computer builds also include it by default.
 The template
 supplies image/environment/resources/driver settings only. Hub clones
 it into the owner's workspace, supplies nonsecret `PUBLIC_BASE_PATH`, and creates
 with `openshell.nvidia.com/retention=persistent`, the fixed command from
-[the Hub fragment](hub.example.json), native restart policy `Always`, native
-[policy](policy.yaml), and the centrally assigned provider instances. Template
+[the Hub fragment](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/computer/hub.example.json), native restart policy `Always`, native
+[policy](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/computer/policy.yaml), and the centrally assigned provider instances. Template
 annotations do not substitute for the explicit Create annotation. Do not expose a
 network service for the app; Hub uses authenticated native ForwardTcp to literal
 `127.0.0.1:4096` after owner admission. The app's explicit trusted-local-proxy mode
@@ -133,12 +173,18 @@ Hub admission. A mount path or browser-cache namespace is not an origin security
 boundary; live two-user and account-switching acceptance remains required.
 
 Native retention preserves the stable sandbox ID/spec on runtime loss; Start can
-recreate the missing runtime with fresh native runtime identity. Stop/Start and
-provisioning failures retain files. Explicit Delete removes the exactly owned
-workspace volume. A crash during deletion can retain an orphan requiring native
-operator reconciliation; absence of a container is not evidence that files are
-disposable. User files remain scratch until pushed/uploaded, despite this routine
-lifecycle durability. Factory jobs remain separate deterministic executions.
+recreate the missing runtime with fresh native runtime identity. `/sandbox` is kept
+across restarts: Stop/Start, provisioning failures and a native Delete that keeps
+the workspace retain it, and the next sandbox of the same name in the same
+workspace adopts the kept volume unchanged. The sandbox name comes from the
+Computer ID, so the Computer's URL stays too. Hub never stops or starts a Computer:
+its first creation, a restart and an update all delete the sandbox keeping the
+workspace and create one at the version they start, which Hub records once it is
+ready. An ordinary Delete removes the exactly owned workspace volume; that is how a Computer is removed for good. A crash during
+deletion can retain an orphan requiring native operator reconciliation; absence of
+a container is not evidence that files are disposable. User files remain unpublished
+until pushed/uploaded, despite this lifecycle durability. Factory sandboxes are
+separate: one per served branch.
 
 ## Credentials, endpoints and user login
 
@@ -168,34 +214,88 @@ Hub resolves the trusted Env `ProviderApiKey` reference to seed the workspace-lo
 model provider; OpenCode sees only its native `DEEPINFRA_API_KEY` placeholder.
 The explicit model is `deepinfra/XiaomiMiMo/MiMo-V2.6-Pro`, present in the selected
 OpenCode bundled catalog. Catalog fetch, warming, self-update and sharing are
-disabled. The native policy admits its exact chat-completion endpoint and the
+disabled. Computer configuration sets `snapshots: false` and disables the built-in
+`opencode.vcs.git` and `opencode.vcs.hg` plugins. Native Lore supplies source history
+and undo. It also disables the `opencode.provider.ollama`, `opencode.provider.lmstudio`
+and `opencode.provider.vllm` plugins, which otherwise probe loopback model servers
+(`127.0.0.1:11434`, `:1234` and `:8000`) every 30 s; a Computer runs none. The native policy admits its exact chat-completion endpoint and the
 configured Hub MCP path; unsupported egress fails closed. MCP methods still face
 Hub's current route authorization. Installing configuration is not a model call
 or evidence of real inference. Run paid acceptance only after deterministic,
 component and deployed probes pass, with this exact model selected.
 
 Artifact object transfers use Hub-issued upload/download grants and native
-`/usr/bin/curl` from the agent's Bash tool. The `artifact_bytes` policy admits
-only that binary to `objects.veoveo.example.com:443` as unbound TCP, preserving
-end-to-end HTTPS and SigV4 method, authority, path/query and headers without
-HTTP interception or credential injection. Replace this exact authority together
-with Artifact's signing endpoint and verified TLS route; do not add arbitrary
-HTTPS egress or OpenCode itself to this object-byte rule. Hub/model credentials
-must never accompany signed object requests. Keep signed URLs/headers out of
-reports and tracing, use the returned method/URL/required headers unchanged,
-and complete the Hub contract's finalize step where required. Qualify actual
-upload/download byte counts and hashes separately from metadata/MCP success.
-See the [native signed-authority contract](../openshell/REFERENCE.md#native-seaweedfs-https-and-signed-authority).
+`/usr/bin/curl` from the agent's Bash tool. Signed object URLs are `/artifacts/`
+paths on the public host. The `artifact_bytes` policy admits only that binary, and
+only PUT and GET on `/artifacts/**`, at an inspected endpoint with no credential
+binding: the proxy forwards the signed method, Host, path, query, headers and body
+unchanged, and curl trusts the proxy through OpenShell's `CURL_CA_BUNDLE`. It is
+disjoint from the Hub MCP path, which OpenCode alone reaches. Replace the host
+together with Artifact's signing endpoint and the tunnel's `/artifacts/` route; do
+not add arbitrary HTTPS egress or OpenCode itself to this object-byte rule.
+Hub/model credentials must never accompany signed object requests. Keep signed
+URLs/headers out of reports and tracing, use the returned method/URL/required
+headers unchanged, and complete the Hub contract's finalize step where required.
+Qualify actual upload/download byte counts and hashes separately from metadata/MCP
+success.
+See the [native signed-authority contract](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/openshell/REFERENCE.md#native-seaweedfs-https-and-signed-authority).
 
-Lore uses the user's native persistent login, separate from the Computer browser
-and MCP grant. Select the [Hub-issued native Lore setup](LORE_HUB.md): Entra proves
+Lore acts as the Computer's owner after the owner's one Hub sign-in; there is no
+Lore login. Select the [Hub-issued native Lore setup](LORE_HUB.md): Entra proves
 identity through Hub's existing broker, Hub manages explicit live repository
 assignments and signs native claims, and unchanged Lore enforces its own contract.
-The native `lore auth login "$VEOVEO_LORE_REMOTE" --no-browser` command uses the
-server-advertised public client/device/exchange settings; later expiry uses native
-refresh. No human token is copied to a factory or another Computer.
+Each custody handoff gives the Computer's own Hub client a new secret in the
+gateway's `oauth2_client_credentials` refresh custody of the workspace-local
+`computer-lore` provider, created from global `vv-lore`, and rotates it; a running
+sandbox's proxy uses the new token. Each token is the owner's, with one native resource entry for every
+repository the owner is assigned. The sandbox receives only the provider's
+placeholder in `LORE_ACCESS_TOKEN` and the owner's principal in `LORE_IDENTITY`,
+which the native Lore CLI reads; the proxy substitutes the token on the profile's
+inspected endpoint. No human token is copied to a factory or another Computer.
 
-The [native OIDC fragment](lore-oidc.example.toml), Hub contribution/client records
+An operator's native exec session need not inherit the workload's environment.
+Check Lore from the Computer's OpenCode shell, which inherits `HOME` and both
+variables.
+
+The [Computer handbook](instructions.md) explains the home, explicit
+Lore/Artifact publication, and served branches: a pushed branch of a server
+repository with `openshell/run` is served, and Hub's tools select which branch of
+each server the account uses. A checkout alone serves or selects nothing.
+`computer/instructions.md` is the handbook's one source. Installation supplies its
+Markdown as plain `computers.handbook` text in the trusted Hub control document,
+and Hub serves it as the MCP server `instructions` of its Computer endpoint
+(`computers.profile`) to Computer clients (`computers.oauthClient`), so every MCP
+client learns it when it connects; OpenCode puts MCP server instructions in its
+system prompt. Hub writes nothing into the Computer, and a handbook edit needs no
+image rebuild, restart or new version: clients see it on their next connection.
+An omitted or empty `handbook` serves no handbook. This is not a template language.
+Guidance references the Computer's current native inputs; it does not copy
+credentials, grants or project environment selections into a global prompt.
+
+For the initial trusted import, set the field in the complete seed before
+`veoveo-hub validate` / `import-control-plane`:
+
+```sh
+umask 077
+jq --rawfile handbook computer/instructions.md '.computers.handbook = $handbook' \
+  "$PRIVATE/hub.json" > "$PRIVATE/hub.candidate.json"
+```
+
+To update guidance later, read the fresh full control response using the existing
+admin API, then prepare the ordinary publication candidate from the same file:
+
+```sh
+umask 077
+jq --rawfile handbook computer/instructions.md \
+  '.controlPlane | .computers.handbook = $handbook' \
+  "$PRIVATE/control-read.json" > "$PRIVATE/control-candidate.json"
+```
+
+Publish that full candidate through the same live admin control-plane API, preserving
+unrelated settings. [hub.example.json](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/computer/hub.example.json) omits the field so that the
+handbook has no second copy.
+
+The [native OIDC fragment](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/computer/lore-oidc.example.toml), Hub contribution/client records
 and exact OAuth REST paths in policy must be selected together. Native private
 gRPC remains direct TLS. The OAuth paths share Hub's authority but are disjoint
 from managed MCP; there is no transparent TCP overlap, issuer host alias or broad
@@ -204,9 +304,10 @@ receipts. Existing source/image pins remain unchanged until coordinated review.
 
 ## Validation boundary
 
-Changes to `instructions.md` require rebuilding the Computer image because the
-Dockerfile copies it into `/etc/computer`; changing policy alone requires no
-binary rebuild. The signed-transfer instructions in this slice need a new image.
+Handbook changes are published through `computers.handbook` and reach clients on
+their next MCP connection; no image rebuild or restart is needed. Template, policy and
+`computers` setting changes make a new Computer version, which each Computer takes at
+its owner's next restart; policy changes alone require no binary rebuild.
 
 Before promotion, validate the JSON with this fork's native OpenCode Config.Info
 schema after substituting synthetic opaque references; parse the policy through
@@ -214,10 +315,11 @@ native `openshell_policy::parse_sandbox_policy_file` and lint both native profil
 Also admit the selected Hub control policy/profile using the exact RPC/binding
 boundary in [NATIVE_CONTROL.md](NATIVE_CONTROL.md).
 Build the image from the reviewed local contexts without inference. Under UID/GID 10001,
-check exact binary versions/digests, seeded ownership, writable HOME/XDG paths,
-non-writable `/etc/computer`, and absence of a factory token. A native test-owned
-Computer must then prove persisted OpenCode/Lore state across Stop/Start, runtime
-loss and gateway restart, followed by exactly owned Delete cleanup. Only later
+check exact binary versions/digests, a writable `HOME`, non-writable `/etc/computer`,
+and absence of a factory token. A native test-owned Computer must then prove
+persisted OpenCode/Lore state across Stop/Start, runtime loss, gateway restart and a
+delete that keeps the workspace followed by a sandbox of the same name, followed by
+exactly owned Delete cleanup. Only later
 qualify real user login, Hub revocation/owner isolation and explicit MiMo tool use
 on the coordinated Linux deployment. The component retention E2E receipt does not
 prove this image, Hub browser ingress, real Lore login or model inference.

@@ -28,8 +28,6 @@ spec:
         app.kubernetes.io/name: lore
     spec:
       automountServiceAccountToken: false
-      imagePullSecrets:
-        - name: registry-pull
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -39,7 +37,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: lore
-          image: REPLACE_WITH_NATIVE_LORE_IMAGE_AT_SHA256
+          image: registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:e9d0aef51a88abb27c931ff9aaf67da0fb15e1be40c0069d75b4e338c14f0268
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -138,7 +136,7 @@ spec:
     - to:
         - podSelector:
             matchLabels:
-              cnpg.io/cluster: veoveo-postgres
+              app.kubernetes.io/name: veoveo-postgres
       ports:
         - protocol: TCP
           port: 5432

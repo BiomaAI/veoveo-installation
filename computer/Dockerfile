@@ -1,30 +1,21 @@
 # syntax=docker/dockerfile:1.27@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
-# Required named contexts: reviewed factory image, native Lore image, and the
-# matching-platform OpenCode package directory (containing bin/opencode).
+# Required named contexts: reviewed factory and Lore images,
+# and the matching-platform OpenCode package directory (containing bin/opencode).
 FROM factory
 USER root
 COPY --from=lore --chmod=0755 /usr/local/bin/lore /usr/local/bin/lore
 COPY --from=opencode --chmod=0755 /bin/opencode /usr/local/bin/opencode
-COPY --chmod=0644 computer/opencode.json computer/instructions.md /etc/computer/
-ENV HOME=/sandbox/home \
+COPY --chmod=0644 computer/opencode.json /etc/computer/
+# /sandbox is the person's home and the platform writes nothing into it: the
+# factory base leaves only the mount point, owned by the sandbox user, and
+# OpenCode and Lore create their own directories under HOME. Connection
+# configuration stays read-only in /etc/computer.
+ENV HOME=/sandbox \
     SSL_CERT_DIR=/etc/ssl/certs \
-    XDG_CONFIG_HOME=/sandbox/home/.config \
-    XDG_DATA_HOME=/sandbox/home/.local/share \
-    XDG_STATE_HOME=/sandbox/home/.local/state \
-    XDG_CACHE_HOME=/sandbox/home/.cache \
-    LORE_GLOBAL_PATH=/sandbox/home/.local/share/lore \
-    LORE_AUTH_PATH=/sandbox/home/.config/lore/auth \
     OPENCODE_CONFIG=/etc/computer/opencode.json \
     OPENCODE_DISABLE_MODELS_FETCH=1
-# Native Docker copy-up or Kubernetes automatic workspace-PVC seeding preserves
-# these image defaults and private UID/GID-10001 paths; no extra copy-up Job is needed.
-# Trusted configuration stays outside the persistent workdir and is not writable.
 RUN test "$(id -u sandbox)" = 10001 \
     && test "$(id -g sandbox)" = 10001 \
-    && install -d -o 10001 -g 10001 -m 0700 /sandbox /sandbox/home /sandbox/projects \
-       /sandbox/home/.config /sandbox/home/.local /sandbox/home/.local/share \
-       /sandbox/home/.local/state /sandbox/home/.cache \
-       /sandbox/home/.local/share/lore /sandbox/home/.config/lore /sandbox/home/.config/lore/auth \
     && chmod 0755 /etc/computer
 USER sandbox
 WORKDIR /sandbox

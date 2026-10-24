@@ -8,30 +8,36 @@ Desktop adapter or refresh daemon. Local Keycloak remains identity/management bo
 repository-grant provisioning path.
 
 These are synthetic configuration examples, not deployed identities or image
-receipts. Keep the reviewed Lore refresh-only source and current image pins until
-new artifacts are explicitly reviewed. No Lore source change is required here.
+receipts. Keep the current image pins until new artifacts are explicitly reviewed.
+Computer and factory Lore access needs a Lore command line that reads
+`LORE_ACCESS_TOKEN` and `LORE_IDENTITY` when its `--access-token` and `--identity`
+flags are absent.
 
 ## Match the native contracts
 
-Merge [hub.example.json](hub.example.json) into a **complete** admitted Hub control
+Merge [hub.example.json](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/computer/hub.example.json) into a **complete** admitted Hub control
 plane. Replace records by their typed identity, never concatenate duplicate IDs or
 replace unrelated arrays wholesale. Retain existing database/signing/registration,
 identity-provider, service, Computer ownership and working-storage configuration.
 The fragment assumes these existing installation identities:
 
-- Hosted authorization server `hub`, issuer `https://veoveo.example.com/oauth`,
+- Hosted authorization server `hub`, issuer `https://veoveo.bioma.ai/oauth`,
   signing-key/JWKS configuration and enterprise identity provider `entra`.
 - Policy revision `installation`, tenant `example`, attribution Work Context
   `default`, and Computer MCP profile/resource `computer` /
-  `https://veoveo.example.com/mcp/computer`.
+  `https://veoveo.bioma.ai/mcp/computer`.
 - Existing broker secret reference `hub-entra-client-secret`. Replace the synthetic
   broker client ID and use the existing Entra broker registration/secret. Its
   callback is `/oauth/callback`; it brokers both the Computer MCP audience and
   the separate Lore audience. This confidential broker is not the native public
   client and does not own repository assignments.
 - The Computer's existing public PKCE+refresh client `computer-browser` and exact
-  callback `https://veoveo.example.com/computer/callback`, with the current MCP
-  profile/Work Context eligibility. Preserve its registration and memberships.
+  callback `https://veoveo.bioma.ai/computer/callback`, with the current MCP
+  profile/Work Context eligibility. Merge the example client by its typed ID and
+  preserve existing memberships/identity settings; do not append a duplicate. It
+  needs only the Computer MCP audience and the `mcp` scope: the Computer reaches
+  Lore through its own Lore client, and repository creation through Hub's
+  deployment client.
 
 Replace these names consistently when the installation uses different admitted
 IDs. Keep `computers.gateway` and `nativeUpstreams` on the same dedicated native
@@ -40,16 +46,22 @@ management identity is independent of all Lore users and factory grants.
 
 | Native input | Matching Hub data |
 |---|---|
-| `jwt_issuer = ["https://veoveo.example.com/oauth"]` | Hosted server `hub` issuer and normal discovery/JWKS |
-| `jwt_audience = ["https://veoveo.example.com/resources/lore"]` | Deployment `audience`; each native client's one `allowedResources` entry |
+| `jwt_issuer = ["https://veoveo.bioma.ai/oauth"]` | Hosted server `hub` issuer and normal discovery/JWKS |
+| `jwt_audience = ["https://veoveo.bioma.ai/resources/lore"]` | Deployment `audience`; native CLI resource and initiating Computer/OpenCode client allowlist |
 | `resource_claim = "resources"`, `resource_id_claim = "resource_id"`, `permission_claim = "permission"` | Fixed native typed claim encoding; not arbitrary JWT templates |
 | `resource_id_template = "urc-{id}"` | Deployment `resourceIdTemplate` |
 | OIDC `client_id = "lore-computer"` | Dedicated secretless public registration with device, refresh and public exchange grants |
 | OIDC `scopes = ["lore:login"]` | Finite deployment/client scopes `lore:login` plus native-added `offline_access` |
-| OIDC `scope_template = "lore-repo-{id}"` | Deployment `scopeTemplate`; factory profile's exact target scope |
+| OIDC `scope_template = "lore-repo-{id}"` | Deployment `scopeTemplate`; the repository exchange selector |
 | Private `grpcs://host.openshell.internal:41337` | Deployment `endpoint`, native server certificate SAN, policy hostname and `VEOVEO_LORE_REMOTE` |
 
-The trusted Compose Lore service publishes only `127.0.0.1:41337:41337`.
+For Linux, the selected private native endpoint is
+`grpcs://lore.veoveo-system.svc.cluster.local:41337`, managed by Kubernetes with
+end-to-end TLS. Select that Service DNS, certificate SAN/root and the exact
+`/usr/local/bin/veoveo-hub`/Lore binary policy entries together. Hub's native E0
+client trusts the public Lore root through its existing CA-only mount.
+
+**Mac Docker fixture only:** the trusted Compose Lore service publishes only `127.0.0.1:41337:41337`.
 Native OpenShell policy DNS maps `host.openshell.internal` to the backend-provided
 host-gateway address; the trusted Docker supervisor reaches the host loopback
 publication. No host `/etc/hosts` edit, workload Docker network attachment or
@@ -81,7 +93,7 @@ are separate fields. Both are installation data; exactly one canonical lowercase
 scope as an unrestricted OAuth scope. The finite login scopes bind the client;
 the typed contribution parses the target and checks current exact assignments.
 
-Select [lore-oidc.example.toml](lore-oidc.example.toml) in the trusted Lore server's
+Select [lore-oidc.example.toml](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/computer/lore-oidc.example.toml) in the trusted Lore server's
 existing configuration, preserving TLS, S3/PostgreSQL and hooks. Native
 `environment.endpoint.auth_url` must be absent for this resource-claim mode;
 combining that external-auth-service selection with `resource_claim` is a native
@@ -99,8 +111,8 @@ Only native `owner`, `admin`, `obliterate`, `migrate` privileges may be explicit
 assigned. Neither Hub administration nor Work Context membership implies any
 Lore repository access or `is_service_account` bypass.
 
-The sample grants Alice/Bob the shared `1111…1111` repository, only Bob the
-`2222…2222` repository, and a separate factory principal the shared repository.
+The sample grants Alice/Bob the shared `1111…1111` repository and only Bob the
+`2222…2222` repository.
 Replace all synthetic IDs with reviewed native IDs and actual canonical Hub
 principal IDs. Changing a user's directory app roles is not how this Hub-owned
 repository data is managed. A Hub administrator can publish explicit assignments
@@ -116,92 +128,55 @@ assignment-filtered listing. Operate on known registered repository URLs. Existi
 native protection and any separately configured factory hook retain their own
 scope and limitations; this fragment adds no hook assignment or service bypass.
 
-## Native Computer network and login
+## Computer Lore access
 
-[policy.yaml](policy.yaml) admits only the native Lore binary to these unbound
-REST routes at the Hub authority:
+A Computer reaches Lore as its owner with no login of its own: the owner's Hub
+sign-in is the only one. The installation configures no Computer client or secret.
+Each custody handoff gives the Computer's own OAuth client, whose identifier is the
+Computer's native name, a new secret, and Hub keeps only its digest. Its
+client-credentials grant issues the owner's Lore token, with one native `resources`
+entry for each repository the owner is assigned on the deployment and none without
+an assignment; the client requests no scope and holds no grant of its own. The
+gateway holds the secret in refresh custody of the workspace-local `computer-lore`
+provider, created from the global profile [`vv-lore`](../openshell/providers/lore.yaml)
+that Hub's `computers.loreProvider` names, and Hub rotates it before the sandbox
+starts. The sandbox receives only the provider's placeholder in `LORE_ACCESS_TOKEN`
+and the owner's principal in `LORE_IDENTITY`. The native Lore CLI reads both, and
+the proxy substitutes the token in Lore's gRPC headers on the profile's inspected
+endpoint. The [Kubernetes Computer policy](../kubernetes/policies/computer-v1.yaml)
+therefore has no Lore rule of its own: a TCP passthrough rule to that endpoint
+conflicts with the profile's, and no device login remains. The Mac Docker fixture's
+[policy.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/computer/policy.yaml) keeps its passthrough and device-login rules and does not
+provide this access.
 
-- `GET /oauth/.well-known/openid-configuration`
-- `POST /oauth/device_authorization`
-- `POST /oauth/token` for native polling, repository exchange and refresh
-- `GET /oauth/jwks.json`
+The `lore-computer` public client stays: Hub issues each person's Lore token as the
+token that client would obtain through the exchange, and Lore's OIDC configuration
+names it. When a published revision adds, removes or changes an owner's assignment,
+Hub at once asks the gateway to renew that owner's Computer credential, so the next
+Lore request carries a token with the current assignments; this happens once per
+installation, whether the revision was published through the admin route, imported
+before startup or adopted by a replica, and a Computer that cannot renew is logged
+without failing the publication. A token already sent or cached keeps its native
+expiry; this does not promise immediate native token revocation. Never copy a token or the placeholder
+into chat, shell arguments or another user's Computer.
 
-The native client's stored Work Context is platform attribution only; it does
-not add a repository-membership requirement or grant source access.
+## Factory sandbox Lore access
 
-They are disjoint from OpenCode's managed `/mcp/computer` endpoint. No transparent
-TCP rule, credential injection, host alias, broad `/oauth/**` rule or additional
-network client is used. Native Lore uses its ordinary HTTPS proxy and system/native
-CA support. Browser verification `/oauth/device` and Entra sign-in occur in the
-human browser; they are not extra CLI egress rules. Private Lore gRPC remains
-end-to-end direct TLS to the exact private address. Replace all advertised origins,
-certificate trust and policy selectors together; native policy ambiguity/admission
-and actual Linux proxy behavior still require qualification.
-
-On first use the user runs the existing native command:
-
-```sh
-lore auth login "$VEOVEO_LORE_REMOTE" --no-browser
-```
-
-Follow the native verification URL/code and approve the correct client. Hub uses
-its existing Entra broker for identity proof. Never copy an access/refresh token
-into chat, shell arguments or another user's Computer. Native Lore keeps its own
-grant under persistent HOME/XDG and renews it with the retained native refresh fix.
-Its login is separate from the Computer browser/MCP grant. Grant withdrawal blocks
-new repository issuance after live catalog adoption; cached native JWTs and
-in-flight operations retain their ordinary expiry behavior. This sample selects
-300-second tokens; it does not promise immediate native token revocation.
-
-## Explicit factory identity and native refresh
-
-Select [lore-time.example.yaml](../openshell/providers/lore-time.example.yaml),
-using native profile/provider name `vv-lore-time`. Do not import over an unrelated
-existing profile/provider. The existing deterministic
-[factory RPC policy](../openshell/factory-time.yaml) already binds that provider.
-Retain its limited read RPCs and exact dependency access. Native token permissions
-are ordinary access; the workload policy separately bounds the factory's calls.
-
-Configure the Hub `lore-factory` registration with its private Env secret reference
-and exact repository assignment. Its service identity is
-`https://veoveo.example.com/oauth#lore-factory`, distinct from every human and native
-management identity. Supply the same reviewed client secret privately to native
-OpenShell's existing refresh custody and to the trusted Hub secret locator; neither
-belongs in the profile, image, factory environment/argv or Computer. The gateway's
-own trusted outbound access must reach the configured token URL. The factory does
-not fetch tokens or receive the client secret.
-
-For a new, operator-owned `vv-time-build` workspace (inspect existing objects before
-creating anything):
-
-```sh
-(
-  : "${VEOVEO_LORE_FACTORY_CLIENT_SECRET:?trusted dedicated client secret}"
-  export VEOVEO_LORE_FACTORY_CLIENT_SECRET
-  openshell profile lint --workspace vv-time-build \
-    --file openshell/providers/lore-time.example.yaml
-  openshell profile import --workspace vv-time-build \
-    --file openshell/providers/lore-time.example.yaml
-  openshell provider create --workspace vv-time-build --name vv-lore-time \
-    --type vv-lore-time --runtime-credentials
-  openshell provider refresh configure --workspace vv-time-build vv-lore-time \
-    --credential-key LORE_AUTH_TOKEN --strategy oauth2-client-credentials \
-    --material client_id=lore-factory \
-    --secret-material-env client_secret=VEOVEO_LORE_FACTORY_CLIENT_SECRET
-  openshell provider refresh rotate --workspace vv-time-build vv-lore-time \
-    --credential-key LORE_AUTH_TOKEN
-  openshell provider refresh status --workspace vv-time-build vv-lore-time \
-    --credential-key LORE_AUTH_TOKEN
-)
-```
-
-Initial rotation proves setup only, not renewal beyond expiry. The native factory
-receives its opaque `LORE_AUTH_TOKEN` reference and uses the existing native
-`lore --access-token` path under its admitted policy. Preserve the deterministic
-pinned revision/build/test/output workflow in [FACTORY_TIME.md](../openshell/FACTORY_TIME.md);
-the retired local direct-issuer helper is not part of this setup. Attach
-no human refresh grant, administrator/native-control provider, model credential or
-agent to the factory. Keep any existing member SDK preflight identity separate.
+The installation configures no factory client, secret or repository assignment.
+Hub registers one OAuth client per factory instance, whose identifier is the
+instance's deployment ID, and keeps only the digest of its secret. Its
+client-credentials grant issues a repository-scoped Lore token for the instance's
+latest pusher, admitted against that person's current assignment on every issue;
+the client requests no scope and holds no grant of its own. The gateway holds the
+secret in refresh custody and refreshes the token through the global profile
+[`vv-lore`](../openshell/providers/lore.yaml), which Hub's `factory.loreProfile`
+names, as Computers do. The sandbox receives only the provider's placeholder in
+`LORE_ACCESS_TOKEN` and the instance's deployment ID in `LORE_IDENTITY`, which
+Lore's command line reads.
+Install the profile as described in
+[Factory sandbox policy and providers](../kubernetes/README.md#factory-sandbox-policy-and-providers).
+Attach no human refresh grant, administrator/native-control provider, model
+credential or agent to a factory sandbox.
 
 ## Live publication and first cutover
 
@@ -225,17 +200,47 @@ migration intentionally discards disposable OAuth/device-browser continuity as
 specified in the execution plan; preserve actual Computer working storage,
 Tasks/Artifacts, configuration, native service credentials and unrelated services.
 
+A member creates a repository and owns it without an administrator, through Hub's
+`POST /lore/{profile}/repositories` with `{"name": …}` or the console server's
+`create_repository` tool, which calls that route as its caller. Hub creates the
+repository in the installation's one registered Lore deployment as the caller, with
+a Lore login token it issues them, so Lore records them as its creator. It then
+publishes one control-plane revision that registers the repository and assigns the
+caller `owner` in their tenant, renews the Lore access of the caller's Computers,
+and answers the repository's `id`, `name` and `remote` to clone: the deployment's
+endpoint followed by `/<id>`. The route needs the caller's tenant and the Lore login
+Hub would issue them; no `admin_*` policy rule is involved. A name Lore holds
+already is 409. A 503 that names an `id` is a repository Lore created whose
+publication failed; calling again with the same name and that `id` registers it, and
+only its Lore creator can. An owner assignment an administrator later removes stays
+removed. Sharing a repository and removing one remain the administrator's
+control-plane edits below.
+
 Routine repository/grant changes need no restart: read the current complete
 control plane through existing `GET /admin/{profile}/control-plane`, edit its typed
 records and publish through existing authenticated `PUT` on the same route. Use
-the installation's admitted administrative profile/client. For example, a trusted
-operator's private native curl config may hold its existing Authorization header:
+the installation's admitted administrative profile/client. These routes need an
+explicit Hub policy rule in `policies[].rules` whose `profiles` names the route's
+`{profile}` (`local` in the reference installation) and whose `roles` names the Entra
+`administrator` app role, which Hub carries in the token's `roles` claim:
+
+```json
+{"id": "installation-administration", "effect": "allow",
+ "actions": ["admin_read", "admin_write"], "profiles": ["local"],
+ "roles": ["administrator"], "tenantIds": ["<tenant>"]}
+```
+
+Making someone an administrator is assigning them that Entra app role; Hub's `admin`
+installation role, with its risks, governs only server tool permissions.
+
+A trusted operator's private native curl config may hold its existing Authorization
+header:
 
 ```sh
 curl --config "$PRIVATE_HUB_ADMIN_CURL_CONFIG" --request PUT \
   --header 'Content-Type: application/json' \
   --data-binary "@$HUB_COMPLETE_CONFIG" \
-  https://veoveo.example.com/admin/admin/control-plane
+  https://veoveo.bioma.ai/admin/admin/control-plane
 ```
 
 No admin credential is supplied by this example. Preserve the current configuration
@@ -254,9 +259,20 @@ select `ResourceGrantsAuthorizer`, not a custom grant mode. Validate the complet
 merged Hub file with the matching new `veoveo-hub validate --config` binary; an old
 binary cannot admit this contribution. Parse Computer policy through native
 `openshell_policy::parse_sandbox_policy_file`, call existing endpoint-ambiguity
-validation and lint the chosen profile with native `openshell profile lint`.
+validation on it composed with the `vv-lore` profile's endpoint, and lint the chosen
+profile with native `openshell profile lint`.
 Check exact scope/recipient/audience/client mappings above before image/runtime
 promotion. No Dockerfile, binary pin or copied Computer instruction changes are
 made in this configuration slice. Full native CLI/Entra exchange, refresh,
 per-user isolation, grant withdrawal/expiry and Linux proxy behavior remain later
 acceptance, not conclusions from JSON/TOML parsing.
+
+## Repository creation
+
+Hub prepares no personal repository and writes nothing into a Computer. A person
+creates a repository with the console tool `create_repository` (Hub's
+`POST /lore/{profile}/repositories`): Hub creates it in Lore as the caller and
+assigns it to them, so their Computer's next `lore` command can clone or push it.
+
+This source path requires component/deployed qualification; configuration alone
+is not a successful native creation, auth, checkout or isolation receipt.

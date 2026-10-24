@@ -1,4 +1,4 @@
-# Public PostgreSQL and storage trust only, in each actual native workspace namespace.
+# Public PostgreSQL, storage and native repository trust only, in each actual native workspace namespace.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -33,17 +33,24 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
-      imagePullSecrets:
-      - name: registry-pull
       containers:
       - name: copy
-        image: REPLACE_WITH_REVIEWED_COPY_IMAGE_AT_SHA256
+        image: debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f
         command:
         - /bin/sh
         - -ec
         args:
-        - umask 022; test ! -e /output/postgres-ca.crt; cp /input/postgres-ca.crt
-          /input/storage-ca.crt /output/; chmod 0444 /output/postgres-ca.crt /output/storage-ca.crt
+        # Replace each file in the existing claim by renaming a complete copy over it,
+        # so the claim and its UID stay. No file changes unless every copy succeeds.
+        - |
+          umask 022
+          files="postgres-ca.crt storage-ca.crt lore-ca.crt"
+          trap 'for f in $files; do rm -f "/output/.$f.new"; done' EXIT
+          for f in $files; do
+            cp "/input/$f" "/output/.$f.new"
+            chmod 0444 "/output/.$f.new"
+          done
+          for f in $files; do mv -f "/output/.$f.new" "/output/$f"; done
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -64,6 +71,8 @@ spec:
             path: postgres-ca.crt
           - key: storage-ca.crt
             path: storage-ca.crt
+          - key: lore-ca.crt
+            path: lore-ca.crt
       - name: output
         persistentVolumeClaim:
           claimName: postgres-client-ca-v1
@@ -102,17 +111,24 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
-      imagePullSecrets:
-      - name: registry-pull
       containers:
       - name: copy
-        image: REPLACE_WITH_REVIEWED_COPY_IMAGE_AT_SHA256
+        image: debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f
         command:
         - /bin/sh
         - -ec
         args:
-        - umask 022; test ! -e /output/postgres-ca.crt; cp /input/postgres-ca.crt
-          /input/storage-ca.crt /output/; chmod 0444 /output/postgres-ca.crt /output/storage-ca.crt
+        # Replace each file in the existing claim by renaming a complete copy over it,
+        # so the claim and its UID stay. No file changes unless every copy succeeds.
+        - |
+          umask 022
+          files="postgres-ca.crt storage-ca.crt lore-ca.crt"
+          trap 'for f in $files; do rm -f "/output/.$f.new"; done' EXIT
+          for f in $files; do
+            cp "/input/$f" "/output/.$f.new"
+            chmod 0444 "/output/.$f.new"
+          done
+          for f in $files; do mv -f "/output/.$f.new" "/output/$f"; done
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -133,6 +149,8 @@ spec:
             path: postgres-ca.crt
           - key: storage-ca.crt
             path: storage-ca.crt
+          - key: lore-ca.crt
+            path: lore-ca.crt
       - name: output
         persistentVolumeClaim:
           claimName: postgres-client-ca-v1

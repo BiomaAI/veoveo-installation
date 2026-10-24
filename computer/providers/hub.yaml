@@ -8,7 +8,7 @@ credentials:
     header_name: authorization
     refresh:
       strategy: oauth2_refresh_token
-      token_url: https://veoveo.example.com/oauth/token
+      token_url: https://veoveo.bioma.ai/oauth/token
       # Preserve the initial Hub PKCE grant: no scopes in profile or material.
       refresh_before: 180s
       max_lifetime: 3600s

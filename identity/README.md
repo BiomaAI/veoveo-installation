@@ -1,8 +1,3 @@
-> Historical Docker/local-fixture procedure. Current Bioma Linux deployment uses
-> [Kubernetes inputs](../openshell/bioma/kubernetes/README.md); do not execute old
-> Compose/host-loopback launch steps for the new cluster. Protocol/qualification
-> history remains below; no Kubernetes acceptance is implied.
-
 # Installation identity
 
 Local development uses persistent Keycloak. The remote Linux reference uses
@@ -42,7 +37,7 @@ through the identity edge's Docker alias.
 This bootstrap exposes only Keycloak. Native OpenShell service ingress has been
 qualified with sandbox DNS, matching request authority and verified TLS. Actual
 Hub and Time application qualification remains pending; follow the
-[native setup](../openshell/HUB_TIME.md) and execution checklist. This
+[native setup](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/openshell/HUB_TIME.md) and execution checklist. This
 Compose/Envoy stack provides no Hub route or application alias. The former Docker
 application restart path is removed; manage Hub through its native workload.
 
@@ -224,7 +219,7 @@ configuration when the installation needs high availability. A local loopback
 configuration is not a public production ingress configuration.
 
 For Entra, omit the `keycloak` Compose profile and its three services. Follow
-[reference preparation](../openshell/REFERENCE.md) and the existing helper's
+[reference preparation](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/openshell/REFERENCE.md) and the existing helper's
 `--identity-provider entra` path. [entra.example.json](entra.example.json) shows
 the full standard catalog shape, with deliberately unenrolled example UUIDs and
 a placeholder signing-key thumbprint; do not deploy it unchanged. Point the relevant profile and authorization
@@ -234,7 +229,7 @@ Grant roles explicitly to issuer + stable object ID principals; sign-in alone mu
 not confer installation membership.
 
 Register a single-tenant confidential **Web** application in Entra with the exact
-`https://veoveo.example.com/oauth/callback` redirect. Supply its credential only to
+`https://veoveo.bioma.ai/oauth/callback` redirect. Supply its credential only to
 the trusted Hub through its configured secret source. Use the tenant-specific
 v2 issuer; do not use `common` or `organizations`. Permit the configured Entra
 JWKS/token host through the approved native egress policy and qualify the Hub's

@@ -1,18 +1,20 @@
 # Agent Instructions
 
-- This repository holds Bioma's real installation choices and trusted bootstrap
-  configuration, based on `VeoveoAI/veoveo-template-installation`. Send reusable
-  fixes upstream; keep Bioma-specific native selections in `openshell/bioma/`.
-  Planning and acceptance evidence belong in `VeoveoAI/veoveo-docs`. Components
-  own their build and check logic. Update this repository when its actual deployed
-  configuration or qualification status changes.
+- This repository is Bioma's real installation: the reference implementation of
+  `VeoveoAI/veoveo-template-installation`, laid out as if the template had produced
+  it for Bioma. Keep its files the template's Linux K3s path with Bioma's values in
+  place of the placeholders. Record Bioma's selections and every other difference
+  from the template, with its reason, in `openshell/bioma/README.md`. Send reusable
+  fixes to the template. Planning, qualification status and evidence belong in
+  `VeoveoAI/veoveo-docs`; link to them rather than copying them here. Components own
+  their build and check logic.
+- Keep `component-lock.json` equal to what is deployed: each component's revision
+  and image digest, read from the running cluster. Update it after each deployment.
 - Linux deployment uses K3s foundation controllers and OpenShell's native Kubernetes
-  driver for Hub/MCP, Computer and factory workloads. Mac development/test fixtures
-  remain in the generic template, not this Linux launch path. Use native APIs,
-  lifecycle, credential store, policy and diagnostics. Do not add an orchestrator,
-  Helm sandbox inventory, token worker or second launcher.
-- Use permanent Keycloak locally and provider-agnostic OIDC configuration elsewhere.
-  Generic installation must not require Keycloak administration credentials.
+  driver for Hub/MCP, Computer and factory workloads. Mac development and test
+  fixtures stay in the template, not here. Use native APIs, lifecycle, credential
+  store, policy and diagnostics. Do not add an orchestrator, Helm sandbox inventory,
+  token worker or second launcher.
 - Real provider tokens, signing keys, operator state, bootstrap volumes and Docker
   access stay outside author and agent-controlled service workloads. Use native
   OpenShell credential mediation. Unsupported enforcement fails closed.
@@ -28,18 +30,17 @@
   human Lore refresh remains private to each Computer. Do not restore the withdrawn
   direct-IdP grant helper, Desktop adapter, signer or ingress, or add a token worker,
   custom Lore rules, implicit admin/member repository rights or global grants.
-- Never commit credentials. `.env`, TLS/private state and local backups remain
-  ignored and excluded from build contexts.
+- The platform never writes into a Computer's `/sandbox`; it is the person's home.
+- Never commit credentials, private state or per-person data: principal grants,
+  memberships, repository registrations and assignments. `.env`, TLS/private state
+  and local backups remain ignored and excluded from build contexts. Commit only
+  `.example` forms of identity catalogs. Do not commit the operator's build or
+  deployment scripts.
 - During rapid development, application data is disposable for authorized resets
   on breaking contracts; do not add migrations, backward compatibility or backups
   merely to retain development data. Retain source and trusted installation/identity
   configuration as rebuild inputs. Preserve normal durable ownership across routine
   sandbox lifecycle; revisit retention when production data enters scope.
 - Use upstream bootstrap images pinned by digest. Verify releases when changing pins.
-  Generic examples use `https://veoveo.example.com`. Bioma's selected native files
-  may use its actual public domains and public application IDs; credentials,
-  operator principal grants and generated private state stay ignored.
-- Validate changed bootstrap configuration and the focused new path on macOS.
-  The reference Linux deployment, Entra and signed Media webhook are now in scope
-  under the execution plan. GPU/CUDA qualification is separate.
+  Bioma's files use its actual public domain and public application IDs.
 - Commit coherent changes without AI attribution.

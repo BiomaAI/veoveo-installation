@@ -1,20 +1,20 @@
 # Bioma Installation Design
 
-Bioma Linux uses K3s for foundation services and OpenShell's native Kubernetes driver
-for Hub/MCP, Computer and factory workloads. The accepted architecture and
-qualification status live in [veoveo-docs](../veoveo-docs/LORE_OPENSHELL_INTEGRATION.md).
-The ordinary [Kubernetes inputs](kubernetes/README.md) bootstrap CloudNativePG,
-SeaweedFS, single-replica Lore, OpenShell gateway and the existing public tunnel.
-K3s has an independent embedded datastore. Gateway and application PostgreSQL
-roles/databases are distinct; they may initially share a CNPG cluster. This is a
+Bioma's installation is the template's Linux path. It uses K3s for foundation
+services and OpenShell's native Kubernetes driver for Hub/MCP, Computer and factory
+workloads. The accepted architecture lives in
+[veoveo-docs](https://github.com/VeoveoAI/veoveo-docs/blob/main/LORE_OPENSHELL_INTEGRATION.md),
+and qualification status in its
+[checklist](https://github.com/VeoveoAI/veoveo-docs/blob/main/QUALIFICATION_CHECKLIST.md).
+The ordinary [Kubernetes inputs](kubernetes/README.md) bootstrap PostgreSQL as a plain
+StatefulSet, SeaweedFS, single-replica Lore, OpenShell gateway and the existing public
+tunnel. K3s has an independent embedded datastore. Gateway and application PostgreSQL
+roles/databases are distinct and share one PostgreSQL instance. This is a
 single-node recovery target, not qualified multi-host HA.
 
-Mac remains normal native source development and component/integration testing,
-including Docker fixtures. Local Keycloak and its database may remain external.
-No Mac Lima/K3s deployment is required. The obsolete Linux Compose launch definitions are removed from this branch.
-Mac test/identity fixtures remain in the generic template. Replacement Linux
-placement must qualify before application acceptance is claimed. The undeployed native
-Docker infrastructure candidate is superseded and must not be executed.
+Mac development and component/integration testing, with their Docker, Compose
+and local Keycloak fixtures, stay in the template. Bioma uses Entra and has no
+Mac or Compose launch path.
 
 Lore owns source/revision semantics and enforces its unchanged native signed-token
 contract. Entra authenticates humans; Hub's existing issuer and revisioned control
@@ -30,8 +30,8 @@ must not inventory runtime sandboxes or force unrelated rollouts. Hub catalogs
 are database-authoritative: initial files seed only an empty installation. Live
 MCP request destinations, Computer defaults and explicit repository grants adopt
 through the admitted control-plane path, preserving active state on rejection.
-New versioned defaults affect future or explicitly replaced instances; existing
-Computers retain their admitted provisioning snapshot.
+New defaults make a new Computer version, which new sandboxes start at; an existing
+Computer keeps its recorded version until its owner restarts it.
 
 Trusted server configuration lives in operator-populated, admitted, workspace-local
 PVCs mounted read-only outside `/sandbox`. No caller Secret/ConfigMap/hostPath or
@@ -46,10 +46,3 @@ verified TLS to native Services. Native controllers, readiness/restarts and
 application retry/reconnect handle recovery; there is no custom startup DAG or
 proxy. Dependency interruption and dynamic lifecycle behavior require deployed
 qualification, separate from component tests and final exact MiMo acceptance.
-
-Bioma's public origins remain `https://veoveo.bioma.ai` and
-`https://veoveo-objects.bioma.ai`. Current selected Kubernetes inputs live in
-[openshell/bioma/kubernetes](openshell/bioma/kubernetes/README.md). Existing files
-in `openshell/bioma/` are preserved unchanged as historical Docker-era selections;
-do not apply their host-loopback routes to the new cluster. Reusable mechanisms
-are imported from generic template commit `dd824156c1bcb9eb7c34e22b70781cec8587ebc2`.

@@ -1,2 +1,3 @@
-# Reference Linux API address measured during K3s bootstrap.
+# Bioma's node-specific Cilium override: the K3s node's API server address.
+# Layer it over kubernetes/cilium.values.yaml.
 k8sServiceHost: 192.168.68.69

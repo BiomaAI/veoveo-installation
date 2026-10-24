@@ -2,38 +2,38 @@
   "identityProviders": [
     {
       "id": "entra",
-      "issuer": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0",
+      "issuer": "https://login.microsoftonline.com/e0ee3c6a-4f58-4f66-8de4-253226eeed5f/v2.0",
       "jwks": {
         "source": "remote",
-        "jwksUri": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/discovery/v2.0/keys"
+        "jwksUri": "https://login.microsoftonline.com/e0ee3c6a-4f58-4f66-8de4-253226eeed5f/discovery/v2.0/keys"
       },
       "claimMapping": {
         "subject": "oid",
         "tenant": {
           "claim": "tid",
           "values": {
-            "11111111-1111-4111-8111-111111111111": "reference"
+            "e0ee3c6a-4f58-4f66-8de4-253226eeed5f": "reference"
           }
         }
       },
-      "authorizationEndpoint": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/oauth2/v2.0/authorize",
-      "tokenEndpoint": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/oauth2/v2.0/token",
+      "authorizationEndpoint": "https://login.microsoftonline.com/e0ee3c6a-4f58-4f66-8de4-253226eeed5f/oauth2/v2.0/authorize",
+      "tokenEndpoint": "https://login.microsoftonline.com/e0ee3c6a-4f58-4f66-8de4-253226eeed5f/oauth2/v2.0/token",
       "metadata": {}
     }
   ],
   "authorizationServers": [
     {
       "id": "hub",
-      "issuer": "https://veoveo.example.com/oauth",
+      "issuer": "https://veoveo.bioma.ai/oauth",
       "jwks": {
         "source": "file",
         "path": "/etc/veoveo/hub/authorization-server.jwks.json"
       },
-      "accessTokenKeyId": "REPLACE_WITH_SIGNING_KEY_THUMBPRINT",
+      "accessTokenKeyId": "nr-CyVKgU-7yqss1O9KW-8gr4WMw8a1JWOupDeCieFc",
       "accessTokenSigningKey": "access_token_signing_key",
       "identityProvider": "entra",
-      "authorizationEndpoint": "https://veoveo.example.com/oauth/authorize",
-      "tokenEndpoint": "https://veoveo.example.com/oauth/token",
+      "authorizationEndpoint": "https://veoveo.bioma.ai/oauth/authorize",
+      "tokenEndpoint": "https://veoveo.bioma.ai/oauth/token",
       "metadata": {}
     }
   ],
@@ -42,7 +42,21 @@
       "id": "local",
       "identityProvider": "entra",
       "authorizationServer": "hub",
-      "protectedResource": "https://veoveo.example.com/mcp/local",
+      "protectedResource": "https://veoveo.bioma.ai/mcp/local",
+      "policyVersion": "reference-policy",
+      "authModes": [
+        "oidc_authorization_code_pkce"
+      ],
+      "requiredScopes": [
+        "mcp"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "computer",
+      "identityProvider": "entra",
+      "authorizationServer": "hub",
+      "protectedResource": "https://veoveo.bioma.ai/mcp/computer",
       "policyVersion": "reference-policy",
       "authModes": [
         "oidc_authorization_code_pkce"
@@ -91,21 +105,21 @@
       {
         "role": "member",
         "subject": {
-          "principal": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0#33333333-3333-4333-8333-333333333333"
+          "principal": "https://login.microsoftonline.com/e0ee3c6a-4f58-4f66-8de4-253226eeed5f/v2.0#33333333-3333-4333-8333-333333333333"
         },
         "tenant": "reference"
       },
       {
         "role": "admin",
         "subject": {
-          "principal": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0#44444444-4444-4444-8444-444444444444"
+          "principal": "https://login.microsoftonline.com/e0ee3c6a-4f58-4f66-8de4-253226eeed5f/v2.0#44444444-4444-4444-8444-444444444444"
         },
         "tenant": "reference"
       },
       {
         "role": "billed",
         "subject": {
-          "principal": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0#55555555-5555-4555-8555-555555555555"
+          "principal": "https://login.microsoftonline.com/e0ee3c6a-4f58-4f66-8de4-253226eeed5f/v2.0#55555555-5555-4555-8555-555555555555"
         },
         "tenant": "reference"
       }
@@ -129,16 +143,16 @@
       "outputPolicy": {
         "owner": {
           "kind": "principal",
-          "id": "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0#44444444-4444-4444-8444-444444444444"
+          "id": "https://login.microsoftonline.com/e0ee3c6a-4f58-4f66-8de4-253226eeed5f/v2.0#44444444-4444-4444-8444-444444444444"
         }
       },
       "memberships": [
         {
           "level": "contributor",
           "principals": [
-            "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0#33333333-3333-4333-8333-333333333333",
-            "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0#44444444-4444-4444-8444-444444444444",
-            "https://login.microsoftonline.com/11111111-1111-4111-8111-111111111111/v2.0#55555555-5555-4555-8555-555555555555"
+            "https://login.microsoftonline.com/e0ee3c6a-4f58-4f66-8de4-253226eeed5f/v2.0#33333333-3333-4333-8333-333333333333",
+            "https://login.microsoftonline.com/e0ee3c6a-4f58-4f66-8de4-253226eeed5f/v2.0#44444444-4444-4444-8444-444444444444",
+            "https://login.microsoftonline.com/e0ee3c6a-4f58-4f66-8de4-253226eeed5f/v2.0#55555555-5555-4555-8555-555555555555"
           ]
         }
       ]
@@ -147,7 +161,25 @@
   "policies": [
     {
       "version": "reference-policy",
-      "rules": []
+      "rules": [
+        {
+          "id": "installation-administration",
+          "effect": "allow",
+          "actions": [
+            "admin_read",
+            "admin_write"
+          ],
+          "profiles": [
+            "local"
+          ],
+          "roles": [
+            "administrator"
+          ],
+          "tenantIds": [
+            "reference"
+          ]
+        }
+      ]
     }
   ],
   "dataLabels": [],
@@ -157,10 +189,10 @@
       "identityProvider": "entra",
       "authorizationServer": "hub",
       "allowedResources": [
-        "https://veoveo.example.com/mcp/local"
+        "https://veoveo.bioma.ai/mcp/local"
       ],
-      "clientId": "22222222-2222-4222-8222-222222222222",
-      "redirectUri": "https://veoveo.example.com/oauth/callback",
+      "clientId": "853550a7-5fd4-421c-abd2-bea0216fa579",
+      "redirectUri": "https://veoveo.bioma.ai/oauth/callback",
       "authMethod": "client_secret_post",
       "credentialSecret": "entra_client_secret",
       "scopes": [
@@ -177,7 +209,7 @@
       "defaultWorkContext": "reference-work",
       "invocationMode": "direct",
       "allowedResources": [
-        "https://veoveo.example.com/mcp/local"
+        "https://veoveo.bioma.ai/mcp/local"
       ],
       "grantTypes": [
         "authorization_code_pkce",
@@ -227,30 +259,5 @@
       "metadata": {}
     }
   ],
-  "nativeUpstreams": {
-    "gateway": "https://host.openshell.internal:17670",
-    "certificateAuthority": "/run/openshell-supervisor-ca/material/ca.crt",
-    "bearerEnvironment": "HUB_MANAGEMENT_REFERENCE",
-    "bindings": [
-      {
-        "endpoint": "http://time.internal:8800/time/mcp",
-        "workspace": "vv-services",
-        "sandbox": "time",
-        "port": 8800
-      },
-      {
-        "endpoint": "http://artifact.internal:8801/artifact/mcp",
-        "workspace": "vv-services",
-        "sandbox": "artifact",
-        "port": 8801
-      },
-      {
-        "endpoint": "http://media.internal:8802/media/mcp",
-        "workspace": "vv-services",
-        "sandbox": "media",
-        "port": 8802
-      }
-    ]
-  },
   "metadata": {}
 }

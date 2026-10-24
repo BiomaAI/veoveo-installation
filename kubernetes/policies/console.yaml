@@ -1,0 +1,157 @@
+# Console, the Hub MCP server, as a platform sandbox in vv-services. It calls Hub's
+# user routes as its caller and reads instance output from the log store, which the
+# factory base policy withholds from branch instances. Kubernetes Service and public
+# Hub authority inputs; Hub's host is veoveo.bioma.ai.
+version: 1
+filesystem_policy:
+  include_workdir: true
+  read_only:
+  - /bin
+  - /usr
+  - /lib
+  - /lib64
+  - /etc
+  - /proc
+  - /dev/urandom
+  - /var/log
+  read_write:
+  - /tmp
+  - /dev/null
+  - /var/lib/veoveo/console
+network_policies:
+  registration:
+    endpoints:
+    - host: veoveo.bioma.ai
+      port: 443
+      path: /oauth/register
+      protocol: rest
+      enforcement: enforce
+      credential_binding:
+        provider: vv-console-registration
+      rules:
+      - allow:
+          method: POST
+          path: /oauth/register
+    binaries:
+    - path: /usr/local/bin/veoveo-mcp-console
+  hub_metadata:
+    endpoints:
+    - host: veoveo.bioma.ai
+      port: 443
+      path: /.well-known/oauth-authorization-server
+      protocol: rest
+      enforcement: enforce
+      rules:
+      - allow:
+          method: GET
+          path: /.well-known/oauth-authorization-server
+    - host: veoveo.bioma.ai
+      port: 443
+      path: /jwks.json
+      protocol: rest
+      enforcement: enforce
+      rules:
+      - allow:
+          method: GET
+          path: /jwks.json
+    - host: veoveo.bioma.ai
+      port: 443
+      path: /oauth/register/*
+      protocol: rest
+      enforcement: enforce
+      rules:
+      - allow:
+          method: GET
+          path: /oauth/register/*
+      - allow:
+          method: PUT
+          path: /oauth/register/*
+      - allow:
+          method: DELETE
+          path: /oauth/register/*
+    - host: veoveo.bioma.ai
+      port: 443
+      path: /oauth/token
+      protocol: rest
+      enforcement: enforce
+      rules:
+      - allow:
+          method: POST
+          path: /oauth/token
+    binaries:
+    - path: /usr/local/bin/veoveo-mcp-console
+  hub_routes:
+    endpoints:
+    - host: veoveo.bioma.ai
+      port: 443
+      path: /factory/**
+      protocol: rest
+      enforcement: enforce
+      rules:
+      - allow:
+          method: GET
+          path: /factory/*/instance
+      - allow:
+          method: PUT
+          path: /factory/*/watch
+    - host: veoveo.bioma.ai
+      port: 443
+      path: /selection/**
+      protocol: rest
+      enforcement: enforce
+      rules:
+      - allow:
+          method: PUT
+          path: /selection/*/*
+      - allow:
+          method: DELETE
+          path: /selection/*/*
+    - host: veoveo.bioma.ai
+      port: 443
+      path: /lore/**
+      protocol: rest
+      enforcement: enforce
+      rules:
+      - allow:
+          method: POST
+          path: /lore/*/repositories
+    # The caller's Computer, and the current Computer version, which the Hub serves to
+    # anyone and console names in the computer tool's description.
+    - host: veoveo.bioma.ai
+      port: 443
+      path: /computer/*
+      protocol: rest
+      enforcement: enforce
+      rules:
+      - allow:
+          method: GET
+          path: /computer/status
+      - allow:
+          method: POST
+          path: /computer/restart
+      - allow:
+          method: GET
+          path: /computer/version
+    binaries:
+    - path: /usr/local/bin/veoveo-mcp-console
+  database:
+    endpoints:
+    - host: veoveo-postgres-rw.veoveo-system.svc.cluster.local
+      port: 5432
+      protocol: tcp
+      tls: skip
+    binaries:
+    - path: /usr/local/bin/veoveo-mcp-console
+  log_store:
+    endpoints:
+    - host: victorialogs.veoveo-system.svc.cluster.local
+      port: 9428
+      path: /select/logsql/query
+      protocol: rest
+      enforcement: enforce
+      rules:
+      - allow:
+          method: GET
+          path: /select/logsql/query
+    binaries:
+    - path: /usr/local/bin/veoveo-mcp-console

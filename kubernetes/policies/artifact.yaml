@@ -18,7 +18,7 @@ filesystem_policy:
 network_policies:
   registration:
     endpoints:
-    - host: veoveo.example.com
+    - host: veoveo.bioma.ai
       port: 443
       path: /oauth/register
       protocol: rest
@@ -33,7 +33,7 @@ network_policies:
     - path: /usr/local/bin/veoveo-mcp-artifact
   hub_metadata:
     endpoints:
-    - host: veoveo.example.com
+    - host: veoveo.bioma.ai
       port: 443
       path: /.well-known/oauth-authorization-server
       protocol: rest
@@ -42,7 +42,7 @@ network_policies:
       - allow:
           method: GET
           path: /.well-known/oauth-authorization-server
-    - host: veoveo.example.com
+    - host: veoveo.bioma.ai
       port: 443
       path: /jwks.json
       protocol: rest
@@ -51,7 +51,7 @@ network_policies:
       - allow:
           method: GET
           path: /jwks.json
-    - host: veoveo.example.com
+    - host: veoveo.bioma.ai
       port: 443
       path: /oauth/register/*
       protocol: rest

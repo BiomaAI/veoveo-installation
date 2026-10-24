@@ -16,6 +16,23 @@ filesystem_policy:
   - /tmp
   - /dev/null
 network_policies:
+  source_artifact:
+    endpoints:
+    - host: veoveo.bioma.ai
+      port: 443
+      # Render the actual caller profile's protected MCP resource. The SDK
+      # carries the admitted user bearer; do not inject a service credential.
+      path: /mcp/computer
+      protocol: mcp
+      enforcement: enforce
+      mcp:
+        versions: ['2026-07-28']
+        allow_all_known_mcp_methods: false
+      rules:
+      - allow: {method: server/discover}
+      - allow: {method: tools/call, tool: artifact__create_download}
+    binaries:
+    - path: /usr/local/bin/veoveo-hub
   native_control:
     endpoints:
     - host: openshell.openshell.svc.cluster.local
@@ -49,6 +66,9 @@ network_policies:
           path: /openshell.v1.OpenShell/CreateSandboxTemplate
       - allow:
           method: POST
+          path: /openshell.v1.OpenShell/DeleteSandboxTemplate
+      - allow:
+          method: POST
           path: /openshell.v1.OpenShell/GetProvider
       - allow:
           method: POST
@@ -67,15 +87,41 @@ network_policies:
           path: /openshell.v1.OpenShell/StopSandbox
       - allow:
           method: POST
+          path: /openshell.v1.OpenShell/DeleteSandbox
+      - allow:
+          method: POST
           path: /openshell.v1.OpenShell/ConfigureProviderRefresh
       - allow:
           method: POST
           path: /openshell.v1.OpenShell/RotateProviderCredential
+      - allow:
+          method: POST
+          path: /openshell.v1.OpenShell/DeleteProvider
     binaries:
     - path: /usr/local/bin/veoveo-hub
+  # Lore for repository creation and factory watches (the Hub binary) and for reading a
+  # pushed revision's openshell/ as its pusher (Lore's command line in the Hub image).
+  native_workspace:
+    endpoints:
+    - host: lore.veoveo-system.svc.cluster.local
+      port: 41337
+      protocol: tcp
+      tls: skip
+    binaries:
+    - path: /usr/local/bin/veoveo-hub
+    - path: /usr/local/bin/lore
+  # BuildKit builds each branch's openshell/image/; buildctl runs as its own executable.
+  image_builder:
+    endpoints:
+    - host: buildkitd.veoveo-system.svc.cluster.local
+      port: 1234
+      protocol: tcp
+      tls: skip
+    binaries:
+    - path: /usr/local/bin/buildctl
   browser_code_exchange:
     endpoints:
-    - host: veoveo.example.com
+    - host: veoveo.bioma.ai
       port: 443
       path: /oauth/token
       protocol: rest
@@ -90,22 +136,22 @@ network_policies:
     endpoints:
     - host: login.microsoftonline.com
       port: 443
-      path: /11111111-1111-4111-8111-111111111111/discovery/v2.0/keys
+      path: /e0ee3c6a-4f58-4f66-8de4-253226eeed5f/discovery/v2.0/keys
       protocol: rest
       enforcement: enforce
       rules:
       - allow:
           method: GET
-          path: /11111111-1111-4111-8111-111111111111/discovery/v2.0/keys
+          path: /e0ee3c6a-4f58-4f66-8de4-253226eeed5f/discovery/v2.0/keys
     - host: login.microsoftonline.com
       port: 443
-      path: /11111111-1111-4111-8111-111111111111/oauth2/v2.0/token
+      path: /e0ee3c6a-4f58-4f66-8de4-253226eeed5f/oauth2/v2.0/token
       protocol: rest
       enforcement: enforce
       rules:
       - allow:
           method: POST
-          path: /11111111-1111-4111-8111-111111111111/oauth2/v2.0/token
+          path: /e0ee3c6a-4f58-4f66-8de4-253226eeed5f/oauth2/v2.0/token
     binaries:
     - path: /usr/local/bin/veoveo-hub
   database:

@@ -1,8 +1,8 @@
 # Computer-enabled Hub native authority
 
 Select this mode explicitly when enabling Computers. The existing
-[`openshell/hub.yaml`](../openshell/hub.yaml) and
-[`hub-entra.example.yaml`](../openshell/hub-entra.example.yaml) remain the
+[`openshell/hub.yaml`](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/openshell/hub.yaml) and
+[`hub-entra.example.yaml`](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/openshell/hub-entra.example.yaml) remain the
 forwarder-only mode. Their `vv-hub-forwarder` identity is intentionally insufficient
 for provisioning. Do not add administrative grants to that existing client.
 
@@ -53,8 +53,8 @@ Choose one endpointless native credential profile:
 
 | Installation | Profile | Hub policy |
 |---|---|---|
-| Local Keycloak | [hub-native-control.yaml](../openshell/providers/hub-native-control.yaml) | [hub-computer.yaml](../openshell/hub-computer.yaml) |
-| Entra | [entra-hub-native-control.example.yaml](../openshell/providers/entra-hub-native-control.example.yaml) | [hub-computer-entra.example.yaml](../openshell/hub-computer-entra.example.yaml) |
+| Local Keycloak | [hub-native-control.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/openshell/providers/hub-native-control.yaml) | [hub-computer.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/openshell/hub-computer.yaml) |
+| Entra | [entra-hub-native-control.example.yaml](../openshell/providers/entra-hub-native-control.example.yaml) | [hub-computer-entra.example.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/openshell/hub-computer-entra.example.yaml) |
 
 Replace the profile's token URL/resource and the policy's exact origins together.
 The native gateway owns client-credentials renewal. Hub captures only its opaque
@@ -97,7 +97,7 @@ part of this workflow. Import the two global user data-plane profiles and create
 the trusted Computer template using [the Computer instructions](README.md#state-and-native-governance)
 before starting the Computer-enabled Hub.
 
-Merge [hub.example.json](hub.example.json) into the installation's native Hub
+Merge [hub.example.json](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/computer/hub.example.json) into the installation's native Hub
 configuration. Keep both gateway blocks on the same actual endpoint, workload CA
 and `HUB_NATIVE_CONTROL_REFERENCE`. The fragment shows the reference service
 bindings; retain the installation's reviewed `nativeUpstreams.bindings` rather than
@@ -145,21 +145,31 @@ Both policies allow only the Hub binary to POST these native RPC paths beneath
 | Existing upstreams and Computer browser bytes | ForwardTcp |
 | Preinstalled global profiles and trusted template | GetProviderProfile, GetSandboxTemplate |
 | Backend discovery | GetGatewayInfo (`config:read`, platform admin) |
-| Per-owner workspace/template | GetWorkspace, CreateWorkspace, CreateSandboxTemplate |
+| Per-owner workspace/template | GetWorkspace, CreateWorkspace, CreateSandboxTemplate, DeleteSandboxTemplate (the clone is replaced at each new Computer version; Kubernetes policy) |
 | Workspace-local user/model custody | GetProvider, CreateProvider, ConfigureProviderRefresh, RotateProviderCredential |
 | Native Computer lifecycle | GetSandbox, CreateSandbox, StartSandbox, StopSandbox |
+| Factory sandbox removal and replacement (Kubernetes policy) | DeleteSandbox (`sandbox:write`), DeleteProvider (`provider:write`) |
 
 One enforced REST endpoint selects `/openshell.v1.OpenShell/**` at the native
-gateway authority, with the same provider binding and exactly the fifteen POST
-rules above. The service-root selector chooses the HTTP route; it does not grant
-additional RPCs. There is no wildcard allow rule, Exec, Delete, UpdateProvider,
-profile import or operator-only credential export. Profiles are installed separately
-by the trusted operator.
+gateway authority, with the same provider binding and exactly these POST rules:
+eighteen in the [Kubernetes policy](../kubernetes/policies/hub-computer-entra.example.yaml),
+the fifteen without the factory row and template replacement in the Mac fixtures, whose Docker driver
+cannot keep a Computer's home and so cannot replace it. The service-root selector
+chooses the HTTP route; it does not grant additional RPCs. There is no wildcard
+allow rule, arbitrary browser-facing Exec, UpdateConfig, UpdateProvider, profile
+import or operator-only credential export. Profiles are installed separately by the
+trusted operator.
+
+Factory sandboxes need no permission beyond the seven above. Hub creates, starts,
+stops and deletes them and their per-instance providers with the existing sandbox
+and provider permissions. A push whose sandbox policy is unchanged restarts the
+sandbox; a changed policy or image recreates it. Hub never updates a running
+sandbox's policy, so it calls no UpdateConfig and needs no `config:write`.
 
 Keep these RPC rules in one endpoint configuration. The native
 [HTTP/2 eligibility predicate](https://github.com/VeoveoAI/OpenShell/blob/9724fb1834dec157b4482a1da97338fd8ca1e50c/crates/openshell-supervisor-network/src/proxy/relay.rs#L45)
 requires one supported REST inspection configuration before advertising `h2`.
-Splitting the same authority into fifteen endpoints forces HTTP/1.1-only ALPN,
+Splitting the same authority into separate endpoints forces HTTP/1.1-only ALPN,
 which tonic rejects with `NoApplicationProtocol`. Native
 [per-stream admission](https://github.com/VeoveoAI/OpenShell/blob/9724fb1834dec157b4482a1da97338fd8ca1e50c/crates/openshell-supervisor-network/src/l7/http2.rs#L290)
 still evaluates each actual method/path and resolves the bound credential; this
@@ -173,13 +183,21 @@ locally; no extra public JWKS egress is required for that path.
 
 Before rollout, use native policy parsing/ambiguity admission and profile linting.
 Confirm native policy construction produces one REST endpoint configuration, with
-exactly the fifteen POST allow rules and unchanged provider/binary bindings;
+exactly the POST allow rules above and unchanged provider/binary bindings;
 there must be no wildcard allow rule. These structural checks and the reviewed
 per-stream evaluator do not establish successful live RPCs or an observed denial.
 
 Deployment acceptance must verify TLS ALPN `h2`, actual issuer/audience/roles/scopes
 and the required RPCs with test-owned resources, including denial of an unlisted
-RPC such as `/openshell.v1.OpenShell/DeleteSandbox`. Also prove ordinary user
+RPC such as `/openshell.v1.OpenShell/UpdateConfig`. Also prove ordinary user
 data-plane identity separation, self PKCE exchange and native control renewal.
 These examples do not claim that an IdP client, provider, endpoint or deployed
 Computer exists, or that an unavailable CLI evaluator/prover was executed.
+
+The current Kubernetes Hub policy also admits BuildKit at
+`buildkitd.veoveo-system.svc.cluster.local:1234` for `/usr/local/bin/buildctl`, and
+Lore for both the Hub binary and `/usr/local/bin/lore`, which reads a pushed
+revision's `openshell/` as its pusher. It admits no `ExecSandbox`: Hub never runs a
+command in, or writes into, a Computer, whose `/sandbox` is its owner's home. The
+Mac forwarder/provisioner fixtures keep their RPC list; select the actual native
+endpoint/policy together.

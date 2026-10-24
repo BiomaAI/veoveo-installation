@@ -2,18 +2,21 @@
 
 These are foundation inputs, not an inventory of application sandboxes. The
 Linux-only target uses K3s `v1.36.5+k3s1`, Helm `v3.22.1`, Cilium `1.20.3`,
-Agent Sandbox `v1.0.6`, CloudNativePG `1.30.1` and the official SeaweedFS chart
-`4.48.0` (server `4.48`). Mac remains native development and component/integration
-testing; do not create a Mac cluster. Single-node PVCs provide restart persistence,
-not multi-host HA or a backup. Development data may be reset and reseeded.
+Agent Sandbox `v1.0.6`, PostgreSQL as a plain StatefulSet and the official
+SeaweedFS chart `4.48.0` (server `4.48`). Mac remains native development and
+component/integration testing; do not create a Mac cluster. Single-node PVCs
+provide restart persistence, not multi-host HA or a backup. Development data may be
+reset and reseeded.
 
 Use an operator-owned directory with mode `0700` for private values, rendered
 files and secrets (`umask 077`). Never print resolved Helm values, connection URIs,
 Secret data or container environments. The committed replacement markers must be
 replaced in private inputs before admission. They are deliberately not runnable
-image tags or credentials. Linux builds Linux images; publish and select immutable
-`repository@sha256:...` images. Registry/account details and credential renewal
-belong to the actual installation, not this generic template.
+image tags or credentials. Linux builds every Veoveo image from source and publishes
+it to the installation's own [local registry](#logs-image-builder-and-registry);
+workloads select immutable `repository@sha256:...` references there. The cluster
+pulls from no other private registry and holds no image-pull Secret. Third-party
+images stay pinned by digest at their upstream registries.
 
 ## Cluster and controllers
 
@@ -46,68 +49,180 @@ core `sandbox.yaml` release manifest (SHA-256
 not the separate extensions release. The Linux amd64 controller digest is
 `sha256:876f9621e0f0e168bcff13aa377880b75fd37e1c8712f2f249e8878c22d06ffd`;
 do not substitute the ARM64 manifest. Wait for controller readiness before native
-sandbox creation. Install CloudNativePG from its official pinned operator chart:
-
-```sh
-helm repo add cnpg https://cloudnative-pg.github.io/charts
-helm upgrade --install cnpg cnpg/cloudnative-pg --namespace cnpg-system \
-  --create-namespace --version 0.29.1
-```
-
-The official chart index pairs `0.29.1` with operator `1.30.1`; its archive SHA-256
-is `b53d3991fe84bcf38767e7702cae78666265427a127a26fff168ab4207d2b1df`.
-Confirm that pairing with the downloaded chart before selection. Ordinary controller
-readiness is not application dependency ordering.
+sandbox creation.
 
 ## PostgreSQL and native storage identities
 
-Build [postgres/Dockerfile](../postgres/Dockerfile), publish its Linux image digest,
-and render a private copy of `postgres.yaml` with that exact image. Verify the
-image's actual postgres UID/GID; the sample explicitly uses Debian's `999:999`
-and must match the selected artifact. This image supplies PostgreSQL `18.6`,
-vector `0.8.7` and PostGIS `3.6.4`. Do not replace it with a plain image that omits
-the application extensions. Qualify CNPG init/start/restart with this image.
+PostgreSQL runs as a plain StatefulSet ([postgres.yaml](postgres.yaml)): one
+instance, one volume, the `veoveo-postgres-rw` Service every client already names,
+and TLS from the installation's own PostgreSQL CA. No operator. Build
+[postgres/Dockerfile](../postgres/Dockerfile), publish it to the
+[local registry](#logs-image-builder-and-registry) (install that registry and the
+node's entry first), and render a private copy of `postgres.yaml` with that exact
+image by digest. Verify the image's
+postgres UID/GID; the sample uses Debian's `999:999`. This image supplies PostgreSQL
+`18.6`, vector `0.8.7` and PostGIS `3.6.4`. Do not replace it with a plain image
+that omits the application extensions.
+
+Its first start runs three scripts from the `veoveo-postgres-initdb` ConfigMap:
+[owner.sql](../postgres/initdb/owner.sql) creates `veoveo_owner`
+(`LOGIN CREATEROLE CREATEDB`, a member of `pg_signal_backend`) and `veoveo`;
+[postgres-platform.sql](postgres-platform.sql) creates the gateway's and Lore's
+logins, the `openshell_gateway` database, the `lore` schema and
+`max_connections = 512`; [zz-extensions.sql](../postgres/initdb/zz-extensions.sql)
+enables the extensions. Everything after that is plain SQL: Hub creates server
+roles and data-environment databases, and settings change with `ALTER SYSTEM` and a
+reload, or a restart for the few settings that need one, such as `max_connections`.
+`pg_hba.conf` admits TLS with a password to every database, so databases created at
+runtime are reachable, and the `postgres` superuser only from inside the pod.
+
+Budget connections for each Core-backed process (a pool of up to 10 plus its
+dedicated instance connection, listeners and singletons), the OpenShell gateway (a
+10-connection data pool plus a 4-connection mutation-lock pool per replica), Lore,
+rollouts, operators and headroom.
 
 Create `kubernetes.io/basic-auth` Secrets in `veoveo-system`, each with native
 `username` and `password` keys, from private files:
 
 | Secret | Username | Responsibility |
 | --- | --- | --- |
-| `veoveo-owner-db` | `veoveo_owner` | Existing app schema/role bootstrap |
+| `veoveo-owner-db` | `veoveo_owner` | Server roles and data-environment databases |
 | `openshell-gateway-role` | `openshell_gateway` | Gateway database only |
 | `lore-db` | `server_lore` | Lore schema only |
 
-Generate the initial password files without leading/trailing whitespace or a
-terminal newline. For example, before creating the corresponding Secret:
+Generate the password files without leading/trailing whitespace or a terminal
+newline, and use the same credential in the Secret and in application input.
+URI-encode it when building a database URL:
 
 ```sh
 python3 -c 'import pathlib, secrets, sys; pathlib.Path(sys.argv[1]).write_bytes(secrets.token_urlsafe(48).encode("ascii"))' \
   "$PRIVATE/lore-db.password"
 ```
 
-Apply the same file convention to all managed roles. CNPG `1.30.1` explicitly
-calls `strings.TrimSpace(passwordFromSecret)` during
-[native managed-role reconciliation](https://github.com/cloudnative-pg/cloudnative-pg/blob/v1.30.1/internal/management/controller/roles/runnable.go#L340-L375),
-before applying the password to PostgreSQL. Kubernetes Secret bytes can therefore
-contain a terminal LF while the actual database password does not. Do not use
-`echo` to write these password files; use a no-newline write and use that same
-credential in the Secret and application input. URI-encode the credential when
-building a database URL; encoding a stray LF as `%0A` does not remove the mismatch.
+Check each file before creating its Secret: `tail -c1 "$PRIVATE/lore-db.password" | od -An -c`
+must not print `\n`. The first start and the Secret both use the file's bytes, so a
+trailing newline becomes part of the password and every URI built without it fails
+to authenticate. Regenerate such a file rather than editing around it.
 
-The native CNPG Cluster/Database resources own these roles/databases/schema.
-Application migrations remain component-owned. No application shares the gateway
-role. `veoveo_owner` retains the existing trusted `CREATEROLE` bootstrap contract;
-it is not a sandbox or human identity. No passwords appear in manifests or argv.
+Create the installation's PostgreSQL CA and the server certificate for the Service
+name. The CA key stays private; only its certificate is a trust input:
 
 ```sh
+host=veoveo-postgres-rw.veoveo-system.svc.cluster.local
+openssl req -x509 -new -nodes -newkey ec -pkeyopt ec_paramgen_curve:P-256 -days 3650 \
+  -subj /CN=veoveo-postgres-ca -keyout "$PRIVATE/postgres-ca.key" -out "$PRIVATE/postgres-ca.crt"
+openssl req -new -nodes -newkey ec -pkeyopt ec_paramgen_curve:P-256 -subj "/CN=$host" \
+  -keyout "$PRIVATE/postgres-server.key" -out "$PRIVATE/postgres-server.csr"
+printf 'subjectAltName=DNS:%s\nextendedKeyUsage=serverAuth\n' "$host" > "$PRIVATE/postgres-server.ext"
+openssl x509 -req -in "$PRIVATE/postgres-server.csr" -CA "$PRIVATE/postgres-ca.crt" \
+  -CAkey "$PRIVATE/postgres-ca.key" -CAcreateserial -days 825 \
+  -extfile "$PRIVATE/postgres-server.ext" -out "$PRIVATE/postgres-server.crt"
+kubectl -n veoveo-system create secret tls veoveo-postgres-tls \
+  --cert "$PRIVATE/postgres-server.crt" --key "$PRIVATE/postgres-server.key"
+kubectl -n veoveo-system create configmap postgres-client-ca \
+  --from-file=postgres-ca.crt="$PRIVATE/postgres-ca.crt"
+kubectl -n veoveo-system create configmap veoveo-postgres-initdb \
+  --from-file=owner.sql=postgres/initdb/owner.sql \
+  --from-file=platform.sql=kubernetes/postgres-platform.sql \
+  --from-file=zz-extensions.sql=postgres/initdb/zz-extensions.sql
 kubectl apply -f "$PRIVATE/postgres.yaml"
-kubectl -n veoveo-system wait cluster/veoveo-postgres \
-  --for=condition=Ready --timeout=300s
+kubectl -n veoveo-system wait pod/veoveo-postgres-0 --for=condition=Ready --timeout=300s
 ```
 
-Use `veoveo-postgres-rw.veoveo-system.svc.cluster.local:5432`. TLS/client trust
-and native connection URI settings must be explicit in each private client input.
-CNPG's private CA is a public trust input for clients, never its signing key.
+Use `veoveo-postgres-rw.veoveo-system.svc.cluster.local:5432` with
+`sslmode=verify-full`. The gateway, Lore and Hub's own connection name
+`postgres-ca.crt` as the root through `sslrootcert`. Servers in sandboxes, factory
+instances included, verify against the platform roots instead: the PostgreSQL CA
+certificate is part of
+[`platform-destination-roots-v1`](#native-openshell-gateway), and the server
+database URL Hub hands out has no `sslrootcert`
+([WORKLOADS.md](WORKLOADS.md#postgresql-client-trust-shared-within-each-workspace)).
+No passwords appear in manifests or argv. Application migrations remain
+component-owned; no application shares the gateway role.
+
+## Logs, image builder and registry
+
+Factory sandboxes need three installation services. [logs.yaml](logs.yaml) runs
+Vector on every node and single-node VictoriaLogs, so every container's output
+outlives its pod for 7 days. [builder.yaml](builder.yaml) runs BuildKit's
+user-namespace variant, which Hub reaches at
+`tcp://buildkitd.veoveo-system.svc.cluster.local:1234`, and a plain Distribution
+registry at `registry.veoveo-system.svc.cluster.local:5000` with the fixed ClusterIP
+`10.43.200.10`:
+
+```sh
+kubectl apply -f kubernetes/logs.yaml -f kubernetes/builder.yaml
+```
+
+Point the node's container runtime at the registry once, then restart K3s. The
+restart takes the API away for a few seconds and restarts no container:
+
+```sh
+sudo tee /etc/rancher/k3s/registries.yaml >/dev/null <<'YAML'
+mirrors:
+  "registry.veoveo-system.svc.cluster.local:5000":
+    endpoint:
+      - "http://10.43.200.10:5000"
+YAML
+sudo systemctl restart k3s
+```
+
+Our own (Veoveo-built) images come only from this registry; public third-party
+images stay at their upstream registries, pinned by digest. Every Veoveo image is
+rebuilt from source and published under `veoveo/`: the OpenShell gateway, supervisor
+and sandbox runtime (`veoveo/openshell/{gateway,supervisor,sandbox}`, all from one
+OpenShell revision), Hub, Lore, the PostgreSQL extension image, the factory base,
+Computer, Artifact, Media, the Media fixture provider, Embedding and its runtime.
+Hub pushes environment images under `factory/`; registry cleanup touches only those.
+Push from the build host through a port-forward; the `localhost:5000` push is the
+same content-addressed object that workloads and BuildKit name by the Service:
+
+```sh
+kubectl -n veoveo-system port-forward svc/registry 5000:5000 &
+docker tag "$IMAGE" "localhost:5000/veoveo/$NAME:$REVISION"
+docker push "localhost:5000/veoveo/$NAME:$REVISION"   # prints the digest
+# workloads use registry.veoveo-system.svc.cluster.local:5000/veoveo/$NAME@sha256:<digest>
+```
+
+Local-registry pulls need no credentials, so no image-pull Secret exists in any
+namespace. Apply this registry and the node entry before any Veoveo workload,
+PostgreSQL included. Hub's own policy admits BuildKit for `/usr/local/bin/buildctl`;
+the Lore CLI image that factory builds copy as their `lore` context is
+`veoveo/lore` in this registry, pinned by digest in Hub's `factory.imageBuilder.lore`.
+
+## Factory sandbox policy and providers
+
+Every factory sandbox gets [factory-base.yaml](policies/factory-base.yaml): its
+checkout in `/sandbox/src`, Hub's metadata and token endpoints and PostgreSQL for the
+server it builds there, and open internet access stated as one explicit rule. Each
+instance also gets two providers whose profiles carry their own endpoints:
+[factory-registration](../openshell/providers/factory-registration.yaml), the
+instance's registration token for Hub, and
+[lore](../openshell/providers/lore.yaml), Lore access as the branch's latest
+pusher, refreshed by the gateway with the instance's Hub client. Each Computer's
+Lore provider uses the same global profile, as the Computer's owner.
+All three name Hub's host, `veoveo.bioma.ai`. Hub creates each
+instance's providers with no profile workspace, which OpenShell resolves only
+against global profiles, so import both globally:
+
+```sh
+openshell profile lint --global --file openshell/providers/factory-registration.yaml
+openshell profile lint --global --file openshell/providers/lore.yaml
+openshell profile import --global --file openshell/providers/factory-registration.yaml
+openshell profile import --global --file openshell/providers/lore.yaml
+openshell workspace create --name vv-factory
+```
+
+Hub creates each instance's providers and sandbox from these. Its configuration
+names them in the `factory` section (`registrationProfile`, `loreProfile`,
+`workspace`); the rendered base policy goes into Hub's configuration claim as
+`factory-base-v1.yaml` ([hub-config-pvc.yaml](hub-config-pvc.yaml)), which
+`factory.policyFile` names as `/etc/veoveo/hub/factory-base-v1.yaml`. Hub reads it at
+startup and exits if it is invalid. The default size, soft caps and base branch are
+Hub control-plane values (`factory.cpu`, `factory.memory`, `factory.caps`,
+`execution.baseBranch`), seeded from [hub.example.json](hub.example.json) and changed
+live through Hub's control-plane route. No installation-wide factory client or
+secret exists: each instance's Lore access comes from its own Hub client.
 
 ## SeaweedFS
 
@@ -133,7 +248,7 @@ kubectl -n veoveo-system create secret generic seaweedfs-ca-cert \
 Issue the component/service SANs required by the selected chart from the
 trusted installation CA using the existing TLS recipe; inspect the rendered
 commands/volumes before selection. The S3 leaf additionally covers its private
-Service DNS name and the unchanged public object hostname. No cert-manager is
+Service DNS name, the origin server name the tunnel's S3 route verifies. No cert-manager is
 required; private signing keys remain trusted operator inputs.
 
 `seaweedfs-s3-identities` has the native key `seaweedfs_s3_config` containing
@@ -200,33 +315,75 @@ S3 clients use HTTPS on `seaweedfs-s3.veoveo-system.svc.cluster.local:9000`.
 Internal master/volume/filer data and metadata use their explicit local-path PVCs;
 there is no hostPath. The chart's native network policies admit its peers and the
 S3 port from foundation Pods/native supervisors; actual egress still requires
-the workload's native policy. Preserve public SigV4 Host/method/path/query/headers
-through the tunnel; never rewrite the public object hostname to Service DNS.
+the workload's native policy. Signed object URLs are `/artifacts/` paths on the
+public host; preserve their SigV4 Host/method/path/query/headers through the
+tunnel, and never rewrite the public host to Service DNS.
 
 ## Native OpenShell gateway
 
-Use maintained OpenShell source
-`b849a25c79177e9306c52a93de82d9dfc879cb92`, published on the fork's `main`,
-including the Kubernetes destination-CA
-and native Service-DNS fixes atop chart/runtime base
-`846de5fa01234a22827915b3f4e5b9092367078b`. Supply all three actual
-registry/repository/digest overrides; do not select stock images with the same
-tag. The reference gateway was built from `0299a1ec1e9f8305ebfe967c2b033f36ecc7ba18`,
-its supervisor from `b849a25c79177e9306c52a93de82d9dfc879cb92`, and the unchanged
-sandbox runtime from the base revision. Record each component's own source and
-image identity rather than treating a shared tag as matching-source evidence.
-Create the standard `registry-pull` dockerconfigjson Secret in the `openshell` namespace from the private pull-only registry config. Native managed
-workspace reconciliation copies the referenced image-pull Secret. Renew registry
-credentials through that registry's existing operator mechanism, not a new worker.
-Create the same pull-only `registry-pull` Secret in `veoveo-system` for private
-PostgreSQL and Lore images. Do not copy push/admin credentials into either namespace.
+Build the gateway, supervisor and sandbox runtime from maintained OpenShell source
+`a6ed0ab4119208d99fb3211fe64fb1d0e52adf10` with OpenShell's own image workflow and
+publish all three to the [local registry](#logs-image-builder-and-registry) as
+`veoveo/openshell/gateway`, `veoveo/openshell/supervisor` and
+`veoveo/openshell/sandbox`. That revision is `53e3665811a72dd1555edb18aeb4fedef4158dbd`
+plus gRPC on sandbox service routes, a change to `openshell-server` only; it contains
+the Kubernetes destination-CA, admitted GPU propagation and terminal-runtime recovery
+fixes, the supervisor fixes of `d7a990083214e8a618f05b1b471aeeac6d9aa82a` and the
+chart/runtime base `846de5fa01234a22827915b3f4e5b9092367078b`.
+[openshell.values.yaml](openshell.values.yaml) selects the registry; private values
+supply the three digests. Do not select stock images with the same tag. Record each
+image's digest. The 2026-10-20 reference ran gateway `53e3665`, supervisor `d7a99008`
+and sandbox runtime `846de5fa`, built separately. Source selection or publication
+does not prove that every existing generation has adopted the selected supervisor.
+
+The supervisor retains the Kubernetes driver's declared ServiceAccount source.
+When either credential in the immutable launch bundle has expired, it uses native
+`IssueSandboxToken` followed by `RefreshSandboxToken`, validates the paired
+credentials and matching runtime generation, then installs them before log clients
+or policy discovery. Fresh bundles skip this exchange: their first launch can
+precede persistence of the compute runtime binding required by issuance. Static
+Docker/standalone credentials keep their existing path. This changes neither
+native Lore authentication nor its Hub-issued grants.
+
+The earlier reboot attempts exposed driver-written suspension of running workloads.
+The `53e3665` gateway was deployed at reference Helm revision 9. Temporarily Pending
+Pods preserve running intent; a terminal supervisor with admitted Pod identities
+and enforcement fences intact enters native `always`/`on-failure` replacement.
+Before loss publication, stale v1beta1 `Suspended` status projects as unavailable
+readiness rather than operator Stop. Missing/deleting Pods, identity/fence failures,
+explicit Stop/Delete, `never` and canonical terminal results retain their boundaries.
+
+Both native Pods deliberately use `Never`. Host recovery creates fresh runtime
+and Pod identities, retaining PVC-backed files, sessions and durable Tasks; it is
+not a same-Pod expired-bundle bootstrap test. In a scoped deployed check, an
+unexpected supervisor SIGKILL moved `media-live-qa` from Starting at 12:03:56 UTC
+to Ready at 12:04:09 UTC (13 seconds), with restart count 1, no inferred exit code,
+a fresh runtime generation and Pods, and successful native exec. Explicit Stop
+then stayed Stopped without Pods for 30.23 seconds before an explicit QA-only
+Start returned Ready. The foreign GPU workload was unchanged.
+
+The third Linux host reboot on 2026-10-20 was issued at 12:13:32 UTC. SSH returned
+at 12:15:34; the 12:17:04 inventory found Hub, Time, Artifact, Media, its synthetic
+provider, both Computers and both owned `always` QA runners Ready with restart
+count 1, no inferred command exit and fresh runtime generations. No manual native
+Start preceded that inventory; the `never` Time QA runner stayed Stopped. All 25
+PVC identities and volume bindings matched the preboot inventory. The saved
+browser session and authoritative control revision survived; a fresh terminal
+WebSocket returned its marker in 941 ms (66 output bytes). This proves native
+host recovery and these retained-state checks, not OS PTY-process persistence or
+final model acceptance. The retained postboot inventory is
+`/home/rozgo/.config/veoveo/k3s/evidence/openshell-gateway-53e-recovery-20261020/postboot.json`,
+SHA-256 `7ff98cfe7ec82dab116615cd920fbb117e268c33f999e5858b1f7ef10212b128`.
+
+No image-pull Secret is created: the gateway, every sandbox, PostgreSQL and Lore pull
+Veoveo images from the local registry, and third-party images from their public
+upstream registries.
 
 Create `openshell-gateway-db` in `openshell`, key `uri`, with the gateway-only
 PostgreSQL URI using `sslmode=verify-full` and
 `sslrootcert=/etc/openshell/database-ca/postgres-ca.crt`. Copy only the public
-CNPG CA certificate into `postgres-client-ca` ConfigMap key `postgres-ca.crt` in
-`openshell`; native chart extraVolumes mount it read-only. This is separate from
-CNPG's role-password Secret. Private
+PostgreSQL CA certificate into `postgres-client-ca` ConfigMap key `postgres-ca.crt`
+in `openshell`; native chart extraVolumes mount it read-only. Private
 values select the actual management OIDC issuer/audience/claim mappings. Keep
 TLS and mTLS enabled; the chart's idempotent native PKI hook owns gateway/client
 certificates and sandbox signing keys. Keep the gateway ID stable across restarts.
@@ -236,15 +393,26 @@ The selected gateway must include the complete native Kubernetes
 `additional_ca_bundle` plumbing through `0299a1ec1e9f8305ebfe967c2b033f36ecc7ba18`;
 the supervisor also requires the Service-DNS fix through `b849a25c`. Create the public-only
 `platform-destination-roots-v1` ConfigMap in `openshell`, key `ca.crt`, from a
-reviewed PEM bundle containing the retained chart gateway CA and current Lore/
-Seaweed destination roots. Do not include private keys or unrelated certificates.
-The example mounts it read-only at `/etc/openshell/platform-ca` through existing
-chart extra volumes and sets the native driver path to `ca.crt` there:
+reviewed PEM bundle containing the retained chart gateway CA, the current Lore and
+Seaweed destination roots and the installation's PostgreSQL CA certificate. Do not
+include private keys or unrelated certificates. The example mounts it read-only at
+`/etc/openshell/platform-ca` through existing chart extra volumes and sets the
+native driver path to `ca.crt` there:
 
 ```sh
 kubectl -n openshell create configmap platform-destination-roots-v1 \
   --from-file=ca.crt="$PRIVATE/destination-roots.pem"
 ```
+
+The PostgreSQL root (`$PRIVATE/postgres-ca.crt`, appended to the reviewed bundle) is
+there for servers in sandboxes. Factory sandboxes mount no
+CA claim, so the server database URL Hub hands out omits `sslrootcert` and keeps
+`sslmode=verify-full`; Core's sqlx client (`tls-rustls-ring-native-roots`) then
+verifies against the native roots, which include the bundle the supervisor injects as
+`SSL_CERT_FILE`. That reading of the client is an inference from source until a
+factory instance's first connection proves it. Create this ConfigMap after the
+PostgreSQL CA and before the gateway starts; recreate it, and the affected runtimes,
+whenever one of these roots changes.
 
 The separately scheduled supervisor does not inherit CAs installed only in a
 workload image or mounted only in its filesystem. The driver validates this
@@ -305,7 +473,7 @@ Render/lint the exact upstream charts and server-side admit ordinary resources
 before deployment. For an offline OpenShell render only, disable its live
 `agentSandbox.preflight.enabled` check; never disable the deployed preflight.
 Builder owns chart rendering, schema checks, immutable image verification and
-deployed probes. These source inputs alone do not prove CNPG extension-image
+deployed probes. These source inputs alone do not prove PostgreSQL extension-image
 compatibility, Seaweed TLS/IAM, signed bytes, service recovery or a Kubernetes
 Computer. Keep deterministic checks, deployed checks and final exact MiMo
 acceptance separate. Remove obsolete Linux platform Compose launch paths only
@@ -326,8 +494,17 @@ belong in the installation's own record. The maintained source pins are:
 | Media | `f01cdb0b772a87e20835f5b88be18910a7785e54` |
 | Synthetic Media provider fixture | `4e8504b2c9bc72b0b249a8cf122e29983634d2e8` |
 | Native Lore | `6b7a0e598b8fbbaed82c777109135ddb25873bbf` |
-| OpenCode | `4bd4891e9e3d67460eb43dcfcdefb5172c1279ff` |
-| OpenShell integration | `b849a25c79177e9306c52a93de82d9dfc879cb92` |
+| OpenCode | `ed62aad52c80ecdf4297310ce84305aff5717b7d` |
+| OpenShell gateway/driver | `53e3665811a72dd1555edb18aeb4fedef4158dbd` |
+| OpenShell supervisor | `d7a990083214e8a618f05b1b471aeeac6d9aa82a` |
+| OpenShell sandbox runtime | `846de5fa01234a22827915b3f4e5b9092367078b` |
+
+The replacement Computer image digest was
+`sha256:12c2ba83bd6f3dea715d1f8ab25ee20dd81dfb8145868f9a193f73cb4ce695d4`,
+built from OpenCode `ed62aad52c80ecdf4297310ce84305aff5717b7d`. Both fresh owner
+homepages render. Direct mounted Settings and Back to app, adding
+`/sandbox/projects`, New session, and browser Back/Forward all retain the Computer
+prefix. The final bounded exact-model acceptance also passed, as recorded below.
 
 These are maintained-fork source revisions, not upstream release versions or
 reproducible-build claims. The corrected Factory/Computer build uses the UID/GID
@@ -344,11 +521,21 @@ synthetic provider image remains `sha256:398f86bbda316b6cd40b2a88c332fadc6fcc809
 
 Deterministic/component evidence includes both Hub Docker check gates (231 passed,
 one skipped per platform), focused native CA/DNS tests and strict Clippy,
-`mise run docs` on OpenShell b849 (zero errors, three warnings, 6.291 seconds),
-and upstream chart render/lint/admission. Runtime checks separately proved Cilium
-ingress/egress denial and allowance, CNPG extension/TLS access, private/public
+upstream chart render/lint/admission, and the final OpenShell driver suite
+(306 passed), strict driver Clippy (20.04 seconds), and `mise run docs`
+(zero errors, three warnings, 8.58 seconds). Existing server infrastructure/restart
+filters also passed before the final driver-only projection correction. Runtime
+checks separately proved Cilium ingress/egress denial and allowance, CNPG extension/TLS access, private/public
 scoped S3 byte round trips and cross-bucket denial. Successful render, image pull
 or Pod Ready alone is not application acceptance.
+
+The d7 supervisor source passed 16 Core authentication tests and two existing
+server identity-rejection tests. Strict default-feature, all-target Clippy for
+Core and the supervisor passed in 26.09 seconds; the Linux release build took
+81 seconds. These are source/build gates, separate from live credential renewal
+and fresh-generation host recovery. The supervisor's `telemetry` and
+`defaults-without-telemetry` features are mutually exclusive, so its valid strict Clippy invocation does not use
+`--all-features`.
 
 Deployed Computer checks used two real owners, distinct automatic workspace PVCs,
 web navigation, owner isolation and native Stop/Start persistence. Live template
@@ -380,10 +567,39 @@ The fixes preserve tenant isolation and reject terminal failed uploads. Media's
 policy also lacked its public signed-upload authority; that exact authority is
 now admitted with TLS passthrough. The original transfer error was not retained,
 so its historical cause is not proved. These are synthetic byte/Task checks,
-not inference or valid media encoding. Host reboot/recovery and the final bounded
-`deepinfra/XiaomiMiMo/MiMo-V2.6-Pro` scenario remain pending at this checkpoint.
-Do not carry historical Docker or signed-provider evidence forward as proof of
-these pending Kubernetes cases.
+not inference or valid media encoding. Native host recovery now passes as
+recorded above. Postboot terminal verifiers passed for Time (0.94 seconds),
+Artifact (1.80 seconds) and Media (1.89 seconds); the synthetic Media output retained the exact byte hash
+above. The observed OpenCode Back-navigation escape from the Computer mount is
+corrected in the published source pin above: titlebar history records route-relative
+paths and lets the mounted router resolve destinations. Image publication, both
+owner homepages and actual mounted Settings/Back/New session/browser Back/Forward
+acceptance pass. A source commit alone does not replace an existing Computer's frozen
+template. Do not carry historical Docker or signed-provider evidence forward as
+proof of pending Kubernetes cases.
+
+The final Computer scenario explicitly used
+`deepinfra/XiaomiMiMo/MiMo-V2.6-Pro`, with an eight-step/240-second bound and no
+model substitution. Session `ses_ea69c1ad3ffeKqVD2BVH1CSrMt` reached terminal idle
+with succeeded status in seven recorded model steps, 81.283 seconds
+(12:58:23.007–12:59:44.290 UTC). Its authenticated native shell remote repository
+metadata command exited 0 and verified repository
+`01a1586c89057ea3adcfc848da54077b`. Reads of the existing local checkout matched
+published revision `6f6e421befee367e83606f2e0f35b2fdd09b1daab2861fce1263cab31ae11c9f`
+and source SHA-256 `6a542b5339909414f1dbdc904b14b6e60e29cadfdf8d61e097fa35d52fd0b110`;
+this was not a fresh model-driven remote fetch.
+Two routed `resolve_time` calls and `expand_schedule` returned the expected single
+09:00–10:00 UTC occurrence with `truncated=false`.
+
+The trace was not error-free: the model first tried `tools.shell` inside CodeMode,
+received `Unknown tool`, made two discovery turns, then used the native shell
+correctly. The earlier attempt's remote Lore exit 16 came from operator login
+using the native exec default auth path instead of the image workload's path;
+repeating the native login with the explicit image paths corrected qualification
+setup without an application or authorization change. Lore's secure-storage
+warning remained nonfatal. These observations are distinct from the deterministic
+checks, synthetic Media byte proofs and host-recovery evidence above; they do not
+qualify real Media inference, general publication or the separate CUDA work.
 
 Evidence is retained outside Git: `/tmp/k3s-foundation-20261019/` on Linux,
 `/tmp/k3s-native-factory-qualification-20261020/` on Linux and

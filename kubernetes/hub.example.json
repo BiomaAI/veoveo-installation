@@ -17,9 +17,10 @@
     ],
     "oauthClient": "computer-browser",
     "profile": "computer",
-    "workContext": "default",
+    "workContext": "reference-work",
     "port": 4096,
     "forwardingConnectionLimit": 512,
+    "collectAfterSeconds": 7200,
     "hubProvider": {
       "profile": "vv-computer-hub",
       "credentialKey": "COMPUTER_HUB_REFERENCE"
@@ -28,6 +29,10 @@
       "profile": "vv-computer-model",
       "credentialKey": "DEEPINFRA_API_KEY",
       "secret": "computer-model-api-key"
+    },
+    "loreProvider": {
+      "profile": "vv-lore",
+      "credentialKey": "LORE_ACCESS_TOKEN"
     }
   },
   "secrets": [
@@ -40,16 +45,6 @@
         "kind": "hub"
       },
       "metadata": {}
-    },
-    {
-      "id": "lore-factory-client-secret",
-      "source": "env",
-      "purpose": "oauth_client_secret",
-      "locator": "VEOVEO_LORE_FACTORY_CLIENT_SECRET",
-      "owner": {
-        "kind": "hub"
-      },
-      "metadata": {}
     }
   ],
   "nativeUpstreams": {
@@ -57,12 +52,6 @@
     "certificateAuthority": "/run/openshell-supervisor-ca/material/ca.crt",
     "bearerEnvironment": "HUB_NATIVE_CONTROL_REFERENCE",
     "bindings": [
-      {
-        "endpoint": "http://time.internal:8800/time/mcp",
-        "workspace": "vv-services",
-        "sandbox": "time",
-        "port": 8800
-      },
       {
         "endpoint": "http://artifact.internal:8801/artifact/mcp",
         "workspace": "vv-services",
@@ -74,18 +63,58 @@
         "workspace": "vv-services",
         "sandbox": "media",
         "port": 8802
+      },
+      {
+        "endpoint": "http://embedding.internal:8803/embedding/mcp",
+        "workspace": "vv-services",
+        "sandbox": "embedding",
+        "port": 8803
+      },
+      {
+        "endpoint": "http://console.internal:8805/console/mcp",
+        "workspace": "vv-services",
+        "sandbox": "console",
+        "port": 8805
       }
     ]
+  },
+  "execution": {
+    "baseBranch": "main"
+  },
+  "factory": {
+    "gateway": {
+      "endpoint": "https://openshell.openshell.svc.cluster.local:8080",
+      "certificateAuthority": "/run/openshell-supervisor-ca/material/ca.crt",
+      "bearerEnvironment": "HUB_NATIVE_CONTROL_REFERENCE"
+    },
+    "workspace": "vv-factory",
+    "policyFile": "/etc/veoveo/hub/factory-base-v1.yaml",
+    "cpu": "4",
+    "memory": "8Gi",
+    "port": 8800,
+    "hubIssuer": "https://veoveo.bioma.ai",
+    "loreServer": "grpcs://lore.veoveo-system.svc.cluster.local:41337",
+    "registrationProfile": "vv-factory-registration",
+    "loreProfile": "vv-lore",
+    "imageBuilder": {
+      "buildkit": "tcp://buildkitd.veoveo-system.svc.cluster.local:1234",
+      "registry": "registry.veoveo-system.svc.cluster.local:5000",
+      "lore": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:9926b55e9317cb7db242b5968bb28e4a81523b38e9afcab6964fc66d8d3688d2"
+    },
+    "caps": {
+      "instancesPerUser": 4,
+      "enforce": false
+    }
   },
   "lore": {
     "deployments": [
       {
         "id": "primary",
         "resourceName": "lore",
-        "audience": "https://veoveo.example.com/resources/lore",
+        "audience": "https://veoveo.bioma.ai/resources/lore",
         "endpoint": "grpcs://lore.veoveo-system.svc.cluster.local:41337",
         "authorizationServer": "hub",
-        "policyVersion": "installation",
+        "policyVersion": "reference-policy",
         "loginScopes": [
           "lore:login",
           "offline_access"
@@ -102,11 +131,11 @@
     {
       "id": "lore-computer",
       "authorizationServer": "hub",
-      "defaultWorkContext": "default",
+      "defaultWorkContext": "reference-work",
       "invocationMode": "direct",
       "displayName": "Native Lore public client",
       "allowedResources": [
-        "https://veoveo.example.com/resources/lore"
+        "https://veoveo.bioma.ai/resources/lore"
       ],
       "grantTypes": [
         "device_authorization",
@@ -122,41 +151,66 @@
       ]
     },
     {
-      "id": "lore-factory",
+      "id": "computer-browser",
       "authorizationServer": "hub",
-      "defaultWorkContext": "default",
-      "invocationMode": "automated",
-      "displayName": "Exact-repository deterministic factory",
+      "defaultWorkContext": "reference-work",
+      "invocationMode": "direct",
+      "displayName": "Private Computer browser",
       "allowedResources": [
-        "https://veoveo.example.com/resources/lore"
+        "https://veoveo.bioma.ai/mcp/computer"
       ],
       "grantTypes": [
-        "client_credentials"
+        "authorization_code_pkce",
+        "refresh_token"
       ],
       "authMethods": [
-        "client_secret_post"
+        "none"
+      ],
+      "redirectUris": [
+        "https://veoveo.bioma.ai/computer/callback"
       ],
       "allowedScopes": [
-        "lore:login",
-        "offline_access"
+        "mcp"
+      ]
+    },
+    {
+      "id": "veoveo-hub-sdk-cli",
+      "authorizationServer": "hub",
+      "defaultWorkContext": "reference-work",
+      "invocationMode": "direct",
+      "displayName": "veoveo-hub-sdk-cli",
+      "allowedResources": [
+        "https://veoveo.bioma.ai/mcp/local"
       ],
-      "credentialSecret": "lore-factory-client-secret",
-      "tenant": "example"
+      "grantTypes": [
+        "authorization_code_pkce",
+        "refresh_token"
+      ],
+      "authMethods": [
+        "none"
+      ],
+      "redirectUris": [
+        "http://127.0.0.1:3211/callback"
+      ],
+      "allowedScopes": [
+        "mcp"
+      ]
     }
   ],
   "oidcClients": [
     {
-      "id": "hub-entra",
+      "id": "entra",
       "identityProvider": "entra",
       "authorizationServer": "hub",
       "allowedResources": [
-        "https://veoveo.example.com/mcp/computer",
-        "https://veoveo.example.com/resources/lore"
+        "https://veoveo.bioma.ai/mcp/computer",
+        "https://veoveo.bioma.ai/mcp/local",
+        "https://veoveo.bioma.ai/resources/lore"
       ],
-      "clientId": "33333333-3333-4333-8333-333333333333",
-      "redirectUri": "https://veoveo.example.com/oauth/callback",
+      "clientId": "853550a7-5fd4-421c-abd2-bea0216fa579",
+      "redirectUri": "https://veoveo.bioma.ai/oauth/callback",
       "authMethod": "client_secret_post",
-      "credentialSecret": "hub-entra-client-secret",
+      "credentialSecret": "entra_client_secret",
       "scopes": [
         "openid",
         "profile"

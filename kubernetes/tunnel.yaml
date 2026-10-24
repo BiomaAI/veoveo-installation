@@ -1,5 +1,6 @@
 # Official cloudflared 2026.10.1, verified linux/amd64 manifest.
-# Existing tunnel credentials remain a trusted native Secret, not argv/env data.
+# A remotely managed tunnel: its routes live in Cloudflare (tunnel-routes.yaml),
+# and its token remains a trusted native Secret, read from a file, not argv/env data.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,7 +20,17 @@ spec:
       containers:
         - name: cloudflared
           image: cloudflare/cloudflared:2026.10.1@sha256:3c0502d2da137286136b44f5b1d0d0be7030cc4833db9f53cff86beadad6cefa
-          args: [tunnel, --no-autoupdate, --config, /etc/cloudflared/config.yaml, run]
+          args: [tunnel, --no-autoupdate, --metrics, '0.0.0.0:2000', run, --token-file, /etc/cloudflared-credentials/token]
+          ports:
+            - name: metrics
+              containerPort: 2000
+          # Native /ready requires an active tunnel connection. Transient loss
+          # changes readiness; it must not trigger a liveness restart loop.
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            periodSeconds: 5
           securityContext:
             runAsNonRoot: true
             runAsUser: 65532
@@ -31,23 +42,22 @@ spec:
             seccompProfile:
               type: RuntimeDefault
           volumeMounts:
-            - name: config
-              mountPath: /etc/cloudflared
-              readOnly: true
             - name: credentials
               mountPath: /etc/cloudflared-credentials
               readOnly: true
+            # The routes' CA pools name these files.
             - name: ca
               mountPath: /etc/cloudflared-ca
               readOnly: true
       volumes:
-        - name: config
-          configMap:
-            name: public-tunnel
         - name: credentials
           secret:
             secretName: public-tunnel
             defaultMode: 0444
+            # Only the token reaches the connector.
+            items:
+              - key: token
+                path: token
         - name: ca
           configMap:
             name: public-tunnel-ca

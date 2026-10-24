@@ -2,8 +2,9 @@
 
 These are ordinary trusted bootstrap commands, not a launcher or runtime inventory.
 Use the authenticated maintained-fork CLI pointed at the selected Kubernetes
-gateway. Keep the gateway, supervisor and sandbox-runtime images on the same
-reviewed revision. Keep existing native roles/scopes and mediation: Kubernetes
+gateway. Select individually reviewed, compatible source and image pins for the
+gateway, supervisor and sandbox runtime; a shared tag alone does not prove that
+compatibility. Keep existing native roles/scopes and mediation: Kubernetes
 placement does not add a new authentication or Lore permission system.
 
 ## Private service names and trust
@@ -14,20 +15,24 @@ placement does not add a new authentication or Lore permission system.
 | PostgreSQL | `veoveo-postgres-rw.veoveo-system.svc.cluster.local:5432` |
 | Private S3 | `https://seaweedfs-s3.veoveo-system.svc.cluster.local:9000` |
 | Native Lore | `grpcs://lore.veoveo-system.svc.cluster.local:41337` |
-| Hub public origin / registered-server issuer | `https://veoveo.example.com` |
-| Browser and native Lore authorization-server issuer | `https://veoveo.example.com/oauth` |
-| Public signed objects | `https://objects.veoveo.example.com` |
+| Log store (console only) | `http://victorialogs.veoveo-system.svc.cluster.local:9428` |
+| Image builder (Hub only) | `tcp://buildkitd.veoveo-system.svc.cluster.local:1234` |
+| Local registry, every Veoveo image | `registry.veoveo-system.svc.cluster.local:5000` |
+| Hub public origin / registered-server issuer | `https://veoveo.bioma.ai` |
+| Browser and native Lore authorization-server issuer | `https://veoveo.bioma.ai/oauth` |
+| Public signed objects | `https://veoveo.bioma.ai/artifacts/` |
 
 Render public origins to the actual installation. Service DNS replaces old host
 loopback/Docker aliases only for this Linux placement. Keep every endpoint's
 exact binary/port/method/path/provider rule. The `policies/` files use native
 policy schema and complete canonicalization, not a second policy language.
-Lore's user path remains TLS passthrough; factories retain their existing native
-credential-bound gRPC rules. Do not add aliases or disable TLS to make trust pass.
+Computers and factory sandboxes reach Lore through the `vv-lore` profile's
+credential-bound endpoint; no policy has a passthrough Lore rule. Do not add aliases
+or disable TLS to make trust pass.
 
 The private Lore leaf must cover `lore.veoveo-system.svc.cluster.local` and its
 native Hub deployment endpoint must use that same recipient. The S3 leaf must
-cover both its private Service DNS and unchanged public signing authority. Build
+cover its private Service DNS, which the tunnel verifies. Build
 the maintained [Lore image](../factory/Lore.Dockerfile) with reviewed **public**
 CA files only in its existing `ca` context; include storage and database public
 roots needed by its selected clients. Build Factory/Computer with the necessary
@@ -43,8 +48,8 @@ factory protected-branch scenario. Create `lore-settings` from the native TOML,
 exact keys `LORE_POSTGRES_URL`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`.
 This `--from-env-file` input uses raw `KEY=value` lines without shell quotes;
 URL-encode the PostgreSQL password inside the single-line URI, using the
-[no-whitespace managed-role credential](README.md#postgresql-and-native-storage-identities).
-Do not preserve an accidental terminal LF that CNPG trims. Hub/Artifact env
+[no-whitespace credential](README.md#postgresql-and-native-storage-identities).
+Hub/Artifact env
 files sourced by their shell entrypoints retain ordinary shell quoting.
 Use `server_lore`, schema/bucket `lore`, and the dedicated native S3 identity.
 Create that bucket once with its existing IAM identity name using the
@@ -54,7 +59,7 @@ Artifact alone needs exact `Admin:artifacts` for its startup CreateBucket and
 bucket configuration; Lore does not. See the [scoped identity inputs](README.md#seaweedfs).
 Its PostgreSQL URI uses the Service DNS with `sslmode=verify-full` and
 `sslrootcert=/etc/lore/postgres-ca/postgres-ca.crt`. Create `postgres-client-ca`
-ConfigMap key `postgres-ca.crt` in `veoveo-system` from only the CNPG public CA;
+ConfigMap key `postgres-ca.crt` in `veoveo-system` from only the PostgreSQL CA certificate;
 the ordinary Lore Deployment mounts it read-only. Native SQLx parses these URI
 options without a Lore source change.
 No source grants are inferred from the storage credential or Hub administrator.
@@ -72,17 +77,31 @@ kubectl apply -f "$PRIVATE/lore.yaml"
 The private manifest replaces only the explicit image marker with the verified
 Linux image digest. A single Lore process owns its native local locks; the small
 PVC holds its HOME/temp/local lock paths. Repository storage stays in native
-S3/PostgreSQL. A TCP readiness probe proves only a listening socket. Ordinary
-Deployment restart handles startup exit; test real native operations and late/
-interrupted issuer/storage dependencies separately. No service-order init Job.
+S3/PostgreSQL. A TCP readiness probe proves only a listening socket.
 
-For the existing tunnel, create `public-tunnel` ConfigMap from the privately
-rendered `tunnel-config.yaml` and a same-name Secret with `credentials.json`.
-Create `public-tunnel-ca` ConfigMap with **public** `gateway.crt` and `storage.crt`.
-The gateway public CA comes from the chart's retained native PKI output; only its
-public certificate is copied. `tunnel.yaml` pins the verified official cloudflared
-`2026.10.1` Linux amd64 digest; apply that selected manifest. Never use `noTLSVerify`. Hub routing intentionally
-sets its native exposure Host; S3 routing must **not** set `httpHostHeader`.
+Lore reads Hub's OIDC discovery document at startup, so it cannot become Ready
+before Hub serves its public issuer: until then it exits with `OIDC discovery
+endpoint returned error` and its Deployment restarts it. Do not wait for Lore here;
+continue with the workspaces and Hub, and check Lore once Hub serves (below). The
+ordinary Deployment restart picks Hub up, and deleting the crash-looping Pod skips
+the remaining back-off (measured 2026-10-22: Ready 1 s after the Pod's deletion once
+Hub served). Test real native operations and late or interrupted issuer/storage
+dependencies separately. No service-order init Job.
+
+The existing tunnel is remotely managed: cloudflared runs with `--token-file` and
+reads its routes from Cloudflare. [tunnel-routes.yaml](tunnel-routes.yaml) records
+those routes, in order, as the dashboard holds them; enter them under the tunnel's
+routes, rendered to the public host. The first route whose host and path match
+serves a request, so `/artifacts/` comes before Hub's route for the same host.
+Create the `public-tunnel` Secret with the tunnel token as its `token` key, which
+`tunnel.yaml` mounts at `/etc/cloudflared-credentials`, and the `public-tunnel-ca`
+ConfigMap with **public** `gateway.crt` and `storage.crt`, mounted at
+`/etc/cloudflared-ca`, the files the routes' CA pools name. The gateway public CA comes from the chart's
+retained native PKI output; only its public certificate is copied. `tunnel.yaml`
+pins the verified official cloudflared `2026.10.1` Linux amd64 digest; apply that
+selected manifest. Never use `noTLSVerify`. Hub routing intentionally sets its
+native exposure Host; S3 routing must **not** set `httpHostHeader`, since SigV4
+binds the public Host.
 
 ## Workspace-local trusted service configuration
 
@@ -90,6 +109,7 @@ sets its native exposure Host; S3 routing must **not** set `httpHostHeader`.
 openshell workspace create --name vv-control
 openshell workspace create --name vv-services
 openshell workspace create --name installation
+openshell workspace create --name vv-factory
 ```
 
 Native `CreateWorkspace` persists the workspace, but does not itself instantiate
@@ -111,15 +131,20 @@ Changing these examples does not rename or restart an existing gateway.
 Hub's platform-admin service identity needs the existing six workspace/sandbox/
 provider permissions plus **`config:read`** for native `GetGatewayInfo` backend
 discovery. Both Computer-enabled Hub policy examples now allow that exact POST.
+Factory sandboxes add `DeleteSandbox` and `DeleteProvider` under the same sandbox and
+provider permissions; Hub recreates a sandbox whose policy changed instead of
+updating it, so it needs no `config:write`
+([NATIVE_CONTROL.md](../computer/NATIVE_CONTROL.md#exact-network-boundary-and-qualification)).
 No broader native role, wildcard RPC, credential export or new token worker.
 
 Create `hub-config-bootstrap` in that actual namespace from only reviewed private
-`hub.json`, `hub.env`, `computer-policy-v1.yaml` and the selected public
-`authorization-server.jwks.json`, using native Secret `--from-file` arguments.
-The latter preserves the file-backed JWKS path in `identity/entra.example.json`;
-it contains public verification keys, never signing keys. Match these four names
-to `hub-config-pvc.yaml`. Before
-running the one-time Job, replace its copy-image marker with the verified immutable
+`hub.json`, `hub.env`, `computer-policy-v1.yaml`, `factory-base-v1.yaml` (the
+[factory base policy](policies/factory-base.yaml) rendered with Hub's host) and the
+selected public `authorization-server.jwks.json`, using native Secret `--from-file`
+arguments. The JWKS file preserves the file-backed JWKS path in
+`identity/entra.example.json`; it contains public verification keys, never signing
+keys. Match these five names to `hub-config-pvc.yaml`. Before
+running the seed Job, replace its copy-image marker with the verified immutable
 Linux utility image. Hub and MCP runtime images use UID `10001`; the config
 seed Job uses that UID so mode `0600` files remain readable to the component.
 The Job's group `10001` does not require the image's primary GID to match: Time
@@ -128,8 +153,15 @@ and Artifact images can use GID `999`, while the measured native Hub uses GID
 use UID/GID `10001`, matching `server.sandboxUid`/`sandboxGid`. Native workspace
 seeding runs as that identity and must be able to read the image's private
 `/sandbox` directories. Confirm actual identities against the selected runtime.
-The Job copies only those files without output and refuses an existing target. The PVC labels
-match native default resource admission for workspace `vv-control`.
+The Job copies only those files without output, each to a hidden temporary name in
+the claim, and renames them into place once every copy succeeded. A rerun therefore
+replaces the files of the existing claim, which keeps the claim and the UID OpenShell
+pinned when it admitted the Hub sandbox. To change a file, recreate the bootstrap
+Secret, apply the manifest again (its claim stays unchanged), wait for and delete the
+Job as below, and restart Hub through its native lifecycle so it reads the files
+again. `hub.json` seeds only an empty installation; a live control plane changes
+through Hub's control-plane route. The PVC labels match native default resource
+admission for workspace `vv-control`.
 
 ```sh
 kubectl apply -f "$PRIVATE/hub-config-pvc.yaml"
@@ -141,57 +173,62 @@ kubectl -n openshell-openshell-vv-control delete secret hub-config-bootstrap
 
 `hub-driver-config.json` mounts this exact admitted claim read-only at
 `/etc/veoveo/hub`; do not mount the foundation namespace's PVC. Use separate
-workspace-local config claims and exact file lists for Time/Artifact/Media if
+workspace-local config claims and exact file lists for console/Artifact/Media if
 needed. No config-copy controller, hostPath, protected `/run` mount, caller
 Secret/ConfigMap reference or shared user workspace. Server native config files
 may hold their own trusted storage secrets; user workloads receive mediated
 provider references instead.
 
 `service-storage.yaml` and `seed-service-configs.yaml` provide the same initial
-native `vv-services` bootstrap for Time/Artifact/Media. Use only Artifact's
+native `vv-services` bootstrap for console/Artifact/Media. Use only Artifact's
 `storage.env` and Media's `provider.env` in their separate temporary Secrets;
 the config Jobs run as UID `10001` with seed group `10001`, copy exact files as
-mode `0600`, and never copy operator directories. The component's owner UID must
+mode `0600`, replace them in an existing claim as Hub's seed does, and never copy
+operator directories. The component's owner UID must
 match; its primary GID need not match for these owner-only files. Confirm actual
 identities against the selected Artifact/Media runtime images. Their `*-driver-config.json`
 inputs mount each service's own writable state and read-only configuration.
-Delete completed seed Jobs and their temporary Secrets. This is initial trusted
-storage preparation, never a Helm inventory or runtime reconciliation process.
+Delete completed seed Jobs and their temporary Secrets. This is trusted storage
+preparation, never a Helm inventory or runtime reconciliation process.
 
 Artifact's existing native `storage.env` separates its private backend from signed
 client URLs (actual access/secret keys remain only in that private file):
 
 ```text
 VEOVEO_STORAGE_ENDPOINT=https://seaweedfs-s3.veoveo-system.svc.cluster.local:9000
-VEOVEO_STORAGE_SIGNING_ENDPOINT=https://objects.veoveo.example.com
+VEOVEO_STORAGE_SIGNING_ENDPOINT=https://veoveo.bioma.ai
 VEOVEO_STORAGE_REGION=us-east-1
 VEOVEO_STORAGE_BUCKET=artifacts
 ```
 
-The public signing authority must match the Computer curl policy/tunnel route and
-TLS certificate. Media's Artifact client also sends signed uploads directly to this
-authority: select the same host and port in Media's `object_storage` policy for
-`/usr/local/bin/veoveo-mcp-media`. Its `tls: skip` preserves end-to-end TLS and the
-signed method, URL and headers without credential injection or HTTP interception.
-The client still verifies the server certificate. Never substitute the private
-Service authority into a signed URL.
+Artifact addresses the bucket by path, so it signs
+`https://veoveo.bioma.ai/artifacts/<key>` and SigV4 binds that host and path;
+the tunnel's `/artifacts/` route carries them to the private S3 unchanged. Computer
+curl and Media's Artifact client send signed requests to the public host through
+OpenShell's inspected `artifact_bytes` endpoint for `/artifacts/**`, which allows
+only their methods and forwards Host, path, query, headers and body as signed, with
+no credential binding. That host's other endpoints in the same policies are
+inspected too, so a passthrough rule for it would be ambiguous. The embedding
+runtime passes TLS through to the host instead (see [EMBEDDING.md](EMBEDDING.md)).
+Never substitute the private Service authority into a signed URL.
 
 ### PostgreSQL client trust shared within each workspace
 
 Create `postgres-client-ca` ConfigMap in each actual native workspace namespace
-with `postgres-ca.crt` (CNPG public CA) and `storage-ca.crt` (Seaweed public CA),
+with `postgres-ca.crt` (PostgreSQL CA certificate), `storage-ca.crt` (Seaweed public CA)
+and `lore-ca.crt` (the selected native Lore service public CA),
 never their keys. Use the public Seaweed CA certificate from the
 `seaweedfs-ca-cert` Secret's **`tls.crt`** key. That chart input key is distinct
 from the copied `storage-ca.crt` filename; a Secret containing only `ca.crt` does
 not satisfy the chart's native `[grpc].ca` path. Render the utility image in
-`postgres-client-ca.yaml`, apply its workspace-local PVCs/one-time Jobs, wait for
-completion, then delete those Jobs and temporary source ConfigMaps. The native
+`postgres-client-ca.yaml`, apply its workspace-local PVCs and seed Jobs, which
+replace the CA files of an existing claim in place, wait for completion, then delete
+those Jobs and temporary source ConfigMaps. The native
 driver-config examples mount these approved CA-only claims read-only at
 `/etc/veoveo/tls`. They contain no Hub signing/configuration secret and are reused
 only inside their named workspace.
 
-Hub's own DB URI **and its `--server-database-url` / corresponding environment
-setting used for application registration grants** must retain:
+Hub's own DB URI must retain:
 
 ```text
 host=veoveo-postgres-rw.veoveo-system.svc.cluster.local
@@ -199,19 +236,28 @@ sslmode=verify-full
 sslrootcert=/etc/veoveo/tls/postgres-ca.crt
 ```
 
+Its `--server-database-url` / `VEOVEO_SERVER_DATABASE_URL`, which Hub copies into
+every registration grant, keeps the same host and `sslmode=verify-full` but has **no
+`sslrootcert`**. Factory sandboxes mount no CA claim; every server instead verifies
+against the PostgreSQL CA in [`platform-destination-roots-v1`](README.md#native-openshell-gateway),
+which the supervisor injects as `SSL_CERT_FILE`. Core's sqlx client uses native roots
+(`tls-rustls-ring-native-roots`), which read that file: an inference from source that a
+factory instance's first database connection must prove.
+
 Set `VEOVEO_DATABASE_URL` with the actual owner username but **no password**;
 supply the matching [no-whitespace managed-role password](README.md#postgresql-and-native-storage-identities)
 separately through shell-sourced `VEOVEO_DATABASE_PASSWORD`.
 Set `VEOVEO_SERVER_DATABASE_URL` with **neither username nor password**. Hub supplies
 the narrowed application role and password through its existing registration grant
 contract. Keep secrets in private configuration, not argv. Both configured URLs
-must retain the Service DNS and TLS options, so fixing only Hub's own URI is
-insufficient. The application mount path must match the grant URI. The `database` policy's `tls: skip` means OpenShell
+must retain the Service DNS and `sslmode=verify-full`, so fixing only Hub's own URI
+is insufficient. The `database` policy's `tls: skip` means OpenShell
 passes PostgreSQL's native TLS through; the PostgreSQL client still verifies the
 chain **and Service hostname** with `verify-full`. It does not disable TLS checks.
 
-For Artifact, set native nonsecret `--env SSL_CERT_DIR=/etc/veoveo/tls`. Its existing
-AWS rustls client loads that public CA directory **alongside** the injected
+For Hub native workspace provisioning and Artifact, set native nonsecret
+`--env SSL_CERT_DIR=/etc/veoveo/tls` (or the same literal in Hub's trusted shell-sourced env). The native gRPC and existing
+AWS rustls clients load that public CA directory **alongside** the injected
 `SSL_CERT_FILE` system/supervisor bundle. Keep the injected file intact. The
 CA-only claim therefore supplies Seaweed trust without a derivative image or
 weaker certificate validation. Prove the deployed S3 handshake/operations; the
@@ -220,13 +266,48 @@ mount/environment configuration alone is not transport acceptance.
 ## Hub and automatic private Computers
 
 `hub.example.json` is the existing typed Hub input with Kubernetes gateway/Lore
-addresses, versioned Computer template/policy and empty repository/assignment
-lists. Merge installation identity/settings/signing/services by their typed keys;
+addresses, versioned Computer template/policy, empty repository/assignment lists and
+the `execution` and `factory` sections. `execution.baseBranch` (`main`) is the branch
+whose instance serves a server a user's selection does not name. `factory` names the
+same gateway as `nativeUpstreams`, the `vv-factory` workspace, the base policy at
+`/etc/veoveo/hub/factory-base-v1.yaml`, the default size of every factory sandbox
+(`cpu: "4"`, `memory: "8Gi"`), the loopback port, Hub's issuer, the Lore server, the
+two global provider profiles, the image builder (BuildKit, the local registry and the
+Lore CLI image `veoveo/lore` there by digest) and soft caps (`instancesPerUser: 4`,
+`enforce: false`: exceeding the cap warns in the instance's status). These are Hub
+control-plane values: the file seeds them and the live route below changes them.
+Its `oauthClients` also register `veoveo-hub-sdk-cli`, the public client whose
+`login` signs a person in from a terminal: the authorization code grant with PKCE and
+refresh-token rotation, no client secret, the person's `local` MCP profile and the
+loopback redirect `http://127.0.0.1:3211/callback`. Hub matches a redirect URI
+exactly, port included, so the CLI listens on that port; 3211 stays clear of
+OpenCode's `http://127.0.0.1:3210/callback`. The client grants nothing by itself:
+the person's own memberships and grants decide what the CLI may do.
+Merge installation identity/settings/signing/services by their typed keys;
 never concatenate duplicate IDs or replace an existing active catalog with this
 bootstrap sample. Run the Hub binary's native validate/import commands against
 the **actual complete private input**, not a partial JSON subtree. Initial files
 seed only an empty installation; routine updates use the authenticated live
-`GET`/`PUT /admin/{profile}/control-plane` path and its current revision.
+`GET`/`PUT /admin/{profile}/control-plane` path and its current revision. That route
+needs an explicit rule in the complete input's `policies[].rules`, naming the route's
+`{profile}` and the Entra `administrator` app role, which Hub carries in the token's
+`roles` claim:
+
+```json
+{"id": "installation-administration", "effect": "allow",
+ "actions": ["admin_read", "admin_write"], "profiles": ["local"],
+ "roles": ["administrator"], "tenantIds": ["<tenant>"]}
+```
+
+Making someone an administrator is assigning them that Entra app role; Hub's `admin`
+installation role, with its risks, governs only server tool permissions.
+
+There are no named environments and no enrollment step: a service that registers
+serves. Start Hub from the trusted config claim, then start the services; each
+registration routes its slug. When a new deployment of a slug registers beside an
+older one, the newest registration serves and Hub logs one WARN naming the deployment
+it set aside, so moving a service to a new deployment needs no gap. A redeploy that
+keeps its `VEOVEO_DEPLOYMENT_ID` stays the one deployment.
 
 ```sh
 openshell profile lint --global --from computer/providers
@@ -234,8 +315,42 @@ openshell profile import --global --from computer/providers
 openshell sandbox template create computer-v1 --workspace installation \
   --image "$COMPUTER_IMAGE_AT_DIGEST" --cpu 2 --memory 4Gi \
   --env SSL_CERT_DIR=/etc/ssl/certs \
-  --env VEOVEO_LORE_REMOTE=grpcs://lore.veoveo-system.svc.cluster.local:41337
+  --env VEOVEO_LORE_REMOTE=grpcs://lore.veoveo-system.svc.cluster.local:41337 \
+  --annotation "veoveo.ai/release-note=$COMPUTER_RELEASE_NOTE"
 ```
+
+The profiles and the template may come before or after Hub starts: Hub reads the
+template when a Computer is entered, and until it and the profiles exist, `/computer`
+says that Computers are unavailable and why. The template, the
+[policy](policies/computer-v1.yaml) and Hub's `computers` settings make the Computer
+version, a twelve-digit digest that `/computer/status`, the console's `computer` tool
+and each sandbox's `COMPUTER_VERSION` name. `GET /computer/status`, `POST
+/computer/restart` and `POST /computer/previous` serve the owner's browser session and
+a bearer of Hub's Computers profile: the [Computer policy](policies/computer-v1.yaml)
+lets any program in a Computer call them with the owner's Hub token, and
+[console's policy](policies/console.yaml) lets console call status and restart for its
+caller and read the public `GET /computer/version`. The optional `veoveo.ai/release-note`
+annotation is the version's release note; its first line is the summary agents tell
+the person. To publish a new version, delete the template and create it again under
+the same name with the new image, environment or note (OpenShell has no template
+update), or publish a new policy file or template name through the live control
+plane. Running Computers keep their version until their owners restart them; a new
+sandbox, such as the first one, starts at the current version.
+
+`computers.collectAfterSeconds` (the example: 7200, two hours) collects idle
+Computers: Hub deletes the sandbox of a Computer with no browser request through Hub
+and no network traffic from its sandbox for that long, keeping `~`, and the next entry
+creates it at the current version, telling of the update when the version changed.
+Collection uses the `GetSandbox` and `DeleteSandbox` rights a restart already needs,
+and OpenShell's recorded `last_activity_time`, so the gateway must run a release that
+records it. A job that makes no network traffic for that long is collected; omit the
+setting to never collect. Hub counts both from its own start, so restarting Hub delays
+collection by up to that long.
+
+Each Computer's `computer-lore` provider uses the global `vv-lore` profile that
+`computers.loreProvider` names, imported with the
+[factory profiles](README.md#factory-sandbox-policy-and-providers). Hub sets
+`LORE_IDENTITY` in each owner's template clone; the template sets no Lore variable.
 
 **No Docker `persistent_workspace` flag or explicit `/sandbox` volume is passed.**
 The selected Kubernetes driver creates and seeds the private workspace PVC for
@@ -249,40 +364,64 @@ existing trusted native command that loads `/etc/veoveo/hub/hub.env` and execs t
 Hub binary. Long-running Hub/MCP sandboxes explicitly select
 `--restart-policy always`; native default `Never` is unsuitable. Expose the same
 Hub `http` service on `8080` with native `bearer_passthrough`. No Helm inventory
-owns it. Time/Artifact/Media retain their actual native commands/configs, using
-their own trusted read-only claims, Kubernetes policies and distinct native
-registration providers; do not share Hub's control identity.
+owns it. Once Hub serves at its public issuer, Lore becomes Ready:
 
-For example, after native provider custody/config preparation, the existing
-Hub/Time launch path uses these installation inputs:
+```sh
+kubectl -n veoveo-system wait deployment/lore --for=condition=Available --timeout=300s
+```
+ Console/Artifact/Media retain their actual native commands/configs, using
+their own trusted claims, Kubernetes policies and distinct native registration
+providers; do not share Hub's control identity. Time and every other server built
+from a pushed Lore branch run as factory sandboxes that Hub creates; the
+installation has no Time sandbox.
+
+Console, the Hub MCP server, is a platform sandbox in `vv-services` on this
+namespace registration path, not a factory instance: it reads instance output from
+the log store, which the factory base policy withholds from branches. Its inputs are
+[its policy](policies/console.yaml), the
+[registration profile](../openshell/providers/console-registration.yaml), the
+`console-state-v1` claim in `service-storage.yaml` for its saved registration key
+and the [driver config](console-driver-config.json). It needs no CA claim: its
+database grant verifies against the platform roots like every server's. Choose a
+UUIDv7 `CONSOLE_DEPLOYMENT_ID` and keep it.
+
+For example, after native provider custody/config preparation, the Hub and console
+launch path uses these installation inputs:
 
 ```sh
 openshell sandbox create --workspace vv-control --name hub --from "$HUB_IMAGE_AT_DIGEST" \
-  --policy openshell/bioma/kubernetes/policies/hub-computer-entra.example.yaml \
+  --policy kubernetes/policies/hub-computer-entra.example.yaml \
   --provider vv-hub-native-control --no-auto-providers \
   --driver-config-json "$(cat kubernetes/hub-driver-config.json)" \
-  --restart-policy always --detach -- \
+  --restart-policy always --detach --env SSL_CERT_DIR=/etc/veoveo/tls -- \
   /bin/sh -ec 'set -a; . /etc/veoveo/hub/hub.env; set +a; exec /usr/local/bin/veoveo-hub serve --allow-loopback-hosts'
 openshell service expose --workspace vv-control hub 8080 http \
   --authorization-mode bearer-passthrough
-openshell sandbox create --workspace vv-services --name time --from "$TIME_IMAGE_AT_DIGEST" \
-  --policy openshell/bioma/kubernetes/policies/time.yaml --provider vv-time-registration --no-auto-providers \
-  --driver-config-json "$(cat kubernetes/time-driver-config.json)" \
+openshell profile import --workspace vv-services --file openshell/providers/console-registration.yaml
+openshell provider create --workspace vv-services --name vv-console-registration \
+  --type vv-console-registration --credential VEOVEO_REGISTRATION_SECRET
+openshell sandbox create --workspace vv-services --name console --from "$CONSOLE_IMAGE_AT_DIGEST" \
+  --policy kubernetes/policies/console.yaml --provider vv-console-registration --no-auto-providers \
+  --driver-config-json "$(cat kubernetes/console-driver-config.json)" \
   --restart-policy always --detach \
-  --env VEOVEO_HUB_ISSUER="$HUB_ORIGIN" \
-  --env VEOVEO_PUBLIC_BASE_URL=http://time.internal:8800 --env VEOVEO_PORT=8800 -- \
-  /usr/local/bin/veoveo-mcp-time
+  --env VEOVEO_DEPLOYMENT_ID="$CONSOLE_DEPLOYMENT_ID" --env VEOVEO_HUB_ISSUER="$HUB_ORIGIN" \
+  --env VEOVEO_PUBLIC_BASE_URL=http://console.internal:8805 --env VEOVEO_PORT=8805 -- \
+  /usr/local/bin/veoveo-mcp-console
 ```
 
+`provider create --credential VEOVEO_REGISTRATION_SECRET` reads the namespace
+registration secret from the operator's environment, never from argv. Console serves
+once it registers, like the other services.
+
 Set `HUB_ORIGIN` to the Hub's actual public origin, such as
-`https://veoveo.example.com`. Time, Artifact and Media use that origin for
+`https://veoveo.bioma.ai`. Console, Artifact and Media use that origin for
 `VEOVEO_HUB_ISSUER`: the native registered-server/forwarded-token issuer publishes
 `/.well-known/oauth-authorization-server`, `/jwks.json` and `/oauth/register`.
 The SDK verifies that discovery returns the same issuer before registration.
 The Kubernetes policies admit those exact public-origin routes.
 
 Do not append `/oauth` to this service setting. The separate browser/native Lore
-authorization-server issuer is `https://veoveo.example.com/oauth`; its metadata
+authorization-server issuer is `https://veoveo.bioma.ai/oauth`; its metadata
 at `/.well-known/oauth-authorization-server/oauth` does not advertise server
 registration. Preserve that issuer for human/Lore clients. Do not replace either
 issuer with a native exposure alias. Artifact/Media use their corresponding
@@ -297,19 +436,28 @@ custody supplies the user's Hub refresh grant and the approved model credential.
 Explicit native Lore login remains user-owned. After native `repository create`
 emits a canonical ID, publish that ID and only the acting principal's intended
 assignment through Hub's existing typed live control plane; no automatic grants.
-Factory repository reads use their distinct configured native provider identity.
+A factory sandbox reads its repository as the branch's latest pusher through its own
+per-instance Lore provider.
 
-Change templates/defaults by versioned native API references and live Hub
-publication. Existing Computers keep admitted snapshots unless explicitly replaced;
-adding/removing/registering services or changing grants does not restart Hub or
-unrelated workloads. Drain/reconnect active operations explicitly. Never replay a
+Change templates/defaults by native template replacement or versioned references and
+live Hub publication. Existing Computers keep their recorded version until their owner
+restarts them; adding/removing/registering services or changing grants does not
+restart Hub or unrelated workloads. Drain/reconnect active operations explicitly. Never replay a
 non-idempotent mutation automatically or promise zero downtime.
 
 ### Replacing one service image
 
 The current native API has no in-place sandbox image update. Stop/Start reuses
 the admitted image. To replace Media's image, first drain or explicitly qualify
-its active Tasks, retain its complete native creation inputs privately, then run:
+its active Tasks and retain its complete native creation inputs privately.
+
+Export the authored policy with `openshell --workspace vv-services policy get media
+--base` for round-tripping. Effective `sandbox get --policy-only` output includes
+reserved provider overlays and is not the authored replacement input. Preserve
+the exact provider attachments separately; exporting a base policy does not
+transfer their custody or replace their attachment configuration.
+
+Then run:
 
 ```sh
 openshell --workspace vv-services sandbox stop media
@@ -340,9 +488,9 @@ HMAC value agreed with the synthetic Media service. Never copy real provider
 credentials or real webhook keys into this fixture.
 
 Create `media-provider-config-bootstrap` from that exact file in the actual
-`vv-services` namespace, then use the fixture's separate claim and one-time seed
-Job in `media-provider-config-pvc.yaml`. The Job runs as UID 10001
-and copies only `provider.env` as mode 0600. Replace only its copy-image marker with the
+`vv-services` namespace, then use the fixture's separate claim and seed Job in
+`media-provider-config-pvc.yaml`. The Job runs as UID 10001 and copies only
+`provider.env` as mode 0600, replacing an existing one in place. Replace only its copy-image marker with the
 reviewed utility digest. Remove the completed Job and bootstrap Secret after
 seeding. `media-provider-driver-config.json` mounts only that claim, read-only at
 `/etc/veoveo/media`; no service state, database/storage credentials, or service
