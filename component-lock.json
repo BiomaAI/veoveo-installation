@@ -1,25 +1,191 @@
 {
   "format": "https://veoveo.ai/formats/component-lock",
+  "template": {
+    "repository": "https://github.com/VeoveoAI/veoveo-template-installation",
+    "revision": "c8582f54e5025020b6983702bfc479a4fc80048b"
+  },
   "components": [
     {
       "name": "veoveo-hub",
       "repository": "https://github.com/VeoveoAI/veoveo-hub",
-      "revision": "ed6778f6a7e61df4f4c42241a589d9450f2bd63f"
-    },
-    {
-      "name": "veoveo-mcp-time",
-      "repository": "https://github.com/VeoveoAI/veoveo-mcp-time",
-      "revision": "d70ac8e2f9bdfb1c012ee744e5cd119ce4bca1dd"
+      "revision": "5d3f43fb8fdc3b25436f9d7526ae7f9f48b662c5",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub@sha256:d63ad5d8a327fbc2f7ff89c2c57709c7165533e80e09581678a986933513c9da",
+      "inputs": {
+        "lore": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:e9d0aef51a88abb27c931ff9aaf67da0fb15e1be40c0069d75b4e338c14f0268"
+      }
     },
     {
       "name": "veoveo-mcp-artifact",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-artifact",
-      "revision": "00c8e93f5ca3ffe9137773754a4945c6d349b3bf"
+      "revision": "a0566b8729f518f3aec14e92289dd28f66f5c189",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/artifact@sha256:64448f7065766e6b479dc9db37aeff12af99f9257cea040c78d6bd79a2be9542"
     },
     {
       "name": "veoveo-mcp-media",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-media",
-      "revision": "4e8504b2c9bc72b0b249a8cf122e29983634d2e8"
+      "revision": "6bd5843fef181ba198cb111d90e135f753c789f2",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/media@sha256:77cf0c93eb169887d43e1ec754c83bcd7efc1c0a642c34f070d57d3f7f28f4a6"
+    },
+    {
+      "name": "veoveo-mcp-media-provider",
+      "description": "Synthetic fake-provider fixture; it does no real media generation.",
+      "repository": "https://github.com/VeoveoAI/veoveo-mcp-media",
+      "revision": "6a73e52932d166e368ba8673277cadf8be1742b9",
+      "target": "fake-provider",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/media-provider@sha256:08193f623a4b668e1fe68b5c8e040c77519f862304dc7678e865c001e095298b"
+    },
+    {
+      "name": "veoveo-mcp-embedding",
+      "repository": "https://github.com/VeoveoAI/veoveo-mcp-embedding",
+      "revision": "95216bd33b79177ef230526a18aaffbcabf20a9a",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/embedding@sha256:b482ca11bc2ec10679f9922c30c53f49663071d11367615f5b24d95adb29e4c7"
+    },
+    {
+      "name": "veoveo-runtime-embedding",
+      "repository": "https://github.com/VeoveoAI/veoveo-runtime-embedding",
+      "revision": "109304d859563135a5b854c20acda31deb91ade9",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/runtime-embedding@sha256:c4afbc57478aaacc59aa9c0cd9a223323d8a5b152e76ed0cf1cdf4bf98b34fda"
+    },
+    {
+      "name": "veoveo-mcp-console",
+      "repository": "https://github.com/VeoveoAI/veoveo-mcp-console",
+      "revision": "a8f5d297f662d0f1048dfed476c0b17ce97492c2",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:a971e41f1075f28155ddf660323c9f46e4d6f4eb262f8581720bab1471dfed92"
+    },
+    {
+      "name": "openshell-gateway",
+      "repository": "https://github.com/VeoveoAI/OpenShell",
+      "revision": "c28524bdda5145f45db3285a0b5876e8d5dfff15",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/openshell/gateway@sha256:ffd273af21a54e40dca67fa773d6c310a28a33d6f25a6ae195fe55c50c7c36a5"
+    },
+    {
+      "name": "openshell-supervisor",
+      "repository": "https://github.com/VeoveoAI/OpenShell",
+      "revision": "d1d4da39941ecf809d9b0dee51032277cbc42ea4",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/openshell/supervisor@sha256:6ce6d7b23ff4512ae371a463896260d6fae91304ae7854c81f40be116d2a4cc9"
+    },
+    {
+      "name": "openshell-sandbox",
+      "repository": "https://github.com/VeoveoAI/OpenShell",
+      "revision": "d1d4da39941ecf809d9b0dee51032277cbc42ea4",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/openshell/sandbox@sha256:d2a791ffdbe143e50dcf6289ece400819733c355b6a51614e9dfd925959563ff"
+    },
+    {
+      "name": "lore",
+      "description": "The Lore server.",
+      "repository": "https://github.com/VeoveoAI/lore",
+      "revision": "4b7b7e236419414b4a0c67ecd66ca2409f19d35c",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:e9d0aef51a88abb27c931ff9aaf67da0fb15e1be40c0069d75b4e338c14f0268",
+      "inputs": {
+        "dockerfile": "veoveo-template-installation@6e7c77fe084f6b78d2a6ad363cab57eed3e6433b factory/Lore.Dockerfile"
+      }
+    },
+    {
+      "name": "lore-factory-cli",
+      "description": "The Lore CLI image that factory image builds copy (Hub factory.imageBuilder.lore).",
+      "repository": "https://github.com/VeoveoAI/lore",
+      "revision": "e2f04c909d596472bf3a2c555156d77e047f8393",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:9926b55e9317cb7db242b5968bb28e4a81523b38e9afcab6964fc66d8d3688d2"
+    },
+    {
+      "name": "veoveo-factory",
+      "description": "factory/Dockerfile: the base of factory sandboxes and Computers.",
+      "repository": "https://github.com/VeoveoAI/veoveo-template-installation",
+      "revision": "6e7c77fe084f6b78d2a6ad363cab57eed3e6433b",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/factory@sha256:cb8306319c6a0a88406a96e50ca3adc1038f3fd17cc274adcd27074d73756437",
+      "inputs": {
+        "lore": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:e9d0aef51a88abb27c931ff9aaf67da0fb15e1be40c0069d75b4e338c14f0268"
+      }
+    },
+    {
+      "name": "veoveo-computer",
+      "description": "computer/Dockerfile over the factory base, with OpenCode.",
+      "repository": "https://github.com/VeoveoAI/veoveo-template-installation",
+      "revision": "22fdc5aba1e130de9a8a5ea3c3e5e3ae715d3a83",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:6b99f636e90d719c1ebddddf646de857de0ba9a51518bffaa2aebb1299a9f17d",
+      "inputs": {
+        "factory": "registry.veoveo-system.svc.cluster.local:5000/veoveo/factory@sha256:cb8306319c6a0a88406a96e50ca3adc1038f3fd17cc274adcd27074d73756437",
+        "opencode": {
+          "repository": "https://github.com/VeoveoAI/opencode",
+          "revision": "ea6f7c15028776fa394644c7915e7994d5cf08ca",
+          "binarySha256": "864869e3414da9726c66dfd5282fdb190eaa33853fabaed8bb9a286dc93e0d0c"
+        }
+      }
+    },
+    {
+      "name": "veoveo-postgres",
+      "description": "postgres/Dockerfile: PostgreSQL 18.6 with vector 0.8.7 and PostGIS 3.6.4.",
+      "repository": "https://github.com/VeoveoAI/veoveo-template-installation",
+      "revision": "ecdb5b5dcc621161c7e5905a243c1271b42daeff",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/postgres@sha256:feacb84577fdca909cd0e3306784f9af84d083222dab00421244a1376520c28a"
+    }
+  ],
+  "foundation": [
+    {
+      "name": "k3s",
+      "version": "v1.36.5+k3s1",
+      "binarySha256": "d73847bcd3c5fccef0115b372e2f9a91f3032dc84bbf71518a4617565294d313"
+    },
+    {
+      "name": "helm",
+      "version": "v3.22.1"
+    },
+    {
+      "name": "cilium",
+      "chart": "cilium/cilium 1.20.3",
+      "images": [
+        "quay.io/cilium/cilium:v1.20.3@sha256:95cfa5c2427cc6b452c00908778d0566311f572589284af949d06a013db1a849",
+        "quay.io/cilium/operator-generic:v1.20.3@sha256:efdd8d89d6d8f63d21a065fa2f9e17614a2b3ac9371b221af9355f63829e2dbc",
+        "quay.io/cilium/cilium-envoy:v1.38.6-1791537840-00e749f11f69334c625e53fc1ce2fc6c7f34a51f@sha256:d6c8c0c91954d1885026d82a31b341f37dcd34a4b127fdaf1587e43ddd224cef"
+      ]
+    },
+    {
+      "name": "agent-sandbox",
+      "version": "v1.0.6",
+      "images": [
+        "registry.k8s.io/agent-sandbox/agent-sandbox-controller@sha256:876f9621e0f0e168bcff13aa377880b75fd37e1c8712f2f249e8878c22d06ffd"
+      ]
+    },
+    {
+      "name": "seaweedfs",
+      "chart": "seaweedfs 4.48.0",
+      "images": [
+        "chrislusf/seaweedfs:4.48@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d"
+      ]
+    },
+    {
+      "name": "nvidia-device-plugin",
+      "chart": "nvidia-device-plugin 0.20.1",
+      "images": [
+        "nvcr.io/nvidia/k8s-device-plugin:v0.20.1@sha256:d279ecdb47b252c4cd96f4224650e9808c36012f6979570c9611ddbc5b0749a7"
+      ]
+    },
+    {
+      "name": "cloudflared",
+      "images": [
+        "cloudflare/cloudflared:2026.10.1@sha256:3c0502d2da137286136b44f5b1d0d0be7030cc4833db9f53cff86beadad6cefa"
+      ]
+    },
+    {
+      "name": "image-builder",
+      "images": [
+        "moby/buildkit:v0.34.1@sha256:99368f3e46177c6405b9740e4461d91cee004128daeecca78d4ceac50ec1da5c",
+        "registry:3.1.2@sha256:01cd312e67026f06f5d89c3e133a4a9adc7cb9eeb9b1194e0b2954dfd770efd2"
+      ]
+    },
+    {
+      "name": "logs",
+      "images": [
+        "victoriametrics/victoria-logs:v1.53.0@sha256:251121fa882af99b95ba0c230a4a2f412ea602d2698c64a96c58dc9842bb755d",
+        "timberio/vector:0.60.0-distroless-libc@sha256:a9ed9a4710bdc2efa66e94c1e8edc7b439709e6e50079f1e1b2b1bf479d387da"
+      ]
+    },
+    {
+      "name": "seed-jobs",
+      "images": [
+        "debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f",
+        "docker.io/library/python@sha256:b921fe7e7522f828d45197a47656ec465a9b15689b27fa8e1fba2864fca5b967"
+      ]
     }
   ]
 }
