@@ -84,8 +84,8 @@
       "name": "lore-factory-cli",
       "description": "The Lore CLI image that factory image builds copy (Hub factory.imageBuilder.lore).",
       "repository": "https://github.com/VeoveoAI/lore",
-      "revision": "e2f04c909d596472bf3a2c555156d77e047f8393",
-      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:9926b55e9317cb7db242b5968bb28e4a81523b38e9afcab6964fc66d8d3688d2"
+      "revision": "4b7b7e236419414b4a0c67ecd66ca2409f19d35c",
+      "image": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:e9d0aef51a88abb27c931ff9aaf67da0fb15e1be40c0069d75b4e338c14f0268"
     },
     {
       "name": "veoveo-factory",
