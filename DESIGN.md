@@ -287,3 +287,80 @@ The tunnel preserves public signed S3 bytes and uses verified TLS to native Serv
 Native controllers, readiness/restarts and application retry/reconnect handle
 recovery; there is no custom startup DAG or proxy. Lore reads Hub's OIDC discovery at
 startup and restarts until Hub serves its issuer; no init Job orders them.
+
+## Applying An Installation
+
+This repository's installer, `veoveo-installer`, makes a cluster match this
+repository. It is an operator's command,
+not a service: it keeps no state of its own, runs only when an operator runs it, and
+exits, so it is neither an orchestrator nor a second launcher. It installs and
+upgrades only the substrate the platform cannot deploy itself: the Kubernetes
+foundation (Cilium, the Agent Sandbox controller, PostgreSQL, SeaweedFS, Vector and
+VictoriaLogs, the registry and BuildKit), OpenShell, the Lore server, Hub, the
+platform servers while they run as installation sandboxes, the provider profiles and
+the Computer and factory templates. K3s comes first, from K3s's own installer.
+Everything built on the platform is deployed by the factory, never by the installer.
+
+Its inputs are this repository (the lock, manifests, Helm values, policies, provider
+profiles, templates and Hub's seed) and the operator's private directory of
+installation values and secrets, which never enters Git. Image digests come only from
+the lock: `veoveo-installer build` builds a component at its locked revision and
+records the digest there, and nothing else writes one.
+
+[installation.toml](installation.toml) declares the substrate as an ordered list of
+steps, each changing through one owner: Kubernetes manifests and ConfigMaps built from
+repository files, a Helm release and its values files, OpenShell workspaces, provider
+profiles, templates and sandboxes, and last Hub's control plane with the files of Hub's
+trusted claim that come from this repository. The order is the dependency order apply
+takes. A file names an image as `@image:<name>@`, which the installer fills from the
+lock; a file still holding a `REPLACE_WITH_` marker is not ready and is not compared.
+The private directory, mode `0700`, holds `private.toml`: the Kubernetes context and
+OpenShell CLI sign-in the operator uses, where the Hub sign-in is kept (the Hub SDK
+CLI's grant directory unless it names another), the private values files layered over
+a release's own, a sandbox's private environment values (those its declaration lists
+as `private_environment`, such as a server's deployment ID) and the identity
+provider's registration (`[identity]`), from which the installer prepares Hub's
+trusted files. Its paths are relative to the directory, and the installer writes
+nothing there.
+
+`veoveo-installer plan` compares each piece's declared state with what runs and
+prints the difference without changing anything. It reads each piece from its owner:
+a Kubernetes object as a server-side dry-run apply would leave it, against the object
+as it is, with the fields an earlier `kubectl apply` set that the declaration no longer
+has; a release's chart, status and supplied values; profiles and policies in
+OpenShell's canonical form, parsed by OpenShell's own crates, without the rules
+providers add to a sandbox's policy; a template's or sandbox's image, environment,
+resources, driver configuration, providers, command and restart policy; Hub's control
+plane through `GET /admin/{profile}/control-plane`, against the seed merged by typed
+keys and the handbook, leaving out the members people change (grants, Work Context
+memberships, repositories and assignments); and Hub's trusted files, read in Hub's
+sandbox through native exec. It lists, in step order, what differs and what it could
+not read, and succeeds only when everything was read and matches. A seed Job runs
+once and is deleted, so plan does not read the claim it fills.
+
+`veoveo-installer apply` makes only those changes, in dependency order, checks each one
+(readiness, registration with Hub, the standard probes) and stops at the first failure
+with its evidence; run again, it changes nothing. First installation and every upgrade
+take the same path.
+
+It changes each piece through its owner's interface and adds no logic the owner
+already has: Kubernetes through its API, Helm releases with `helm`, OpenShell through
+its Rust SDK as the operator's OpenShell identity, and Hub's live control plane through
+Hub's administrative route. It publishes only what differs from the active revision and
+never resets the control plane, so what people created since the seed, such as their
+repositories, survives every apply. To read or publish it, the operator signs in to Hub
+in the browser as themselves, an installation administrator, with `veoveo-installer
+login` (the Hub SDK's sign-in, as its `veoveo-hub-sdk-cli` client), so Hub's audit
+names the person and no standing administrator credential exists; Hub validates the
+document and keeps its active revision on rejection. A first installation needs no
+sign-in: Hub seeds an empty control plane from this repository. It prepares Hub's
+trusted files from the identity provider's registration (Hub's keys, the authorization
+server's key set and the seed document), which `identity/configure-hub`,
+`identity/configure-openshell` and `identity/provision` do today; those Python tools
+are retired with it.
+
+The installer is Rust source in this repository, `installer/`, with its own check, and it
+reads the lock with core's installation contract crate. Each installation owns its copy
+and changes it freely: its steps are the first thing an installation customizes. An
+installation brings in the template's later improvements by comparing its installer with
+the latest template's and taking what applies, as it does with the rest of its files.
