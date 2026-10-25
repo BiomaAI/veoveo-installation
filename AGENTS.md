@@ -8,6 +8,10 @@
   fixes to the template. Planning, qualification status and evidence belong in
   `VeoveoAI/veoveo-docs`; link to them rather than copying them here. Components own
   their build and check logic.
+- The design is the template's
+  [DESIGN.md](https://github.com/VeoveoAI/veoveo-template-installation/blob/main/DESIGN.md),
+  with [DESIGN.md](DESIGN.md) and `openshell/bioma/README.md` for Bioma's selections.
+  Change them in the same change as the configuration they describe.
 - Keep `component-lock.json` equal to what is deployed: each component's revision
   and image digest, read from the running cluster. Update it after each deployment.
 - Linux deployment uses K3s foundation controllers and OpenShell's native Kubernetes

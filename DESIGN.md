@@ -2,9 +2,11 @@
 
 Bioma's installation is the template's Linux path. It uses K3s for foundation
 services and OpenShell's native Kubernetes driver for Hub/MCP, Computer and factory
-workloads. The accepted architecture lives in
-[veoveo-docs](https://github.com/VeoveoAI/veoveo-docs/blob/main/LORE_OPENSHELL_INTEGRATION.md),
-and qualification status in its
+workloads. The platform architecture lives in
+[veoveo-docs](https://github.com/VeoveoAI/veoveo-docs/blob/main/ARCHITECTURE.md), the
+installation design in the
+[template's DESIGN](https://github.com/VeoveoAI/veoveo-template-installation/blob/main/DESIGN.md),
+and qualification status in the
 [checklist](https://github.com/VeoveoAI/veoveo-docs/blob/main/QUALIFICATION_CHECKLIST.md).
 The ordinary [Kubernetes inputs](kubernetes/README.md) bootstrap PostgreSQL as a plain
 StatefulSet, SeaweedFS, single-replica Lore, OpenShell gateway and the existing public
