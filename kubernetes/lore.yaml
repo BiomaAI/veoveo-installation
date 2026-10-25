@@ -37,7 +37,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: lore
-          image: registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:e9d0aef51a88abb27c931ff9aaf67da0fb15e1be40c0069d75b4e338c14f0268
+          # Filled from component-lock.json; see README.md#naming-each-image-once.
+          image: "@image:lore@"
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

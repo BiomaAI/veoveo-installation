@@ -74,8 +74,9 @@ kubectl -n veoveo-system create secret generic lore-storage \
 kubectl apply -f "$PRIVATE/lore.yaml"
 ```
 
-The private manifest replaces only the explicit image marker with the verified
-Linux image digest. A single Lore process owns its native local locks; the small
+The private manifest is `lore.yaml` with its image
+[filled](README.md#naming-each-image-once) from the lock, the same Lore image that Hub,
+Computers and factory sandboxes mount. A single Lore process owns its native local locks; the small
 PVC holds its HOME/temp/local lock paths. Repository storage stays in native
 S3/PostgreSQL. A TCP readiness probe proves only a listening socket.
 
@@ -266,14 +267,24 @@ mount/environment configuration alone is not transport acceptance.
 ## Hub and automatic private Computers
 
 `hub.example.json` is the existing typed Hub input with Kubernetes gateway/Lore
-addresses, versioned Computer template/policy, empty repository/assignment lists and
-the `execution` and `factory` sections. `execution.baseBranch` (`main`) is the branch
-whose instance serves a server a user's selection does not name. `factory` names the
+addresses, versioned Computer template/policy, the private bindings of Artifact, Media,
+Embedding and console, empty repository/assignment lists and the `execution` and
+`factory` sections. Merged by typed keys with
+[identity/entra.example.json](../identity/entra.example.json), it is a complete seed
+catalog that `veoveo-hub validate` admits, with the names the
+[installation design](../DESIGN.md#identity) lists. Both use one set of example
+identifiers, which an installation replaces with its own: Entra tenant
+`e0ee3c6a-4f58-4f66-8de4-253226eeed5f`, the OpenShell resource application
+`8a6d434f-8c4c-4e2c-9756-9b2d94118d17` (the gateway's audience), Hub's broker
+application `853550a7-5fd4-421c-abd2-bea0216fa579` (the `entra` client) and the example
+people `44444444-…` (member), `55555555-…` (administrator) and `66666666-…` (billed).
+`execution.baseBranch` (`main`) is the branch whose instance serves a server a user's selection does not name. `factory` names the
 same gateway as `nativeUpstreams`, the `vv-factory` workspace, the base policy at
-`/etc/veoveo/hub/factory-base-v1.yaml`, the default size of every factory sandbox
-(`cpu: "4"`, `memory: "8Gi"`), the loopback port, Hub's issuer, the Lore server, the
-two global provider profiles, the image builder (BuildKit, the local registry and the
-Lore CLI image `veoveo/lore` there by digest) and soft caps (`instancesPerUser: 4`,
+`/etc/veoveo/hub/factory-base-v1.yaml`, the
+[factory template](README.md#factory-sandbox-policy-and-providers) `factory-v1` in
+workspace `installation`, which sizes every factory sandbox and mounts Lore, the
+loopback port, Hub's issuer, the Lore server, the two global provider profiles, the
+image builder (BuildKit and the local registry) and soft caps (`instancesPerUser: 4`,
 `enforce: false`: exceeding the cap warns in the instance's status). These are Hub
 control-plane values: the file seeds them and the live route below changes them.
 Its `oauthClients` also register `veoveo-hub-sdk-cli`, the public client whose
@@ -291,12 +302,12 @@ seed only an empty installation; routine updates use the authenticated live
 `GET`/`PUT /admin/{profile}/control-plane` path and its current revision. That route
 needs an explicit rule in the complete input's `policies[].rules`, naming the route's
 `{profile}` and the Entra `administrator` app role, which Hub carries in the token's
-`roles` claim:
+`roles` claim. The identity example's `reference-policy` holds it:
 
 ```json
 {"id": "installation-administration", "effect": "allow",
  "actions": ["admin_read", "admin_write"], "profiles": ["local"],
- "roles": ["administrator"], "tenantIds": ["<tenant>"]}
+ "roles": ["administrator"], "tenantIds": ["reference"]}
 ```
 
 Making someone an administrator is assigning them that Entra app role; Hub's `admin`
@@ -314,11 +325,15 @@ openshell profile lint --global --from computer/providers
 openshell profile import --global --from computer/providers
 openshell sandbox template create computer-v1 --workspace installation \
   --image "$COMPUTER_IMAGE_AT_DIGEST" --cpu 2 --memory 4Gi \
+  --driver-config-json "$(cat "$PRIVATE/computer-driver-config.json")" \
   --env SSL_CERT_DIR=/etc/ssl/certs \
   --env VEOVEO_LORE_REMOTE=grpcs://lore.veoveo-system.svc.cluster.local:41337 \
   --annotation "veoveo.ai/release-note=$COMPUTER_RELEASE_NOTE"
 ```
 
+The template's driver configuration, [filled](README.md#naming-each-image-once) from
+the lock, mounts the Lore and Hub SDK CLI images read-only at `/opt/veoveo/lore` and
+`/opt/veoveo/hub-sdk-cli`, whose binary directories the Computer image puts on `PATH`.
 The profiles and the template may come before or after Hub starts: Hub reads the
 template when a Computer is entered, and until it and the profiles exist, `/computer`
 says that Computers are unavailable and why. The template, the
@@ -332,8 +347,8 @@ lets any program in a Computer call them with the owner's Hub token, and
 caller and read the public `GET /computer/version`. The optional `veoveo.ai/release-note`
 annotation is the version's release note; its first line is the summary agents tell
 the person. To publish a new version, delete the template and create it again under
-the same name with the new image, environment or note (OpenShell has no template
-update), or publish a new policy file or template name through the live control
+the same name with the new image, environment, mounts or note (OpenShell has no
+template update), or publish a new policy file or template name through the live control
 plane. Running Computers keep their version until their owners restart them; a new
 sandbox, such as the first one, starts at the current version.
 
@@ -359,7 +374,9 @@ each clone with native ownership. Hub checks the actual selected driver through
 read-only config claims outside `/sandbox` remain supported.
 
 Start Hub using the reviewed Hub image/policy/provider and
-`--driver-config-json "$(cat kubernetes/hub-driver-config.json)"`, retaining the
+`--driver-config-json "$(cat "$PRIVATE/hub-driver-config.json")"`, the
+[filled](README.md#naming-each-image-once) configuration that also mounts the Lore image
+Hub reads pushed revisions with, retaining the
 existing trusted native command that loads `/etc/veoveo/hub/hub.env` and execs the
 Hub binary. Long-running Hub/MCP sandboxes explicitly select
 `--restart-policy always`; native default `Never` is unsuitable. Expose the same
@@ -392,7 +409,7 @@ launch path uses these installation inputs:
 openshell sandbox create --workspace vv-control --name hub --from "$HUB_IMAGE_AT_DIGEST" \
   --policy kubernetes/policies/hub-computer-entra.example.yaml \
   --provider vv-hub-native-control --no-auto-providers \
-  --driver-config-json "$(cat kubernetes/hub-driver-config.json)" \
+  --driver-config-json "$(cat "$PRIVATE/hub-driver-config.json")" \
   --restart-policy always --detach --env SSL_CERT_DIR=/etc/veoveo/tls -- \
   /bin/sh -ec 'set -a; . /etc/veoveo/hub/hub.env; set +a; exec /usr/local/bin/veoveo-hub serve --allow-loopback-hosts'
 openshell service expose --workspace vv-control hub 8080 http \
@@ -526,6 +543,18 @@ callbacks; use status-check operation with Media's `VEOVEO_PUBLIC_ORIGIN` unset.
 This fixture produces synthetic data, not model inference or valid media proof.
 Its native process readiness does not prove Media registration or a Task result.
 No fixture image rebuild is required for these configuration inputs.
+
+Media with a real provider may complete its runs by the provider's webhooks instead.
+Its trusted configuration then sets `VEOVEO_PUBLIC_ORIGIN` to Hub's public origin and
+`VEOVEO_ALLOW_LOOPBACK_HOSTS=true`, since native HTTP ingress reaches it as
+`127.0.0.1:8802`, beside the provider's webhook secret. Expose Media natively and add
+the Media callback route of [tunnel-routes.yaml](tunnel-routes.yaml), which publishes
+only `/media/operations/{operation_id}/{token}`:
+
+```sh
+openshell service expose --workspace vv-services media 8802 http \
+  --authorization-mode bearer-passthrough
+```
 
 With an existing native Hub bearer/reference, verify registration and actual MCP
 routing without invoking a model:

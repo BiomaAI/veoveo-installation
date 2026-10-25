@@ -89,8 +89,10 @@
     },
     "workspace": "vv-factory",
     "policyFile": "/etc/veoveo/hub/factory-base-v1.yaml",
-    "cpu": "4",
-    "memory": "8Gi",
+    "template": {
+      "workspace": "installation",
+      "name": "factory-v1"
+    },
     "port": 8800,
     "hubIssuer": "https://veoveo.bioma.ai",
     "loreServer": "grpcs://lore.veoveo-system.svc.cluster.local:41337",
@@ -98,8 +100,7 @@
     "loreProfile": "vv-lore",
     "imageBuilder": {
       "buildkit": "tcp://buildkitd.veoveo-system.svc.cluster.local:1234",
-      "registry": "registry.veoveo-system.svc.cluster.local:5000",
-      "lore": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:9926b55e9317cb7db242b5968bb28e4a81523b38e9afcab6964fc66d8d3688d2"
+      "registry": "registry.veoveo-system.svc.cluster.local:5000"
     },
     "caps": {
       "instancesPerUser": 4,

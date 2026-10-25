@@ -16,15 +16,19 @@ forks, not upstream release versions. Source selection alone is not build or
 deployment acceptance.
 
 - Factory toolchain: this revision's [factory Dockerfile](../factory/Dockerfile),
-  UID/GID 10001, with the Hub SDK CLI at `b2304759b07f3e1d07cd1bf9ec9a182c6dcddd65`.
-  Rebuild it when that pin changes and select its inspected immutable image digest.
-- Native Lore: source commit `bd9da2128acd83963b7168d63af7401409867bc7`, retaining
+  UID/GID 10001. Select its inspected immutable image digest.
+- Native Lore: source commit `4b7b7e236419414b4a0c67ecd66ca2409f19d35c`, retaining
   native OIDC refresh and S3/PostgreSQL storage, ending a lagging subscriber's
   notification stream and reading `LORE_ACCESS_TOKEN` and `LORE_IDENTITY` when their
   flags are absent, which Computers and factory sandboxes need. Build with the existing
   [Lore Dockerfile](../factory/Lore.Dockerfile)
-  and the selected source/CA named contexts. Use the resulting immutable image ID;
-  the same image is Hub's and every factory build's `lore` context.
+  and the selected source/CA named contexts. It is no build context of the Computer
+  image: the Computer template mounts the Lore image read-only, as Hub and every
+  factory sandbox do, and the installation names it once in
+  [component-lock.json](../component-lock.json).
+- Hub SDK CLI: the `cli` target of the SDK's Dockerfile, an image holding only
+  `/usr/local/bin/veoveo-hub-sdk-cli`, which the Computer template mounts read-only
+  beside Lore and the lock names the same way.
 - OpenCode: source commit `c5fb62662c9c6fcb5064ef191956ca0da14e1af9`, including
   runtime base paths, trusted-local-proxy admission, mount-scoped browser caches and
   online-only UI, mounted-router navigation and route-relative titlebar history.
@@ -37,25 +41,12 @@ deployment acceptance.
   platform package directory, with
   `bin/opencode`; an earlier prefix-only package does not contain all these changes.
 - Native OpenShell gateway/driver, supervisor and sandbox runtime:
-  `a6ed0ab4119208d99fb3211fe64fb1d0e52adf10` for all three, which adds gRPC on
-  sandbox service routes to `53e3665811a72dd1555edb18aeb4fedef4158dbd`, retaining
-  Kubernetes workspace persistence, connected-target forwarding readiness,
-  destination-CA staging, admitted GPU allocation propagation and native recovery
-  of a terminated admitted supervisor under `always`/`on-failure`. Temporarily
-  Pending Pods and stale controller status preserve running intent; fresh runtime
-  generations replace terminal Pods while retaining supported persistent state.
-  It contains the supervisor of
-  `d7a990083214e8a618f05b1b471aeeac6d9aa82a`, retaining mediated HTTP/2 stream
-  turnover and trusted gateway Service-DNS resolution, and renewing an expired
-  native Kubernetes launch credential pair before policy discovery. Fresh bundles
-  skip rebootstrap to avoid the initial runtime-binding persistence race. The
-  chart and sandbox runtime base is `846de5fa01234a22827915b3f4e5b9092367078b`.
-  Publish the three images to the local registry and select their digests through
-  native configuration. Both Kubernetes Pods deliberately
-  use `Never`; host recovery uses fresh generations rather than restarting an old
-  Pod with its expired bootstrap. The third Linux host reboot restored the owned
-  `always` workloads without manual Starts; mounted browser navigation and the
-  final bounded exact-model acceptance also pass in the recorded scope.
+  `491b3503d39f3ba83a25a309f52e52e20e304b03` for all three, as the
+  [K3s gateway](../kubernetes/README.md#native-openshell-gateway) describes. It mounts
+  the Lore and Hub SDK CLI images that the Computer template names, records the
+  network activity Computer collection reads and keeps a Computer's workspace across
+  replacement. Publish the three images to the local registry and select their
+  digests through native configuration.
 
 Source commits and local builds do not establish live deployment or user/model
 acceptance. The remote Lore endpoint and its owning deployment must be verified
@@ -66,7 +57,6 @@ With the reviewed IDs and package directory supplied in the operator environment
 ```sh
 docker buildx build --platform "$COMPUTER_PLATFORM" --load \
   --build-context "factory=docker-image://$COMPUTER_FACTORY_IMAGE" \
-  --build-context "lore=docker-image://$COMPUTER_LORE_IMAGE" \
   --build-context "opencode=$COMPUTER_OPENCODE_PACKAGE" \
   -f computer/Dockerfile -t veoveo/computer:reviewed .
 docker image inspect --format '{{.Id}}' veoveo/computer:reviewed
@@ -106,7 +96,10 @@ The operator imports the global, nonsecret native provider profiles and creates 
 trusted workload template using the existing authenticated native CLI. The example
 below selects the **Mac Docker development fixture**; Linux Kubernetes uses the
 [automatic-PVC template command](../kubernetes/WORKLOADS.md#hub-and-automatic-private-computers)
-without the Docker driver-config flag:
+with its [Kubernetes driver configuration](../kubernetes/computer-driver-config.json),
+which mounts Lore at `/opt/veoveo/lore` and the Hub SDK CLI at
+`/opt/veoveo/hub-sdk-cli`. OpenShell's Docker driver has no image volumes, so the
+Mac fixture's Computer has neither CLI:
 
 ```sh
 openshell profile lint --global --from computer/providers
@@ -149,7 +142,7 @@ with its native backend host-gateway pin and a trusted Lore fixture published on
 on host loopback port 41337. Its leaf must cover that hostname, with the same
 end-to-end TLS verification; no host DNS edit is needed. Replace an endpoint only
 as a consistent installation input. The fixture's exact Lore TCP rule in
-[policy.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/computer/policy.yaml) uses `tls: skip` to pass through the immediate gRPC TLS
+[policy.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/computer/policy.yaml) uses `tls: skip` to pass through the immediate gRPC TLS
 handshake. The shared `vv-lore` profile's endpoint is the Kubernetes Service, so the
 fixture's Lore calls carry the provider's placeholder unsubstituted: this fixture
 does not provide the owner's Lore access. On Linux the proxy terminates Lore's TLS on
@@ -161,8 +154,8 @@ The template
 supplies image/environment/resources/driver settings only. Hub clones
 it into the owner's workspace, supplies nonsecret `PUBLIC_BASE_PATH`, and creates
 with `openshell.nvidia.com/retention=persistent`, the fixed command from
-[the Hub fragment](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/computer/hub.example.json), native restart policy `Always`, native
-[policy](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/computer/policy.yaml), and the centrally assigned provider instances. Template
+[the Hub fragment](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/computer/hub.example.json), native restart policy `Always`, native
+[policy](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/computer/policy.yaml), and the centrally assigned provider instances. Template
 annotations do not substitute for the explicit Create annotation. Do not expose a
 network service for the app; Hub uses authenticated native ForwardTcp to literal
 `127.0.0.1:4096` after owner admission. The app's explicit trusted-local-proxy mode
@@ -238,10 +231,10 @@ URLs/headers out of reports and tracing, use the returned method/URL/required
 headers unchanged, and complete the Hub contract's finalize step where required.
 Qualify actual upload/download byte counts and hashes separately from metadata/MCP
 success.
-See the [native signed-authority contract](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/openshell/REFERENCE.md#native-seaweedfs-https-and-signed-authority).
+See the [native signed-authority contract](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/openshell/REFERENCE.md#native-seaweedfs-https-and-signed-authority).
 
 Lore acts as the Computer's owner after the owner's one Hub sign-in; there is no
-Lore login. Select the [Hub-issued native Lore setup](LORE_HUB.md): Entra proves
+Lore login. Hub's [Lore credentials](https://github.com/VeoveoAI/veoveo-hub/blob/main/crates/veoveo-hub/DESIGN.md#native-contributed-credential-lifecycle) apply: Entra proves
 identity through Hub's existing broker, Hub manages explicit live repository
 assignments and signs native claims, and unchanged Lore enforces its own contract.
 Each custody handoff gives the Computer's own Hub client a new secret in the
@@ -292,10 +285,10 @@ jq --rawfile handbook computer/instructions.md \
 ```
 
 Publish that full candidate through the same live admin control-plane API, preserving
-unrelated settings. [hub.example.json](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/computer/hub.example.json) omits the field so that the
+unrelated settings. [hub.example.json](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/computer/hub.example.json) omits the field so that the
 handbook has no second copy.
 
-The [native OIDC fragment](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/computer/lore-oidc.example.toml), Hub contribution/client records
+The [native OIDC fragment](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/computer/lore-oidc.example.toml), Hub contribution/client records
 and exact OAuth REST paths in policy must be selected together. Native private
 gRPC remains direct TLS. The OAuth paths share Hub's authority but are disjoint
 from managed MCP; there is no transparent TCP overlap, issuer host alias or broad

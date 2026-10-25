@@ -1,10 +1,10 @@
-# Maintained chart schema from 846de5fa01234a22827915b3f4e5b9092367078b.
-# Bioma's deployed images, published to the installation's local registry as
-# veoveo/openshell/{gateway,supervisor,sandbox}: the gateway is built from OpenShell
-# c28524bdda5145f45db3285a0b5876e8d5dfff15, the supervisor and sandbox runtime from
-# d1d4da39941ecf809d9b0dee51032277cbc42ea4. component-lock.json records them. The
-# node pulls them through its registries.yaml entry; no image-pull Secret is used.
-# The issuer, audience and role claims are Bioma's public Entra identifiers.
+# The chart, gateway, supervisor and sandbox runtime all come from the maintained
+# OpenShell revision 491b3503d39f3ba83a25a309f52e52e20e304b03; the three images are
+# published to the installation's local registry as
+# veoveo/openshell/{gateway,supervisor,sandbox}. The node pulls them through its
+# registries.yaml entry; no image-pull Secret is used.
+# The digests are the images Bioma deployed, which component-lock.json names; the
+# issuer, audience and role claims are Bioma's public Entra identifiers.
 fullnameOverride: openshell
 replicaCount: 1
 workload:
@@ -14,13 +14,13 @@ global:
     registry: registry.veoveo-system.svc.cluster.local:5000/veoveo
 gateway:
   image:
-    digest: sha256:ffd273af21a54e40dca67fa773d6c310a28a33d6f25a6ae195fe55c50c7c36a5
+    digest: sha256:72f68986f89fbe87316eee9dadc026cf88d43743d64f0f4b83e07ae08a72f6ed
 supervisor:
   image:
-    digest: sha256:6ce6d7b23ff4512ae371a463896260d6fae91304ae7854c81f40be116d2a4cc9
+    digest: sha256:09e9fcacc84025c9e9da55f6854d7d0d223d85392c86424ec60527bf8319b2c9
 sandboxRuntime:
   image:
-    digest: sha256:d2a791ffdbe143e50dcf6289ece400819733c355b6a51614e9dfd925959563ff
+    digest: sha256:064261b75ef17c7ff88d182454ac0053caaae4d405dca43afd5667e76c45948d
 server:
   externalDbSecret: openshell-gateway-db
   extraVolumes:
@@ -49,6 +49,14 @@ server:
   sandboxJwt:
     # Selects the default managed namespace ID; render matching PVC/Job namespaces.
     gatewayId: openshell
+  drivers:
+    kubernetes:
+      resourceAdmission:
+        # The only repositories whose digest-pinned images may be image volumes: Lore and
+        # the Hub SDK CLI. Upgrading either changes its digest, never this list.
+        imageRepositories:
+          - registry.veoveo-system.svc.cluster.local:5000/veoveo/lore
+          - registry.veoveo-system.svc.cluster.local:5000/veoveo/hub-sdk-cli
   tls:
     enableMtls: true
     certSecretName: openshell-server-tls
@@ -75,7 +83,10 @@ gatewayConfig:
     allow_unauthenticated_users: false
   openshell.gateway.oidc:
     issuer: https://login.microsoftonline.com/e0ee3c6a-4f58-4f66-8de4-253226eeed5f/v2.0
+    # The aud of the OpenShell resource application's access tokens, not its .default scope.
     audience: 8a6d434f-8c4c-4e2c-9756-9b2d94118d17
+    # Entra carries app roles in roles, and app-only tokens carry their application
+    # permissions there too.
     roles_claim: roles
     scopes_claim: roles
     admin_role: openshell-admin

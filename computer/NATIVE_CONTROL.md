@@ -1,8 +1,8 @@
 # Computer-enabled Hub native authority
 
 Select this mode explicitly when enabling Computers. The existing
-[`openshell/hub.yaml`](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/openshell/hub.yaml) and
-[`hub-entra.example.yaml`](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/openshell/hub-entra.example.yaml) remain the
+[`openshell/hub.yaml`](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/openshell/hub.yaml) and
+[`hub-entra.example.yaml`](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/openshell/hub-entra.example.yaml) remain the
 forwarder-only mode. Their `vv-hub-forwarder` identity is intentionally insufficient
 for provisioning. Do not add administrative grants to that existing client.
 
@@ -53,8 +53,8 @@ Choose one endpointless native credential profile:
 
 | Installation | Profile | Hub policy |
 |---|---|---|
-| Local Keycloak | [hub-native-control.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/openshell/providers/hub-native-control.yaml) | [hub-computer.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/openshell/hub-computer.yaml) |
-| Entra | [entra-hub-native-control.example.yaml](../openshell/providers/entra-hub-native-control.example.yaml) | [hub-computer-entra.example.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/openshell/hub-computer-entra.example.yaml) |
+| Local Keycloak | [hub-native-control.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/openshell/providers/hub-native-control.yaml) | [hub-computer.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/openshell/hub-computer.yaml) |
+| Entra | [entra-hub-native-control.example.yaml](../openshell/providers/entra-hub-native-control.example.yaml) | [hub-computer-entra.example.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/openshell/hub-computer-entra.example.yaml) |
 
 Replace the profile's token URL/resource and the policy's exact origins together.
 The native gateway owns client-credentials renewal. Hub captures only its opaque
@@ -97,7 +97,7 @@ part of this workflow. Import the two global user data-plane profiles and create
 the trusted Computer template using [the Computer instructions](README.md#state-and-native-governance)
 before starting the Computer-enabled Hub.
 
-Merge [hub.example.json](https://github.com/VeoveoAI/veoveo-template-installation/blob/c8582f54e5025020b6983702bfc479a4fc80048b/computer/hub.example.json) into the installation's native Hub
+Merge [hub.example.json](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/computer/hub.example.json) into the installation's native Hub
 configuration. Keep both gateway blocks on the same actual endpoint, workload CA
 and `HUB_NATIVE_CONTROL_REFERENCE`. The fragment shows the reference service
 bindings; retain the installation's reviewed `nativeUpstreams.bindings` rather than
@@ -114,7 +114,7 @@ installation input; it is not the native management identity. Do not put
 supplies that reference. Preserve existing Hub database/signing/registration
 state and other services. The separately authorized unreleased Hub resource-binding
 migration discards disposable OAuth continuity, not native service custody or
-Computer working storage; see [issuer cutover](LORE_HUB.md#live-publication-and-first-cutover).
+Computer working storage; see the [first import](../kubernetes/WORKLOADS.md#hub-and-automatic-private-computers).
 
 For a fresh Hub sandbox, select the matching Computer-enabled policy and reviewed
 immutable Hub image. The existing native mount configuration supplies the
@@ -196,8 +196,9 @@ Computer exists, or that an unavailable CLI evaluator/prover was executed.
 
 The current Kubernetes Hub policy also admits BuildKit at
 `buildkitd.veoveo-system.svc.cluster.local:1234` for `/usr/local/bin/buildctl`, and
-Lore for both the Hub binary and `/usr/local/bin/lore`, which reads a pushed
-revision's `openshell/` as its pusher. It admits no `ExecSandbox`: Hub never runs a
+Lore for both the Hub binary and `/opt/veoveo/lore/usr/local/bin/lore`, the Lore image
+mounted read-only into Hub's sandbox, which reads a pushed revision's `openshell/` as
+its pusher. It admits no `ExecSandbox`: Hub never runs a
 command in, or writes into, a Computer, whose `/sandbox` is its owner's home. The
 Mac forwarder/provisioner fixtures keep their RPC list; select the actual native
 endpoint/policy together.

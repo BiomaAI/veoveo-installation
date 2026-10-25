@@ -171,7 +171,8 @@ Our own (Veoveo-built) images come only from this registry; public third-party
 images stay at their upstream registries, pinned by digest. Every Veoveo image is
 rebuilt from source and published under `veoveo/`: the OpenShell gateway, supervisor
 and sandbox runtime (`veoveo/openshell/{gateway,supervisor,sandbox}`, all from one
-OpenShell revision), Hub, Lore, the PostgreSQL extension image, the factory base,
+OpenShell revision), Hub, Lore, the Hub SDK CLI (`veoveo/hub-sdk-cli`, the SDK
+Dockerfile's `cli` target), the PostgreSQL extension image, the factory base,
 Computer, Artifact, Media, the Media fixture provider, Embedding and its runtime.
 Hub pushes environment images under `factory/`; registry cleanup touches only those.
 Push from the build host through a port-forward; the `localhost:5000` push is the
@@ -186,9 +187,62 @@ docker push "localhost:5000/veoveo/$NAME:$REVISION"   # prints the digest
 
 Local-registry pulls need no credentials, so no image-pull Secret exists in any
 namespace. Apply this registry and the node entry before any Veoveo workload,
-PostgreSQL included. Hub's own policy admits BuildKit for `/usr/local/bin/buildctl`;
-the Lore CLI image that factory builds copy as their `lore` context is
-`veoveo/lore` in this registry, pinned by digest in Hub's `factory.imageBuilder.lore`.
+PostgreSQL included. Hub's own policy admits BuildKit for `/usr/local/bin/buildctl`,
+which builds each branch's environment image from its `openshell/image/` alone.
+
+### Naming each image once
+
+Lore's command line and the Hub SDK CLI reach the workloads that use them only from
+their own images, mounted read-only as Kubernetes image volumes: the Lore image
+(`veoveo/lore`, [Lore.Dockerfile](../factory/Lore.Dockerfile)'s `runtime` target,
+which the Lore server also runs) at `/opt/veoveo/lore` in Hub, every Computer and every
+factory sandbox, and the SDK CLI image at `/opt/veoveo/hub-sdk-cli` in Computers. Their
+binaries are `/opt/veoveo/lore/usr/local/bin/lore` and
+`/opt/veoveo/hub-sdk-cli/usr/local/bin/veoveo-hub-sdk-cli`, the paths the policies and
+the `vv-lore` profile name.
+
+[component-lock.json](../component-lock.json) names each of these images once, by digest
+in the local registry, in its `images` member, which the
+[component lock format](https://github.com/VeoveoAI/veoveo-core/blob/main/platform/installation/contract/DESIGN.md)
+defines: a map from the image's name to `<repository>@sha256:<digest>`, with no tag. The
+template has built no image, so its lock names none; once an installation publishes
+both images, its lock holds:
+
+```json
+"images": {
+  "hub-sdk-cli": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub-sdk-cli@sha256:<digest>",
+  "lore": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:<digest>"
+}
+```
+
+The files that use an image carry its placeholder, `@image:lore@` or
+`@image:hub-sdk-cli@`: [lore.yaml](lore.yaml) and the [Hub](hub-driver-config.json),
+[Computer](computer-driver-config.json) and [factory](factory-driver-config.json) driver
+configurations. Fill them into private copies; this is the only way a digest enters
+them, it refuses an image that is not pinned by digest, and the last line fails while
+any placeholder is left:
+
+```sh
+jq -r '(.images // {}) | to_entries[] |
+  if (.value | test("^[^@]+@sha256:[0-9a-f]{64}$")) then "s|@image:\(.key)@|\(.value)|g"
+  else error("\(.key) is not pinned by digest in component-lock.json") end' \
+  component-lock.json > "$PRIVATE/images.sed"
+for file in lore.yaml hub-driver-config.json computer-driver-config.json factory-driver-config.json; do
+  sed -f "$PRIVATE/images.sed" "kubernetes/$file" > "$PRIVATE/$file"
+done
+! grep -n '@image:' "$PRIVATE/lore.yaml" "$PRIVATE"/*-driver-config.json
+```
+
+OpenShell's resource admission stays on. It admits an image volume only when its
+reference is pinned by digest and its repository is listed, which
+[openshell.values.yaml](openshell.values.yaml) does for exactly these two repositories
+(`server.drivers.kubernetes.resourceAdmission.imageRepositories`); the gateway also
+runs with `allow_driver_config`. Upgrading Lore builds and publishes one image, puts
+its digest in the lock and fills the files again; the repository list does not change.
+Then apply `lore.yaml`, recreate Hub with the new Hub driver configuration, and publish
+the Computer and factory templates again: Hub uses the new Lore when it restarts, each
+Computer as a new Computer version when its owner restarts it, and each factory
+instance when its next push recreates its sandbox.
 
 ## Factory sandbox policy and providers
 
@@ -218,11 +272,28 @@ names them in the `factory` section (`registrationProfile`, `loreProfile`,
 `workspace`); the rendered base policy goes into Hub's configuration claim as
 `factory-base-v1.yaml` ([hub-config-pvc.yaml](hub-config-pvc.yaml)), which
 `factory.policyFile` names as `/etc/veoveo/hub/factory-base-v1.yaml`. Hub reads it at
-startup and exits if it is invalid. The default size, soft caps and base branch are
-Hub control-plane values (`factory.cpu`, `factory.memory`, `factory.caps`,
+startup and exits if it is invalid.
+
+Every factory sandbox's size and mounts come from the factory template, which
+`factory.template` names, created as the Computer template is, with the
+[filled](#naming-each-image-once) factory driver configuration and no image:
+
+```sh
+openshell sandbox template create factory-v1 --workspace installation \
+  --cpu 4 --memory 8Gi \
+  --driver-config-json "$(cat "$PRIVATE/factory-driver-config.json")"
+```
+
+Hub reads it on every push and creates each instance inline with the branch's own
+image, the template's CPU and memory as limits and its driver configuration; a
+template that names an image, environment or a GPU is refused. OpenShell has no
+template update: to change it, delete it and create it again under the same name, and
+each instance takes it at its next push, which recreates its sandbox. The template may
+come before or after Hub starts; until it exists, every push fails at `create` and
+names it. The soft caps and base branch are Hub control-plane values (`factory.caps`,
 `execution.baseBranch`), seeded from [hub.example.json](hub.example.json) and changed
-live through Hub's control-plane route. No installation-wide factory client or
-secret exists: each instance's Lore access comes from its own Hub client.
+live through Hub's control-plane route. No installation-wide factory client or secret
+exists: each instance's Lore access comes from its own Hub client.
 
 ## SeaweedFS
 
@@ -321,20 +392,21 @@ tunnel, and never rewrite the public host to Service DNS.
 
 ## Native OpenShell gateway
 
-Build the gateway, supervisor and sandbox runtime from maintained OpenShell source
-`a6ed0ab4119208d99fb3211fe64fb1d0e52adf10` with OpenShell's own image workflow and
-publish all three to the [local registry](#logs-image-builder-and-registry) as
+Build the chart's gateway, supervisor and sandbox runtime from maintained OpenShell
+source `491b3503d39f3ba83a25a309f52e52e20e304b03` with OpenShell's own image workflow
+and publish all three to the [local registry](#logs-image-builder-and-registry) as
 `veoveo/openshell/gateway`, `veoveo/openshell/supervisor` and
-`veoveo/openshell/sandbox`. That revision is `53e3665811a72dd1555edb18aeb4fedef4158dbd`
-plus gRPC on sandbox service routes, a change to `openshell-server` only; it contains
-the Kubernetes destination-CA, admitted GPU propagation and terminal-runtime recovery
-fixes, the supervisor fixes of `d7a990083214e8a618f05b1b471aeeac6d9aa82a` and the
-chart/runtime base `846de5fa01234a22827915b3f4e5b9092367078b`.
+`veoveo/openshell/sandbox`. That revision mounts digest-pinned images from listed
+repositories as read-only image volumes, which the Lore and Hub SDK CLI mounts need;
+records each sandbox's last network activity, which Computer collection reads; keeps
+a deleted sandbox's workspace for the next sandbox of its name and gives its root to
+the sandbox user; installs a credential refresh in place; and keeps the earlier
+Kubernetes destination-CA, admitted GPU propagation, terminal-runtime recovery and
+supervisor fixes and gRPC on sandbox service routes.
 [openshell.values.yaml](openshell.values.yaml) selects the registry; private values
 supply the three digests. Do not select stock images with the same tag. Record each
-image's digest. The 2026-10-20 reference ran gateway `53e3665`, supervisor `d7a99008`
-and sandbox runtime `846de5fa`, built separately. Source selection or publication
-does not prove that every existing generation has adopted the selected supervisor.
+image's digest in the installation's lock. Publishing a new supervisor does not move
+a running sandbox to it; each sandbox takes it at its next start.
 
 The supervisor retains the Kubernetes driver's declared ServiceAccount source.
 When either credential in the immutable launch bundle has expired, it uses native
@@ -346,7 +418,7 @@ Docker/standalone credentials keep their existing path. This changes neither
 native Lore authentication nor its Hub-issued grants.
 
 The earlier reboot attempts exposed driver-written suspension of running workloads.
-The `53e3665` gateway was deployed at reference Helm revision 9. Temporarily Pending
+Temporarily Pending
 Pods preserve running intent; a terminal supervisor with admitted Pod identities
 and enforcement fences intact enters native `always`/`on-failure` replacement.
 Before loss publication, stale v1beta1 `Suspended` status projects as unavailable
@@ -476,8 +548,8 @@ Builder owns chart rendering, schema checks, immutable image verification and
 deployed probes. These source inputs alone do not prove PostgreSQL extension-image
 compatibility, Seaweed TLS/IAM, signed bytes, service recovery or a Kubernetes
 Computer. Keep deterministic checks, deployed checks and final exact MiMo
-acceptance separate. Remove obsolete Linux platform Compose launch paths only
-after replacement acceptance; preserve Mac test fixtures and external identity.
+acceptance separate. Compose recipes serve only the Mac fixtures; no Linux step uses
+them.
 
 
 ## Reference qualification checkpoint — 2026-10-20
