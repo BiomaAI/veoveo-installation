@@ -7,7 +7,7 @@ the repository to read to see a real installation.
 
 It is laid out as if the template had produced it for Bioma. The files are the
 template's Linux K3s path, at template revision
-`c8582f54e5025020b6983702bfc479a4fc80048b`, with Bioma's values in place of the
+`1b56e68ccafe7d22f5a07926aa8667d3b207d6bd`, with Bioma's values in place of the
 template's placeholders. [openshell/bioma/](openshell/bioma/README.md) lists Bioma's
 selections and every other difference from the template, with its reason. The
 template's Mac and Docker development fixtures stay in the template.
@@ -21,15 +21,16 @@ template's Mac and Docker development fixtures stay in the template.
 | [openshell/](openshell/bioma/README.md) | Provider profiles, storage policies and Bioma's selections |
 | [postgres/](postgres/README.md) | The PostgreSQL extension image |
 | [component-lock.json](component-lock.json) | The deployed revisions and image digests |
-| [DESIGN.md](DESIGN.md) | The installation's design |
+| [DESIGN.md](DESIGN.md) | The installation's design, the template's copied verbatim |
 
 ## What is deployed
 
 [component-lock.json](component-lock.json) records each component's source revision
-and image digest. They were read from the running cluster's Pods and Helm values,
-the cluster's image build record and Hub's seeded configuration on 2026-10-24
-(UTC). The build record names the Lore revision of the factory's Lore image only
-by its image tag.
+and each image's digest, in core's component-lock format. The digests were read from
+the running cluster's Pods, their image volumes and the gateway's Helm values on
+2026-10-25 (UTC); the revisions come from the cluster's image build record. The
+revisions the format cannot hold, of OpenShell, Lore and OpenCode, are in
+[openshell/bioma/](openshell/bioma/README.md#deployed-revisions).
 
 ## Status
 
