@@ -67,13 +67,29 @@ other repository, so these provenances are here:
 
 | Image | Built from |
 |---|---|
-| `openshell-gateway`, `openshell-supervisor`, `openshell-sandbox` | OpenShell `491b3503d39f3ba83a25a309f52e52e20e304b03`, the template's pin. Hub, the factory sandboxes and the Computer run this supervisor and sandbox runtime; the `vv-services` sandboxes still run those of OpenShell `d1d4da39941ecf809d9b0dee51032277cbc42ea4` (`supervisor@sha256:6ce6d7b2…`, `sandbox@sha256:d2a791ff…`) until they next start |
-| `lore` | Lore `4b7b7e236419414b4a0c67ecd66ca2409f19d35c` with the template's Lore Dockerfile at `9f21d3e`, published as `veoveo/lore:drill-20261025`. The Lore server, Hub, the factory sandboxes and the Computer all run this digest |
-| `computer` | The template at `9f21d3e` over the `factory` image, with OpenCode `c5fb62662c9c6fcb5064ef191956ca0da14e1af9` |
-| `factory` | The template at `9f21d3e` |
+| `openshell-gateway`, `openshell-supervisor`, `openshell-sandbox` | OpenShell `491b3503d39f3ba83a25a309f52e52e20e304b03`, the template's pin. Hub, console, the factory sandboxes and the Computer run this supervisor and sandbox runtime; Artifact, Media, the Media provider, Embedding and its runtime still run those of OpenShell `d1d4da39941ecf809d9b0dee51032277cbc42ea4` (`supervisor@sha256:6ce6d7b2…`, `sandbox@sha256:d2a791ff…`) until they next start |
+| `lore` | Lore `4b7b7e236419414b4a0c67ecd66ca2409f19d35c` with the template's Lore Dockerfile at `9f21d3e`, whose build and runtime stages the current template keeps unchanged, published as `veoveo/lore:drill-20261025`. The Lore server, Hub, the factory sandboxes and the Computer all run this digest |
+| `computer` | The template at `9f21d3e` over the `factory` image, with OpenCode `c5fb62662c9c6fcb5064ef191956ca0da14e1af9`; the current template's Computer build inputs are the same |
+| `factory` | The template at `9f21d3e`, the base of the `computer` image; no workload runs it directly |
 | `media-provider` | Media `6a73e52932d166e368ba8673277cadf8be1742b9`, target `fake-provider`; the lock's Media revision is the server's, `6bd5843` |
 | `postgres` | The template at `ecdb5b5dcc621161c7e5905a243c1271b42daeff` |
-| `hub-sdk-cli` | The SDK at `3980af8`, target `cli` |
+| `hub-sdk-cli` | The SDK at `a41c9cc`, target `cli` |
+
+The lock's `veoveo-template-installation` revision, `9f21d3e`, is the one the
+`computer`, `factory` and `lore` images were built from; the files here follow the
+template at `51f2c7b`. Bioma runs these component revisions where the template locks
+each component's main:
+
+| Component | Template's lock | Bioma runs |
+|---|---|---|
+| `veoveo-hub` | `d718d02` | `e895369`; `d718d02` adds only documentation |
+| `veoveo-hub-sdk` | `a41c9cc` | `a41c9cc` |
+| `veoveo-mcp-console` | `e855cac` | `a8f5d29` |
+| `veoveo-mcp-artifact` | `ae29dc3` | `a0566b8` |
+| `veoveo-mcp-media` | `871e11d` | `6bd5843` |
+| `veoveo-mcp-embedding` | `df07d1f` | `46fa002` |
+| `veoveo-runtime-embedding` | `9850c04` | `109304d` |
+| `veoveo-mcp-time` | `6f17481` | not installed |
 
 ## Differences from the template
 
