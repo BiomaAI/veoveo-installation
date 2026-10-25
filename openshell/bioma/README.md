@@ -1,7 +1,8 @@
 # Bioma's selections
 
 This repository follows [veoveo-template-installation](https://github.com/VeoveoAI/veoveo-template-installation)
-at `1b56e68ccafe7d22f5a07926aa8667d3b207d6bd`. The shared files carry Bioma's
+at `51f2c7bd51e9d708a91b56e6f36ca56073302fa4`, the template's `cleanup` branch over its
+main `67b7032e988a71d80938c4e4e79897f78c3a8152`. The shared files carry Bioma's
 values in place of the template's placeholders, and [DESIGN.md](../../DESIGN.md) is the
 template's, verbatim. This page lists what Bioma selected and every other place where
 a file differs from the template.
@@ -15,7 +16,8 @@ a file differs from the template.
 - The OpenShell gateway ID is `openshell`. The workspaces are `vv-control` (Hub),
   `vv-services` (MCP servers), `vv-factory` (factory sandboxes) and `installation`
   (the Computer and factory templates). Their managed namespaces are
-  `openshell-openshell-<workspace>`.
+  `openshell-openshell-<workspace>`, the names the builder's and log store's network
+  policies use.
 - The embedding runtime uses the node's GPU through the NVIDIA device plugin.
 
 ## Public host and tunnel
@@ -51,8 +53,10 @@ example principals.
   generation and checks run status, so no provider callback route is published.
 - Time is not an installed service.
 - Computers use the template's DeepInfra model provider.
-- Hub's `computers.handbook` is the text of
-  [computer/instructions.md](../../computer/instructions.md).
+- Hub's `computers.handbook` is still the text of
+  [computer/instructions.md](../../computer/instructions.md) at the template's
+  `1b56e68`, without the paragraph on the Hub CLI. The current text has not been
+  published through the live control plane yet.
 
 ## Deployed revisions
 
@@ -77,13 +81,13 @@ Besides placeholder values, these files differ from the template:
 
 | File | Difference | Reason |
 |---|---|---|
-| `component-lock.json` | Names Bioma's deployed revisions and images, without Time | The lock is what Bioma runs. Time is not installed |
+| `component-lock.json` | Names Bioma's deployed revisions and images, the template's own revision, and no Time | The lock is what Bioma runs. Time is not installed |
 | `kubernetes/tunnel-routes.yaml` | Leaves out the Media callback route | Bioma's Media checks run status against the fake provider |
 | `kubernetes/openshell.values.yaml` | The three OpenShell image digests are filled in | They are the images Bioma deployed |
 | `kubernetes/postgres.yaml`, `hub-config-pvc.yaml`, `media-provider-config-pvc.yaml`, `postgres-client-ca.yaml`, `seed-service-configs.yaml` | The image markers name the deployed PostgreSQL image and the pinned `debian:trixie-slim` copy utility | These values are rendered here |
-| Comments that say to render the host, image or gateway ID (`kubernetes/README.md`, `lore.toml`, `embedding-storage.yaml`, `postgres.yaml`, `seed-service-configs.yaml`, `tunnel-routes.yaml`, `policies/console.yaml`, `policies/factory-base.yaml`, `openshell/providers/factory-registration.yaml`, `openshell/providers/lore.yaml`) | Reworded | These values are already rendered here |
+| Comments and sentences that say to render the host, image or gateway ID (`kubernetes/README.md`, `WORKLOADS.md`, `lore.toml`, `embedding-storage.yaml`, `postgres.yaml`, `seed-service-configs.yaml`, `tunnel-routes.yaml`, `policies/console.yaml`, `policies/factory-base.yaml`, `openshell/providers/factory-lore.yaml`, `factory-registration.yaml`, `lore.yaml`) | Reworded | These values are already rendered here |
 | `README.md`, `AGENTS.md` | Describe this repository | Bioma's repository, not the template |
-| Links to template files left out of this repository | Point to the template at `1b56e68` | These files are the template's Mac and Docker fixtures and its Docker-era reference documents |
+| Links to template files left out of this repository | Point to the template at `51f2c7b` | These files are the template's Mac and Docker fixtures and its Docker-era reference documents |
 
 `lore.yaml` and the Hub, Computer and factory driver configurations keep the
 template's `@image:lore@` and `@image:hub-sdk-cli@` placeholders, which the operator
@@ -93,4 +97,6 @@ fills from the lock into private copies, as the template's
 The template files left out are its Mac and Docker development fixtures: Compose,
 local Keycloak and Envoy, the Docker gateway configuration, policies and mounts, the
 Docker Lore configuration, the Docker variants of the Computer files, and the
-Docker-era `openshell/` documents.
+Docker-era `openshell/` documents. Time's registration profile,
+`openshell/providers/time-registration.yaml`, is left out too, because Time is not
+installed.

@@ -123,8 +123,8 @@ Lore's server settings ([lore.toml](kubernetes/lore.toml)) trust only Hub's
 resource IDs `urc-{id}` and `baseline_access = "denied"`; Lore's public client is
 `lore-computer`, with the `lore:login` scope and the scope template `lore-repo-{id}`.
 QUIC is off, so every Lore operation is gRPC that OpenShell mediates. The repository
-catalog is `baseline`: Lore lists no repositories per person. The existing
-`factory_branch` pre-push hook is configured with no assignments.
+catalog is `baseline`: Lore lists no repositories per person. Lore runs no hook: what a
+workload may do in Lore is its token's grants and its provider profile's endpoint rules.
 
 ## Storage
 
@@ -165,8 +165,9 @@ agent-controlled images. Only reviewed public CAs enter application build contex
 Services/DNS provide private PostgreSQL, S3 and Lore addressing. Every workload's
 policy is in OpenShell's own schema under [policies](kubernetes/policies). An endpoint
 that carries a credential comes from the attached provider's profile, so Lore is
-reached only through the `vv-lore` profile's credential-bound endpoint and no policy has a
-passthrough Lore rule. The public-only `platform-destination-roots-v1` bundle holds the
+reached only through the credential-bound endpoint of `vv-lore` or `vv-factory-lore` and
+no policy has a passthrough Lore rule. A profile's endpoint rules bound what its
+credential may do, whatever the token allows. The public-only `platform-destination-roots-v1` bundle holds the
 gateway CA, the Lore and SeaweedFS destination roots and the PostgreSQL CA; the
 supervisor injects it into every workload's trust, and changing it means recreating
 the affected runtimes.
@@ -174,8 +175,9 @@ the affected runtimes.
 Real credentials stay in the gateway's encrypted custody; a workload sees only the
 placeholder its provider's environment names, which OpenShell replaces on the request.
 A credential that must sign stays with its signer, such as Artifact's bucket key. The
-provider profiles are global: `vv-lore` (Lore access for Computers and factory
-instances, refreshed by the gateway with each one's own Hub client),
+provider profiles are global: `vv-lore` (a Computer's Lore access as its owner, every
+method), `vv-factory-lore` (a factory instance's Lore access as its latest pusher,
+reads only), both refreshed by the gateway with each one's own Hub client,
 `vv-factory-registration` (an instance's registration token), the Computer's
 `vv-computer-hub` and `vv-computer-model`, each platform server's
 `vv-<server>-registration`, and Hub's own `vv-hub-native-control` and
@@ -223,6 +225,33 @@ another reads would let a branch plant compiled code in a build it has no right 
 change. Each instance compiles on its own sandbox's disk, and a new branch or a
 recreated sandbox compiles from nothing.
 
+The image builder keeps that rule for `openshell/image/`. Hub builds every branch with
+BuildKit's cache-mount namespace (`BUILDKIT_CACHE_MOUNT_NS`, a build option the client
+sets and a `Dockerfile` cannot) set to the SHA-256 of its repository ID and branch name,
+so one branch's `RUN --mount=type=cache` directory is never another's, and prunes
+BuildKit's cache mounts before and after every build, so one lives for one build only.
+BuildKit keys a cached step by its instruction and inputs and not by what a cache mount
+held, so a cache mount's content must not outlive its build. Layers stay cached: a push
+that changes nothing in `openshell/image/` gets the same image back. The builder runs
+no frontend but `docker/dockerfile`'s, whatever a `# syntax=` line names.
+
+Build steps share the BuildKit daemon's network, so Kubernetes network policy, which
+Cilium enforces, bounds what a build reaches: the daemon reaches the public internet,
+the registry and cluster DNS and no other private or cluster address, and only Hub's
+supervisor reaches the daemon. The log store admits only Vector, which writes to it,
+and the supervisors of `vv-services`, where console reads it; no factory sandbox or
+build reaches it. The registry has no authentication yet, so a build step can still
+push an image to it. Every workload names its image by digest, so a pushed image
+redirects nothing, but the registry's authentication stays open.
+
+A factory instance reads Lore and never writes to it. Its Lore token is the latest
+pusher's, with that person's grants, and the branch's code runs beside it: with write
+access, code an earlier push planted would act with a later pusher's rights. So Hub's
+`factory.loreProfile` names `vv-factory-lore`, whose endpoint admits only the read
+methods the instance's start command uses, `lore clone` and `lore sync --reset`:
+OpenShell refuses every other Lore method before the token is attached. Computers keep
+`vv-lore`, with every method, since their owner pushes from them.
+
 ## Computers
 
 The Computer template `computer-v1`, in workspace `installation`, its
@@ -241,7 +270,13 @@ one source is [computer/instructions.md](computer/instructions.md), published in
 OpenCode's configuration ([opencode.json](computer/opencode.json)) selects
 `deepinfra/XiaomiMiMo/MiMo-V2.6-Pro` by default, turns off its Git and Mercurial
 plugins and its snapshots, since Lore owns source history and undo, and connects one
-MCP server, `hub`, with the Computer's own Hub credential. `computers.collectAfterSeconds`
+MCP server, `hub`, with the Computer's own Hub credential. The mounted Hub SDK CLI acts
+as the owner the same way: the template sets `VEOVEO_CLI_HUB` to the Hub's public
+origin, `VEOVEO_CLI_PROFILE=computer` and `VEOVEO_CLI_BEARER_ENV=COMPUTER_HUB_REFERENCE`,
+and the policy's `hub` rule admits `/mcp/computer`, with the `computer-hub` credential
+binding, for both OpenCode and the CLI's binary, so `veoveo-hub-sdk-cli tools` and `call`
+need no flags. The model endpoint stays OpenCode's alone; the CLI's `login`, `logout`
+and `ask` say that they do not apply in a Computer. `computers.collectAfterSeconds`
 sets idle collection (7200 in the reference); the forwarding capacity is Hub's
 `computers.forwardingConnectionLimit`, beside the gateway's per-sandbox and per-replica
 TCP limits, which are separate from SSH's.

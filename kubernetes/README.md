@@ -154,6 +154,19 @@ registry at `registry.veoveo-system.svc.cluster.local:5000` with the fixed Clust
 kubectl apply -f kubernetes/logs.yaml -f kubernetes/builder.yaml
 ```
 
+Build steps run in BuildKit's network, so both files carry network policies, which
+Cilium enforces: BuildKit answers only Hub's supervisor and reaches only cluster DNS,
+the registry and public addresses, and VictoriaLogs answers only Vector and the
+supervisors of `vv-services`, where console reads it. Both name their workspace
+namespaces for the gateway ID `openshell`; render them as `openshell-<gateway>-<workspace>`
+for another ID. BuildKit's configuration admits only Docker's Dockerfile frontend for a
+`# syntax=` line, and Hub keeps each branch's cache mounts apart and prunes them around
+every build. BuildKit reads its configuration when it starts, so a changed
+`buildkitd.toml` takes effect after
+`kubectl -n veoveo-system rollout restart statefulset/buildkitd`. The registry has no
+authentication yet: a build step can push to it, which redirects no workload, since
+every workload names its image by digest.
+
 Point the node's container runtime at the registry once, then restart K3s. The
 restart takes the API away for a few seconds and restarts no container:
 
@@ -199,7 +212,7 @@ which the Lore server also runs) at `/opt/veoveo/lore` in Hub, every Computer an
 factory sandbox, and the SDK CLI image at `/opt/veoveo/hub-sdk-cli` in Computers. Their
 binaries are `/opt/veoveo/lore/usr/local/bin/lore` and
 `/opt/veoveo/hub-sdk-cli/usr/local/bin/veoveo-hub-sdk-cli`, the paths the policies and
-the `vv-lore` profile name.
+the `vv-lore` and `vv-factory-lore` profiles name.
 
 [component-lock.json](../component-lock.json) names each of these images once, by digest
 in the local registry, in its `images` member, which the
@@ -252,17 +265,21 @@ server it builds there, and open internet access stated as one explicit rule. Ea
 instance also gets two providers whose profiles carry their own endpoints:
 [factory-registration](../openshell/providers/factory-registration.yaml), the
 instance's registration token for Hub, and
-[lore](../openshell/providers/lore.yaml), Lore access as the branch's latest
-pusher, refreshed by the gateway with the instance's Hub client. Each Computer's
-Lore provider uses the same global profile, as the Computer's owner.
-All three name Hub's host, `veoveo.bioma.ai`. Hub creates each
+[factory-lore](../openshell/providers/factory-lore.yaml), Lore read access as the
+branch's latest pusher, refreshed by the gateway with the instance's Hub client. Its
+endpoint admits only the read methods of `lore clone` and `lore sync --reset`, so the
+branch's code cannot write to Lore with its pusher's rights. Each Computer's Lore
+provider uses [lore](../openshell/providers/lore.yaml) instead, with every method, as
+the Computer's owner. All four name Hub's host, `veoveo.bioma.ai`. Hub creates each
 instance's providers with no profile workspace, which OpenShell resolves only
 against global profiles, so import both globally:
 
 ```sh
 openshell profile lint --global --file openshell/providers/factory-registration.yaml
+openshell profile lint --global --file openshell/providers/factory-lore.yaml
 openshell profile lint --global --file openshell/providers/lore.yaml
 openshell profile import --global --file openshell/providers/factory-registration.yaml
+openshell profile import --global --file openshell/providers/factory-lore.yaml
 openshell profile import --global --file openshell/providers/lore.yaml
 openshell workspace create --name vv-factory
 ```

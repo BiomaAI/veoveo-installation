@@ -142,7 +142,7 @@ with its native backend host-gateway pin and a trusted Lore fixture published on
 on host loopback port 41337. Its leaf must cover that hostname, with the same
 end-to-end TLS verification; no host DNS edit is needed. Replace an endpoint only
 as a consistent installation input. The fixture's exact Lore TCP rule in
-[policy.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/computer/policy.yaml) uses `tls: skip` to pass through the immediate gRPC TLS
+[policy.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/51f2c7bd51e9d708a91b56e6f36ca56073302fa4/computer/policy.yaml) uses `tls: skip` to pass through the immediate gRPC TLS
 handshake. The shared `vv-lore` profile's endpoint is the Kubernetes Service, so the
 fixture's Lore calls carry the provider's placeholder unsubstituted: this fixture
 does not provide the owner's Lore access. On Linux the proxy terminates Lore's TLS on
@@ -154,8 +154,8 @@ The template
 supplies image/environment/resources/driver settings only. Hub clones
 it into the owner's workspace, supplies nonsecret `PUBLIC_BASE_PATH`, and creates
 with `openshell.nvidia.com/retention=persistent`, the fixed command from
-[the Hub fragment](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/computer/hub.example.json), native restart policy `Always`, native
-[policy](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/computer/policy.yaml), and the centrally assigned provider instances. Template
+[the Hub fragment](https://github.com/VeoveoAI/veoveo-template-installation/blob/51f2c7bd51e9d708a91b56e6f36ca56073302fa4/computer/hub.example.json), native restart policy `Always`, native
+[policy](https://github.com/VeoveoAI/veoveo-template-installation/blob/51f2c7bd51e9d708a91b56e6f36ca56073302fa4/computer/policy.yaml), and the centrally assigned provider instances. Template
 annotations do not substitute for the explicit Create annotation. Do not expose a
 network service for the app; Hub uses authenticated native ForwardTcp to literal
 `127.0.0.1:4096` after owner admission. The app's explicit trusted-local-proxy mode
@@ -231,7 +231,7 @@ URLs/headers out of reports and tracing, use the returned method/URL/required
 headers unchanged, and complete the Hub contract's finalize step where required.
 Qualify actual upload/download byte counts and hashes separately from metadata/MCP
 success.
-See the [native signed-authority contract](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/openshell/REFERENCE.md#native-seaweedfs-https-and-signed-authority).
+See the [native signed-authority contract](https://github.com/VeoveoAI/veoveo-template-installation/blob/51f2c7bd51e9d708a91b56e6f36ca56073302fa4/openshell/REFERENCE.md#native-seaweedfs-https-and-signed-authority).
 
 Lore acts as the Computer's owner after the owner's one Hub sign-in; there is no
 Lore login. Hub's [Lore credentials](https://github.com/VeoveoAI/veoveo-hub/blob/main/crates/veoveo-hub/DESIGN.md#native-contributed-credential-lifecycle) apply: Entra proves
@@ -285,10 +285,10 @@ jq --rawfile handbook computer/instructions.md \
 ```
 
 Publish that full candidate through the same live admin control-plane API, preserving
-unrelated settings. [hub.example.json](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/computer/hub.example.json) omits the field so that the
+unrelated settings. [hub.example.json](https://github.com/VeoveoAI/veoveo-template-installation/blob/51f2c7bd51e9d708a91b56e6f36ca56073302fa4/computer/hub.example.json) omits the field so that the
 handbook has no second copy.
 
-The [native OIDC fragment](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/computer/lore-oidc.example.toml), Hub contribution/client records
+The [native OIDC fragment](https://github.com/VeoveoAI/veoveo-template-installation/blob/51f2c7bd51e9d708a91b56e6f36ca56073302fa4/computer/lore-oidc.example.toml), Hub contribution/client records
 and exact OAuth REST paths in policy must be selected together. Native private
 gRPC remains direct TLS. The OAuth paths share Hub's authority but are disjoint
 from managed MCP; there is no transparent TCP overlap, issuer host alias or broad

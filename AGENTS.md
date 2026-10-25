@@ -25,10 +25,11 @@
   OpenShell credential mediation. Unsupported enforcement fails closed.
 - Prefer upstream configuration and extension points. Maintained, revision-pinned
   VeoveoAI security/transport patches are allowed by the accepted architecture.
-  Preserve ordinary Lore operations and upstream security boundaries. The factory
-  branch guard belongs in Lore's existing pre-push hook and trusted configuration;
-  it is not a comprehensive branch authorization or transport-expiry system.
-  Credential lifecycle qualification stays separate in native OpenShell controls.
+  Preserve ordinary Lore operations and upstream security boundaries. Lore runs no
+  hook. A factory instance's Lore access is read-only through its `vv-factory-lore`
+  provider profile, which admits only the read methods of `lore clone` and
+  `lore sync --reset`; Lore's own permissions decide the rest. Credential lifecycle
+  qualification stays separate in native OpenShell controls.
 - Entra authenticates humans. Hub's existing issuer and live revisioned control
   plane own explicit repository assignments/native Lore tokens; native Lore enforces
   its unchanged token/permission contract. OpenShell renews/injects factory grants;

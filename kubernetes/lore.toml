@@ -1,9 +1,6 @@
 # Native server settings layered over the maintained image's default.toml.
-# The issuer and audience are Bioma's; trusted hook assignments stay private.
-[hooks.factory_branch]
-enabled = true
-assignments = {}
-
+# The issuer and audience are Bioma's. Lore runs no hook: a workload's Lore
+# rights are its token's grants within its provider profile's endpoint rules.
 [server.auth]
 jwt_issuer = ["https://veoveo.bioma.ai/oauth"]
 jwt_audience = ["https://veoveo.bioma.ai/resources/lore"]

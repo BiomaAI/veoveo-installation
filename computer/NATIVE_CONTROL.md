@@ -1,8 +1,8 @@
 # Computer-enabled Hub native authority
 
 Select this mode explicitly when enabling Computers. The existing
-[`openshell/hub.yaml`](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/openshell/hub.yaml) and
-[`hub-entra.example.yaml`](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/openshell/hub-entra.example.yaml) remain the
+[`openshell/hub.yaml`](https://github.com/VeoveoAI/veoveo-template-installation/blob/51f2c7bd51e9d708a91b56e6f36ca56073302fa4/openshell/hub.yaml) and
+[`hub-entra.example.yaml`](https://github.com/VeoveoAI/veoveo-template-installation/blob/51f2c7bd51e9d708a91b56e6f36ca56073302fa4/openshell/hub-entra.example.yaml) remain the
 forwarder-only mode. Their `vv-hub-forwarder` identity is intentionally insufficient
 for provisioning. Do not add administrative grants to that existing client.
 
@@ -53,8 +53,8 @@ Choose one endpointless native credential profile:
 
 | Installation | Profile | Hub policy |
 |---|---|---|
-| Local Keycloak | [hub-native-control.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/openshell/providers/hub-native-control.yaml) | [hub-computer.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/openshell/hub-computer.yaml) |
-| Entra | [entra-hub-native-control.example.yaml](../openshell/providers/entra-hub-native-control.example.yaml) | [hub-computer-entra.example.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/openshell/hub-computer-entra.example.yaml) |
+| Local Keycloak | [hub-native-control.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/51f2c7bd51e9d708a91b56e6f36ca56073302fa4/openshell/providers/hub-native-control.yaml) | [hub-computer.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/51f2c7bd51e9d708a91b56e6f36ca56073302fa4/openshell/hub-computer.yaml) |
+| Entra | [entra-hub-native-control.example.yaml](../openshell/providers/entra-hub-native-control.example.yaml) | [hub-computer-entra.example.yaml](https://github.com/VeoveoAI/veoveo-template-installation/blob/51f2c7bd51e9d708a91b56e6f36ca56073302fa4/openshell/hub-computer-entra.example.yaml) |
 
 Replace the profile's token URL/resource and the policy's exact origins together.
 The native gateway owns client-credentials renewal. Hub captures only its opaque
@@ -97,7 +97,7 @@ part of this workflow. Import the two global user data-plane profiles and create
 the trusted Computer template using [the Computer instructions](README.md#state-and-native-governance)
 before starting the Computer-enabled Hub.
 
-Merge [hub.example.json](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/computer/hub.example.json) into the installation's native Hub
+Merge [hub.example.json](https://github.com/VeoveoAI/veoveo-template-installation/blob/51f2c7bd51e9d708a91b56e6f36ca56073302fa4/computer/hub.example.json) into the installation's native Hub
 configuration. Keep both gateway blocks on the same actual endpoint, workload CA
 and `HUB_NATIVE_CONTROL_REFERENCE`. The fragment shows the reference service
 bindings; retain the installation's reviewed `nativeUpstreams.bindings` rather than

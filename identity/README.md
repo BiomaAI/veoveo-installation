@@ -12,7 +12,7 @@ Local development uses persistent Keycloak. The remote Linux reference uses
 Microsoft Entra ID. Installers may keep the bundled Keycloak service or configure
 another OIDC provider; Hub authorization, roles and resource tokens remain
 Veoveo's responsibility. The qualified local Lore path uses its maintained auth
-patches and native pre-push hook.
+patches.
 
 ## Persistent local Keycloak
 
@@ -45,7 +45,7 @@ through the identity edge's Docker alias.
 This bootstrap exposes only Keycloak. Native OpenShell service ingress has been
 qualified with sandbox DNS, matching request authority and verified TLS. Actual
 Hub and Time application qualification remains pending; follow the
-[native setup](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/openshell/HUB_TIME.md) and execution checklist. This
+[native setup](https://github.com/VeoveoAI/veoveo-template-installation/blob/51f2c7bd51e9d708a91b56e6f36ca56073302fa4/openshell/HUB_TIME.md) and execution checklist. This
 Compose/Envoy stack provides no Hub route or application alias. The former Docker
 application restart path is removed; manage Hub through its native workload.
 
@@ -227,7 +227,7 @@ configuration when the installation needs high availability. A local loopback
 configuration is not a public production ingress configuration.
 
 For Entra, omit the `keycloak` Compose profile and its three services. Follow
-[reference preparation](https://github.com/VeoveoAI/veoveo-template-installation/blob/1b56e68ccafe7d22f5a07926aa8667d3b207d6bd/openshell/REFERENCE.md) and the existing helper's
+[reference preparation](https://github.com/VeoveoAI/veoveo-template-installation/blob/51f2c7bd51e9d708a91b56e6f36ca56073302fa4/openshell/REFERENCE.md) and the existing helper's
 `--identity-provider entra` path. [entra.example.json](entra.example.json) shows
 the full standard catalog shape, with deliberately unenrolled example UUIDs and
 a placeholder signing-key thumbprint; do not deploy it unchanged. Point the relevant profile and authorization

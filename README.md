@@ -7,7 +7,7 @@ the repository to read to see a real installation.
 
 It is laid out as if the template had produced it for Bioma. The files are the
 template's Linux K3s path, at template revision
-`1b56e68ccafe7d22f5a07926aa8667d3b207d6bd`, with Bioma's values in place of the
+`51f2c7bd51e9d708a91b56e6f36ca56073302fa4`, with Bioma's values in place of the
 template's placeholders. [openshell/bioma/](openshell/bioma/README.md) lists Bioma's
 selections and every other difference from the template, with its reason. The
 template's Mac and Docker development fixtures stay in the template.
