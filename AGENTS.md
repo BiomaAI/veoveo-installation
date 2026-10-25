@@ -12,6 +12,10 @@
   Bioma's declaration of what it applies, `installation.toml`. Bring the installer
   over from the template; record any change Bioma needs in it as a difference.
   Its check is `docker build -f installer/Dockerfile --target check .`.
+- The substrate, what `installation.toml` declares, changes only through
+  `veoveo-installer plan` and `apply` ([installer/README.md](installer/README.md)),
+  never by hand with `kubectl`, `helm` or `openshell`. Run `plan` first. Only the
+  manual steps the [Kubernetes guide](kubernetes/README.md) keeps are done by hand.
 - The design is the template's: [DESIGN.md](DESIGN.md) is its copy, verbatim, at the
   template revision this repository follows. Bioma's selections are in
   `openshell/bioma/README.md`. Change it in the same change as the configuration it
