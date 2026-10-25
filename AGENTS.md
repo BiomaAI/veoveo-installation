@@ -31,9 +31,11 @@
 - Entra authenticates humans. Hub's existing issuer and live revisioned control
   plane own explicit repository assignments/native Lore tokens; native Lore enforces
   its unchanged token/permission contract. OpenShell renews/injects factory grants;
-  human Lore refresh remains private to each Computer. Do not restore the withdrawn
-  direct-IdP grant helper, Desktop adapter, signer or ingress, or add a token worker,
-  custom Lore rules, implicit admin/member repository rights or global grants.
+  human Lore refresh remains private to each Computer. Creating a repository through
+  Hub makes its creator the owner; no other repository grant is automatic, and no
+  administrator role grants repositories. Do not restore the withdrawn direct-IdP
+  grant helper, Desktop adapter, signer or ingress, or add a token worker, custom
+  Lore rules or global grants.
 - The platform never writes into a Computer's `/sandbox`; it is the person's home.
 - Never commit credentials, private state or per-person data: principal grants,
   memberships, repository registrations and assignments. `.env`, TLS/private state
