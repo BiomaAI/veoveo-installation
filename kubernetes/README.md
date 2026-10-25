@@ -286,10 +286,11 @@ openshell workspace create --name vv-factory
 
 Hub creates each instance's providers and sandbox from these. Its configuration
 names them in the `factory` section (`registrationProfile`, `loreProfile`,
-`workspace`); the rendered base policy goes into Hub's configuration claim as
-`factory-base-v1.yaml` ([hub-config-pvc.yaml](hub-config-pvc.yaml)), which
-`factory.policyFile` names as `/etc/veoveo/hub/factory-base-v1.yaml`. Hub reads it at
-startup and exits if it is invalid.
+`workspace`); the rendered base policy goes into Hub's configuration claim
+([hub-config-pvc.yaml](hub-config-pvc.yaml)) named by its content, as
+`factory-base-<digest>.yaml`, which `factory.policyFile` names (the seed's
+`@claim:factory-base@`; see the [design](../DESIGN.md#applying-an-installation)). Hub
+reads it at startup and exits if it is invalid.
 
 Every factory sandbox's size and mounts come from the factory template, which
 `factory.template` names, created as the Computer template is, with the
@@ -420,10 +421,11 @@ a deleted sandbox's workspace for the next sandbox of its name and gives its roo
 the sandbox user; installs a credential refresh in place; and keeps the earlier
 Kubernetes destination-CA, admitted GPU propagation, terminal-runtime recovery and
 supervisor fixes and gRPC on sandbox service routes.
-[openshell.values.yaml](openshell.values.yaml) selects the registry; private values
-supply the three digests. Do not select stock images with the same tag. Record each
-image's digest in the installation's lock. Publishing a new supervisor does not move
-a running sandbox to it; each sandbox takes it at its next start.
+[openshell.values.yaml](openshell.values.yaml) selects the registry and takes the three
+digests from the lock's `openshell-gateway`, `openshell-supervisor` and
+`openshell-sandbox` (`@digest:<name>@`); private values supply only the identity
+provider. Do not select stock images with the same tag. Publishing a new supervisor
+does not move a running sandbox to it; each sandbox takes it at its next start.
 
 The supervisor retains the Kubernetes driver's declared ServiceAccount source.
 When either credential in the immutable launch bundle has expired, it uses native
@@ -517,7 +519,7 @@ rather than appending them. These inputs are not deployed TLS acceptance.
 ```sh
 helm upgrade --install openshell "$OPENSHELL_SOURCE/deploy/helm/openshell" \
   --namespace openshell -f kubernetes/openshell.values.yaml \
-  -f "$PRIVATE/openshell-images-and-identity.yaml"
+  -f "$PRIVATE/openshell-identity.yaml"
 ```
 
 The service endpoint is `https://openshell.openshell.svc.cluster.local:8080`.

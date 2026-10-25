@@ -6,7 +6,7 @@ main `67b7032e988a71d80938c4e4e79897f78c3a8152`. The shared files carry Bioma's
 values in place of the template's placeholders, and [DESIGN.md](../../DESIGN.md) is the
 template's, verbatim. Its installer (`installer/`), its declaration (`installation.toml`)
 and [DESIGN.md](../../DESIGN.md) follow the template's `installer` branch at
-`ec628b3445ce946500c27a62f7c6f238a18d7b96`. This page lists what Bioma selected and
+`1705840990ca25443d10342e3438a09a2397a9f3`. This page lists what Bioma selected and
 every other place where a file differs from the template.
 
 ## Placement
@@ -112,7 +112,6 @@ Besides placeholder values, these files differ from the template:
 | `component-lock.json` | Names Bioma's deployed revisions and images, the template's own revision, and no Time | The lock is what Bioma runs. Time is not installed |
 | `installation.toml` | Cilium's values add `openshell/bioma/kubernetes/cilium-node.values.yaml` | Bioma keeps its node override in this repository |
 | `kubernetes/tunnel-routes.yaml` | Leaves out the Media callback route | Bioma's Media checks run status against the fake provider |
-| `kubernetes/openshell.values.yaml` | The three OpenShell image digests are filled in | They are the images Bioma deployed |
 | `kubernetes/postgres.yaml`, `hub-config-pvc.yaml`, `media-provider-config-pvc.yaml`, `postgres-client-ca.yaml`, `seed-service-configs.yaml` | The image markers name the deployed PostgreSQL image and the pinned `debian:trixie-slim` copy utility | These values are rendered here |
 | Comments and sentences that say to render the host, image or gateway ID (`kubernetes/README.md`, `WORKLOADS.md`, `lore.toml`, `embedding-storage.yaml`, `postgres.yaml`, `seed-service-configs.yaml`, `tunnel-routes.yaml`, `policies/console.yaml`, `policies/factory-base.yaml`, `openshell/providers/factory-lore.yaml`, `factory-registration.yaml`, `lore.yaml`) | Reworded | These values are already rendered here |
 | `README.md`, `AGENTS.md` | Describe this repository | Bioma's repository, not the template |
