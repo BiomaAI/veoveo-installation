@@ -36,7 +36,8 @@ by its image tag.
 What works, how it was checked and what is still open are in the
 [qualification checklist](https://github.com/VeoveoAI/veoveo-docs/blob/main/QUALIFICATION_CHECKLIST.md).
 The architecture is in
-[LORE_OPENSHELL_INTEGRATION.md](https://github.com/VeoveoAI/veoveo-docs/blob/main/LORE_OPENSHELL_INTEGRATION.md).
+[ARCHITECTURE.md](https://github.com/VeoveoAI/veoveo-docs/blob/main/ARCHITECTURE.md), and the installation design in the
+[template's DESIGN.md](https://github.com/VeoveoAI/veoveo-template-installation/blob/main/DESIGN.md).
 
 ## Not in this repository
 
