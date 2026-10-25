@@ -53,10 +53,20 @@ example principals.
   generation and checks run status, so no provider callback route is published.
 - Time is not an installed service.
 - Computers use the template's DeepInfra model provider.
-- Hub's `computers.handbook` is still the text of
-  [computer/instructions.md](../../computer/instructions.md) at the template's
-  `1b56e68`, without the paragraph on the Hub CLI. The current text has not been
-  published through the live control plane yet.
+- Hub's `computers.handbook` is the text of
+  [computer/instructions.md](../../computer/instructions.md).
+
+## Not yet deployed
+
+Two files here are ahead of what the cluster runs, as read on 2026-10-25 (UTC):
+
+- Hub's active `computers.handbook` is still the text of `computer/instructions.md` at
+  the template's `1b56e68`, without the paragraph on the Hub CLI. The current text
+  takes effect when it is published through the live control plane.
+- The running Lore server's `lore-settings` still holds the `factory_branch` hook
+  with no assignments, which admits every push. [lore.toml](../../kubernetes/lore.toml)
+  has no hook; it takes effect when `lore-settings` is recreated from it and Lore
+  restarts.
 
 ## Deployed revisions
 
