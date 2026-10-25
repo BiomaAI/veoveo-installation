@@ -6,15 +6,21 @@ main `67b7032e988a71d80938c4e4e79897f78c3a8152`. The shared files carry Bioma's
 values in place of the template's placeholders, and [DESIGN.md](../../DESIGN.md) is the
 template's, verbatim. Its installer (`installer/`), its declaration (`installation.toml`)
 and [DESIGN.md](../../DESIGN.md) follow the template's `installer` branch at
-`bb851565853dc52c6855abc1789dd565df9ee386`. This page lists what Bioma selected and
+`adab8eb11b56557995a44cb8a9d60bb178864752`. This page lists what Bioma selected and
 every other place where a file differs from the template.
 
 ## Placement
 
 - One Linux amd64 node (Ubuntu 24.04.5) running K3s `v1.36.5+k3s1`.
-- [cilium-node.values.yaml](kubernetes/cilium-node.values.yaml) is the template's
-  private Cilium node override (`$PRIVATE/cilium-node.yaml` in the
-  [foundation steps](../../kubernetes/README.md)). It holds the node's API address.
+- [cilium-node.values.yaml](kubernetes/cilium-node.values.yaml) holds the node's API
+  address. It is the template's private Cilium node override (`[helm.cilium]` in
+  `private.toml`, in the
+  [foundation steps](../../kubernetes/README.md#cluster-and-controllers)), which
+  Bioma keeps here and `installation.toml` names.
+- The operator's private directory on the node is
+  `~/.config/veoveo/k3s/private/bioma`, mode `0700`, the installer's `--private`.
+  It holds `private.toml` and the private inputs the guides name; it is a path, not a
+  secret, and nothing in it enters this repository.
 - The OpenShell gateway ID is `openshell`. The workspaces are `vv-control` (Hub),
   `vv-services` (MCP servers), `vv-factory` (factory sandboxes) and `installation`
   (the Computer and factory templates). Their managed namespaces are
@@ -118,8 +124,8 @@ Besides placeholder values, these files differ from the template:
 | Links to template files left out of this repository | Point to the template at `51f2c7b` | These files are the template's Mac and Docker fixtures and its Docker-era reference documents |
 
 `lore.yaml` and the Hub, Computer and factory driver configurations keep the
-template's `@image:lore@` and `@image:hub-sdk-cli@` placeholders, which the operator
-fills from the lock into private copies, as the template's
+template's `@image:lore@` and `@image:hub-sdk-cli@` placeholders, which the installer
+fills from the lock, as the template's
 [naming each image once](../../kubernetes/README.md#naming-each-image-once) says.
 
 The template files left out are its Mac and Docker development fixtures: Compose,

@@ -14,6 +14,7 @@ template's Mac and Docker development fixtures stay in the template.
 
 | Path | Contents |
 |---|---|
+| [installer/](installer/README.md) | The template's `veoveo-installer`, which applies [installation.toml](installation.toml) |
 | [kubernetes/](kubernetes/README.md) | The K3s foundation, the [native workload bootstrap](kubernetes/WORKLOADS.md), Helm values, manifests and native policies |
 | [computer/](computer/README.md) | The Computer image, OpenCode configuration, handbook and provider profiles |
 | [factory/](factory/Dockerfile) | The factory base image and the Lore image build |
@@ -43,7 +44,7 @@ The architecture is in
 ## Not in this repository
 
 - Credentials and private state: tokens, keys, passwords, `.env` files, TLS
-  material and the operator's rendered private inputs.
+  material and the operator's private directory.
 - Per-person data: principal grants, Work Context memberships, repository
   registrations and assignments. Hub's live control plane owns them.
 - The operator's own build and deployment scripts.
