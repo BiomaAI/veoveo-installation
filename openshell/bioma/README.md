@@ -6,7 +6,7 @@ main `67b7032e988a71d80938c4e4e79897f78c3a8152`. The shared files carry Bioma's
 values in place of the template's placeholders, and [DESIGN.md](../../DESIGN.md) is the
 template's, verbatim. Its installer (`installer/`), its declaration (`installation.toml`)
 and [DESIGN.md](../../DESIGN.md) follow the template's `installer` branch at
-`adab8eb11b56557995a44cb8a9d60bb178864752`. This page lists what Bioma selected and
+`b907f82f9f3106000e5c46b5ef91f1f5554c9969`. This page lists what Bioma selected and
 every other place where a file differs from the template.
 
 ## Placement
