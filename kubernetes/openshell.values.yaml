@@ -3,9 +3,10 @@
 # published to the installation's local registry as
 # veoveo/openshell/{gateway,supervisor,sandbox}. The node pulls them through its
 # registries.yaml entry; no image-pull Secret is used.
-# The three digests come from component-lock.json, which veoveo-installer fills in,
-# beside each image's repository, which must be its lock entry's; the issuer,
-# audience and role claims are Bioma's public Entra identifiers.
+# The three digests come from component-lock.json, which veoveo-installer fills in;
+# the chart composes each image from the registry below and its default repository,
+# which must be the lock entry's, as plan checks. The issuer, audience and role claims
+# are Bioma's public Entra identifiers.
 fullnameOverride: openshell
 replicaCount: 1
 workload:
@@ -15,15 +16,12 @@ global:
     registry: registry.veoveo-system.svc.cluster.local:5000/veoveo
 gateway:
   image:
-    repository: openshell/gateway
     digest: "@digest:openshell-gateway@"
 supervisor:
   image:
-    repository: openshell/supervisor
     digest: "@digest:openshell-supervisor@"
 sandboxRuntime:
   image:
-    repository: openshell/sandbox
     digest: "@digest:openshell-sandbox@"
 server:
   externalDbSecret: openshell-gateway-db
