@@ -1,8 +1,9 @@
 # PostgreSQL as a plain StatefulSet: the extension image from postgres/Dockerfile, one
 # volume and TLS from the installation's PostgreSQL CA. Its first start runs the
 # scripts in the veoveo-postgres-initdb ConfigMap; after that, Hub creates server
-# roles and data-environment databases with plain SQL. The image is Bioma's build in
-# the local registry; its postgres UID/GID is Debian's 999.
+# roles and data-environment databases with plain SQL. The installer fills the image from
+# the lock's postgres, Bioma's build in the local registry; its postgres UID/GID is
+# Debian's 999.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -51,7 +52,7 @@ spec:
         fsGroup: 999
       containers:
         - name: postgres
-          image: registry.veoveo-system.svc.cluster.local:5000/veoveo/postgres@sha256:feacb84577fdca909cd0e3306784f9af84d083222dab00421244a1376520c28a
+          image: "@image:postgres@"
           args:
             - -c
             - ssl=on

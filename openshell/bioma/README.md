@@ -118,14 +118,14 @@ Besides placeholder values, these files differ from the template:
 | `component-lock.json` | Names Bioma's deployed revisions and images, the template's own revision, and no Time | The lock is what Bioma runs. Time is not installed |
 | `installation.toml` | Cilium's values add `openshell/bioma/kubernetes/cilium-node.values.yaml` | Bioma keeps its node override in this repository |
 | `kubernetes/tunnel-routes.yaml` | Leaves out the Media callback route | Bioma's Media checks run status against the fake provider |
-| `kubernetes/postgres.yaml`, `hub-config-pvc.yaml`, `media-provider-config-pvc.yaml`, `postgres-client-ca.yaml`, `seed-service-configs.yaml` | The image markers name the deployed PostgreSQL image and the pinned `debian:trixie-slim` copy utility | These values are rendered here |
+| `kubernetes/hub-config-pvc.yaml`, `media-provider-config-pvc.yaml`, `postgres-client-ca.yaml`, `seed-service-configs.yaml` | The copy-image markers name the pinned `debian:trixie-slim` copy utility | These values are rendered here; the utility is third-party, pinned at its upstream registry, so the lock does not name it |
 | Comments and sentences that say to render the host, image or gateway ID (`kubernetes/README.md`, `WORKLOADS.md`, `lore.toml`, `embedding-storage.yaml`, `postgres.yaml`, `seed-service-configs.yaml`, `tunnel-routes.yaml`, `policies/console.yaml`, `policies/factory-base.yaml`, `openshell/providers/factory-lore.yaml`, `factory-registration.yaml`, `lore.yaml`) | Reworded | These values are already rendered here |
 | `README.md`, `AGENTS.md` | Describe this repository | Bioma's repository, not the template |
 | Links to template files left out of this repository | Point to the template at `51f2c7b` | These files are the template's Mac and Docker fixtures and its Docker-era reference documents |
 
-`lore.yaml` and the Hub, Computer and factory driver configurations keep the
-template's `@image:lore@` and `@image:hub-sdk-cli@` placeholders, which the installer
-fills from the lock, as the template's
+`lore.yaml`, `postgres.yaml` and the Hub, Computer and factory driver configurations
+keep the template's `@image:<name>@` placeholders, which the installer fills from the
+lock, as the template's
 [naming each image once](../../kubernetes/README.md#naming-each-image-once) says.
 
 The template files left out are its Mac and Docker development fixtures: Compose,
