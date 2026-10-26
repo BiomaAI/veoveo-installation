@@ -73,15 +73,15 @@ example principals.
 
 ## Not yet deployed
 
-Two files here are ahead of what the cluster runs, as read on 2026-10-25 (UTC):
+One file here is ahead of what the cluster runs, as read on 2026-10-25 (UTC):
 
 - Hub's active `computers.handbook` is still the text of `computer/instructions.md` at
   the template's `1b56e68`, without the paragraph on the Hub CLI. The current text
   takes effect when it is published through the live control plane.
-- The running Lore server's `lore-settings` still holds the `factory_branch` hook
-  with no assignments, which admits every push. [lore.toml](../../kubernetes/lore.toml)
-  has no hook; it takes effect when `lore-settings` is recreated from it and Lore
-  restarts.
+
+The running Lore server's `lore-settings` is [lore.toml](../../kubernetes/lore.toml) as
+`main` holds it, byte for byte, with no hook (SHA-256 `c2da31c4…`, read on 2026-10-26
+UTC).
 
 On the `lore-catalog` branch, `lore.toml` and `lore.yaml` are ahead as well: Lore's
 repository listing asks Hub, which answers `UrcAuthApi.LookupUserPermissions` from Hub's
