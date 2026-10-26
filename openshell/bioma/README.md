@@ -5,8 +5,8 @@ at `51f2c7bd51e9d708a91b56e6f36ca56073302fa4`, the template's `cleanup` branch o
 main `67b7032e988a71d80938c4e4e79897f78c3a8152`. The shared files carry Bioma's
 values in place of the template's placeholders, and [DESIGN.md](../../DESIGN.md) is the
 template's, verbatim. Its installer (`installer/`), its declaration (`installation.toml`)
-and [DESIGN.md](../../DESIGN.md) follow the template's `installer` branch at
-`b907f82f9f3106000e5c46b5ef91f1f5554c9969`. This page lists what Bioma selected and
+and [DESIGN.md](../../DESIGN.md) follow the template's `template-release-note` branch at
+`87cb6bf597a0404cc89079220244b8d16c722ecd`. This page lists what Bioma selected and
 every other place where a file differs from the template.
 
 ## Placement
@@ -63,6 +63,8 @@ example principals.
 - Computers use the template's DeepInfra model provider.
 - Hub's `computers.handbook` is the text of
   [computer/instructions.md](../../computer/instructions.md).
+- `computer-v1`'s `release_note` in `installation.toml` is the note the running template
+  carried, as `plan` read it on 2026-10-25 (UTC); `factory-v1` carries none.
 
 ## Not yet deployed
 
