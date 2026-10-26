@@ -4,10 +4,13 @@ This repository follows [veoveo-template-installation](https://github.com/Veoveo
 at `51f2c7bd51e9d708a91b56e6f36ca56073302fa4`, the template's `cleanup` branch over its
 main `67b7032e988a71d80938c4e4e79897f78c3a8152`. The shared files carry Bioma's
 values in place of the template's placeholders, and [DESIGN.md](../../DESIGN.md) is the
-template's, verbatim. Its installer (`installer/`), its declaration (`installation.toml`)
-and [DESIGN.md](../../DESIGN.md) follow the template's `template-release-note` branch at
-`87cb6bf597a0404cc89079220244b8d16c722ecd`. This page lists what Bioma selected and
-every other place where a file differs from the template.
+template's, verbatim. Its installer (`installer/`) and its declaration (`installation.toml`)
+follow the template's `template-release-note` branch at
+`87cb6bf597a0404cc89079220244b8d16c722ecd`; [DESIGN.md](../../DESIGN.md), Lore's
+settings and Deployment (`kubernetes/lore.toml`, `lore.yaml`) and `WORKLOADS.md`'s Lore
+paragraphs follow its `lore-catalog` branch at
+`aa3a2011492bf535be33fac3240f5085b10e837b`, which includes that revision. This page lists
+what Bioma selected and every other place where a file differs from the template.
 
 ## Placement
 
@@ -27,6 +30,8 @@ every other place where a file differs from the template.
   `openshell-openshell-<workspace>`, the names the builder's and log store's network
   policies use.
 - The embedding runtime uses the node's GPU through the NVIDIA device plugin.
+- The gateway Service's cluster IP is `10.43.227.28`, which `lore.yaml`'s host alias
+  names so that Lore reaches Hub's service route for repository listings.
 
 ## Public host and tunnel
 
@@ -77,6 +82,11 @@ Two files here are ahead of what the cluster runs, as read on 2026-10-25 (UTC):
   with no assignments, which admits every push. [lore.toml](../../kubernetes/lore.toml)
   has no hook; it takes effect when `lore-settings` is recreated from it and Lore
   restarts.
+
+On the `lore-catalog` branch, `lore.toml` and `lore.yaml` are ahead as well: Lore's
+repository listing asks Hub, which answers `UrcAuthApi.LookupUserPermissions` from Hub's
+`lore-catalog` branch at `2faa2d2`. Apply them after Hub runs that revision; before it,
+`lore repository list` fails while every other Lore request works.
 
 ## Deployed revisions
 
