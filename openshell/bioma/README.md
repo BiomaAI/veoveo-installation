@@ -91,7 +91,7 @@ ahead as well. Lore's repository listing asks Hub, which answers
 `UrcAuthApi.LookupUserPermissions` from Hub's `lore-catalog` branch at `2faa2d2`: apply
 Lore's files after Hub runs that revision; before it, `lore repository list` fails while
 every other Lore request works. The `openshell` step needs the chart's checkout at
-OpenShell `534250aa0`, which reads `service.clusterIP`; the declared address is the
+OpenShell `ab37a698c`, which reads `service.clusterIP`; the declared address is the
 Service's own, so the upgrade changes no live address.
 
 ## Deployed revisions
@@ -103,7 +103,7 @@ other repository, so these provenances are here:
 
 | Image | Built from |
 |---|---|
-| `openshell-gateway`, `openshell-supervisor`, `openshell-sandbox` | OpenShell `491b3503d39f3ba83a25a309f52e52e20e304b03`, the template's pin. Hub, console, the factory sandboxes and the Computer run this supervisor and sandbox runtime; Artifact, Media, the Media provider, Embedding and its runtime still run those of OpenShell `d1d4da39941ecf809d9b0dee51032277cbc42ea4` (`supervisor@sha256:6ce6d7b2…`, `sandbox@sha256:d2a791ff…`) until they next start |
+| `openshell-gateway`, `openshell-supervisor`, `openshell-sandbox` | OpenShell `ab37a698cfd03cdfb2559af7fd4263075233a48a`, the template's pin. Hub, console, the factory sandboxes and the Computer run this supervisor and sandbox runtime; Artifact, Media, the Media provider, Embedding and its runtime still run those of OpenShell `d1d4da39941ecf809d9b0dee51032277cbc42ea4` (`supervisor@sha256:6ce6d7b2…`, `sandbox@sha256:d2a791ff…`) until they next start |
 | `lore` | Lore `4b7b7e236419414b4a0c67ecd66ca2409f19d35c` with the template's Lore Dockerfile at `9f21d3e`, whose build and runtime stages the current template keeps unchanged, published as `veoveo/lore:drill-20261025`. The Lore server, Hub, the factory sandboxes and the Computer all run this digest |
 | `computer` | The template at `9f21d3e` over the `factory` image, with OpenCode `c5fb62662c9c6fcb5064ef191956ca0da14e1af9`; the current template's Computer build inputs are the same |
 | `factory` | The template at `9f21d3e`, the base of the `computer` image; no workload runs it directly |
