@@ -7,9 +7,10 @@ values in place of the template's placeholders, and [DESIGN.md](../../DESIGN.md)
 template's, verbatim. Its installer (`installer/`) and its declaration (`installation.toml`)
 follow the template's `template-release-note` branch at
 `87cb6bf597a0404cc89079220244b8d16c722ecd`; [DESIGN.md](../../DESIGN.md), Lore's
-settings and Deployment (`kubernetes/lore.toml`, `lore.yaml`) and `WORKLOADS.md`'s Lore
-paragraphs follow its `lore-catalog` branch at
-`aa3a2011492bf535be33fac3240f5085b10e837b`, which includes that revision. This page lists
+settings and Deployment (`kubernetes/lore.toml`, `lore.yaml`), `openshell.values.yaml`'s
+chart revision and `service.clusterIP`, and the Lore paragraphs of `WORKLOADS.md` and
+the chart paragraph of `kubernetes/README.md` follow its `lore-catalog` branch at
+`ce9e4bc9eda890a9b872d6a5ea5b1e93decfcdd6`, which includes that revision. This page lists
 what Bioma selected and every other place where a file differs from the template.
 
 ## Placement
@@ -30,8 +31,10 @@ what Bioma selected and every other place where a file differs from the template
   `openshell-openshell-<workspace>`, the names the builder's and log store's network
   policies use.
 - The embedding runtime uses the node's GPU through the NVIDIA device plugin.
-- The gateway Service's cluster IP is `10.43.227.28`, which `lore.yaml`'s host alias
-  names so that Lore reaches Hub's service route for repository listings.
+- The gateway Service's cluster IP is `10.43.227.28`, the address Kubernetes gave it
+  when it was created. `openshell.values.yaml` declares it as `service.clusterIP`, and
+  `lore.yaml`'s host alias names it so that Lore reaches Hub's service route for
+  repository listings.
 
 ## Public host and tunnel
 
@@ -83,10 +86,13 @@ The running Lore server's `lore-settings` is [lore.toml](../../kubernetes/lore.t
 `main` holds it, byte for byte, with no hook (SHA-256 `c2da31c4…`, read on 2026-10-26
 UTC).
 
-On the `lore-catalog` branch, `lore.toml` and `lore.yaml` are ahead as well: Lore's
-repository listing asks Hub, which answers `UrcAuthApi.LookupUserPermissions` from Hub's
-`lore-catalog` branch at `2faa2d2`. Apply them after Hub runs that revision; before it,
-`lore repository list` fails while every other Lore request works.
+On the `lore-catalog` branch, `lore.toml`, `lore.yaml` and `openshell.values.yaml` are
+ahead as well. Lore's repository listing asks Hub, which answers
+`UrcAuthApi.LookupUserPermissions` from Hub's `lore-catalog` branch at `2faa2d2`: apply
+Lore's files after Hub runs that revision; before it, `lore repository list` fails while
+every other Lore request works. The `openshell` step needs the chart's checkout at
+OpenShell `534250aa0`, which reads `service.clusterIP`; the declared address is the
+Service's own, so the upgrade changes no live address.
 
 ## Deployed revisions
 
@@ -131,7 +137,7 @@ Besides placeholder values, these files differ from the template:
 | `installation.toml` | Cilium's values add `openshell/bioma/kubernetes/cilium-node.values.yaml` | Bioma keeps its node override in this repository |
 | `kubernetes/tunnel-routes.yaml` | Leaves out the Media callback route | Bioma's Media checks run status against the fake provider |
 | `kubernetes/hub-config-pvc.yaml`, `media-provider-config-pvc.yaml`, `postgres-client-ca.yaml`, `seed-service-configs.yaml` | The copy-image markers name the pinned `debian:trixie-slim` copy utility | These values are rendered here; the utility is third-party, pinned at its upstream registry, so the lock does not name it |
-| Comments and sentences that say to render the host, image or gateway ID (`kubernetes/README.md`, `WORKLOADS.md`, `lore.toml`, `embedding-storage.yaml`, `postgres.yaml`, `seed-service-configs.yaml`, `tunnel-routes.yaml`, `policies/console.yaml`, `policies/factory-base.yaml`, `openshell/providers/factory-lore.yaml`, `factory-registration.yaml`, `lore.yaml`) | Reworded | These values are already rendered here |
+| Comments and sentences that say to render the host, image or gateway ID (`kubernetes/README.md`, `WORKLOADS.md`, `lore.toml`, `openshell.values.yaml`, `embedding-storage.yaml`, `postgres.yaml`, `seed-service-configs.yaml`, `tunnel-routes.yaml`, `policies/console.yaml`, `policies/factory-base.yaml`, `openshell/providers/factory-lore.yaml`, `factory-registration.yaml`, `lore.yaml`) | Reworded | These values are already rendered here |
 | `README.md`, `AGENTS.md` | Describe this repository | Bioma's repository, not the template |
 | Links to template files left out of this repository | Point to the template at `51f2c7b` | These files are the template's Mac and Docker fixtures and its Docker-era reference documents |
 
