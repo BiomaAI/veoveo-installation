@@ -143,22 +143,20 @@ name = "templates"
 # A template's release_note is what its version brings, which Hub shows people as the
 # Computer's "What's new"; its first line is the summary. Change it with the template:
 # plan refuses a template that differs from what runs but keeps the note that runs.
+# Every sandbox's size is in its driver configuration, as limits with zero requests, so
+# sandboxes share the node and none reserves any of it (see the design).
 [[step.template]]
 workspace = "installation"
 name = "computer-v1"
 image = "computer"
-cpu = "2"
-memory = "4Gi"
 driver_config = "kubernetes/computer-driver-config.json"
 environment = { SSL_CERT_DIR = "/etc/ssl/certs", VEOVEO_LORE_REMOTE = "grpcs://lore.veoveo-system.svc.cluster.local:41337", VEOVEO_CLI_HUB = "https://veoveo.bioma.ai", VEOVEO_CLI_PROFILE = "computer", VEOVEO_CLI_BEARER_ENV = "COMPUTER_HUB_REFERENCE" }
 release_note = """
-You can create repositories with `lore repository create`.
-A repository you create with Lore is yours at once, as one the agent creates, and you can delete a repository you own with `lore repository delete`. OpenCode, the Hub CLI and your home are unchanged."""
+Your Computer shares the machine with everyone's, so it always has room to start.
+It no longer sets aside 2 CPUs and 4 GiB while it waits: it uses what it needs, up to those 2 CPUs and 4 GiB, as the machine has free. Your home, OpenCode, Lore and the Hub CLI are unchanged."""
 [[step.template]]
 workspace = "installation"
 name = "factory-v1"
-cpu = "4"
-memory = "8Gi"
 driver_config = "kubernetes/factory-driver-config.json"
 
 # The files of Hub's trusted claim: those from this repository, each named by its
@@ -262,9 +260,8 @@ image = "runtime-embedding"
 policy = "kubernetes/policies/embedding-runtime.yaml"
 driver_config = "kubernetes/embedding-runtime-driver-config.json"
 restart_policy = "always"
-# The reference installation's measured allocation for the full model on one GPU.
-cpu = "4"
-memory = "8Gi"
+# Its driver configuration's limits are the reference installation's measured size for
+# the full model on one GPU.
 gpu = 1
 environment = { VEOVEO_EMBEDDING_DEVICE = "cuda", VEOVEO_EMBEDDING_TOKEN_FILE = "/etc/veoveo/embedding/runtime.token", VEOVEO_EMBEDDING_STORAGE_ORIGIN = "https://veoveo.bioma.ai:443" }
 command = ["/opt/embedding/.venv/bin/python", "-m", "veoveo_runtime_embedding"]
@@ -281,8 +278,6 @@ policy = "kubernetes/policies/embedding.yaml"
 providers = ["vv-embedding-registration", "vv-embedding-inference"]
 driver_config = "kubernetes/embedding-driver-config.json"
 restart_policy = "always"
-cpu = "1"
-memory = "1Gi"
 environment = { VEOVEO_HUB_ISSUER = "https://veoveo.bioma.ai", VEOVEO_PUBLIC_BASE_URL = "http://embedding.internal:8803", VEOVEO_PORT = "8803", VEOVEO_EMBEDDING_RUNTIME_URL = "https://vv-services--embedding-runtime--http.openshell.localhost:8080", VEOVEO_EMBEDDING_DEVICE = "cuda" }
 private_environment = ["VEOVEO_DEPLOYMENT_ID"]
 command = ["/usr/local/bin/veoveo-mcp-embedding"]
