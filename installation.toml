@@ -152,8 +152,8 @@ memory = "4Gi"
 driver_config = "kubernetes/computer-driver-config.json"
 environment = { SSL_CERT_DIR = "/etc/ssl/certs", VEOVEO_LORE_REMOTE = "grpcs://lore.veoveo-system.svc.cluster.local:41337", VEOVEO_CLI_HUB = "https://veoveo.bioma.ai", VEOVEO_CLI_PROFILE = "computer", VEOVEO_CLI_BEARER_ENV = "COMPUTER_HUB_REFERENCE" }
 release_note = """
-Your Computer now runs OpenCode 2.0.
-Your earlier sessions carry over. The Hub CLI, Lore and your home are unchanged."""
+You can create repositories with `lore repository create`.
+A repository you create with Lore is yours at once, as one the agent creates, and you can delete a repository you own with `lore repository delete`. OpenCode, the Hub CLI and your home are unchanged."""
 [[step.template]]
 workspace = "installation"
 name = "factory-v1"
