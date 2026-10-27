@@ -44,7 +44,7 @@
   ],
   "images": {
     "artifact": "registry.veoveo-system.svc.cluster.local:5000/veoveo/artifact@sha256:64448f7065766e6b479dc9db37aeff12af99f9257cea040c78d6bd79a2be9542",
-    "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:d3737cd60a7c83af3f81f6307325c56c6d420c0701712172b28494a3714eb48a",
+    "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:2ca7e6ae4716a557b736c8a4a6b1af5cf0d114fbf3976924aabbf3131212f870",
     "console": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:f765af4a96ce3670970d5becec1342e62918199c8105e0ed5ad75f55d0e4e98b",
     "embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/embedding@sha256:7cc1de5d1b3a7a561266913cd835e3a2b8b04ed7790d8520787dfa1dbe8a98ff",
     "factory": "registry.veoveo-system.svc.cluster.local:5000/veoveo/factory@sha256:53af485e40992968bbff6be98f41292033ae7603a7f9d603121ddf15d65cdca8",

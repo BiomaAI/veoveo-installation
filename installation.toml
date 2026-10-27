@@ -152,8 +152,8 @@ image = "computer"
 driver_config = "kubernetes/computer-driver-config.json"
 environment = { SSL_CERT_DIR = "/etc/ssl/certs", VEOVEO_LORE_REMOTE = "grpcs://lore.veoveo-system.svc.cluster.local:41337", VEOVEO_CLI_HUB = "https://veoveo.bioma.ai", VEOVEO_CLI_PROFILE = "computer", VEOVEO_CLI_BEARER_ENV = "COMPUTER_HUB_REFERENCE" }
 release_note = """
-Your Computer shares the machine with everyone's, so it always has room to start.
-It no longer sets aside 2 CPUs and 4 GiB while it waits: it uses what it needs, up to those 2 CPUs and 4 GiB, as the machine has free. Your home, OpenCode, Lore and the Hub CLI are unchanged."""
+OpenCode offers only the models your Computer can reach.
+It no longer lists OpenCode's own free models, which your Computer cannot reach: picking one only retried "ECONNREFUSED". MiMo-V2.6-Pro and DeepInfra's other models are unchanged, and so are your home, Lore and the Hub CLI."""
 [[step.template]]
 workspace = "installation"
 name = "factory-v1"
