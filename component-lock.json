@@ -44,10 +44,10 @@
   ],
   "images": {
     "artifact": "registry.veoveo-system.svc.cluster.local:5000/veoveo/artifact@sha256:64448f7065766e6b479dc9db37aeff12af99f9257cea040c78d6bd79a2be9542",
-    "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:2ca7e6ae4716a557b736c8a4a6b1af5cf0d114fbf3976924aabbf3131212f870",
+    "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:c074393489a520ebc78bccb5fcc06eb44d7ffab859cd8cb7c6b3de5936b015c9",
     "console": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:f765af4a96ce3670970d5becec1342e62918199c8105e0ed5ad75f55d0e4e98b",
     "embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/embedding@sha256:7cc1de5d1b3a7a561266913cd835e3a2b8b04ed7790d8520787dfa1dbe8a98ff",
-    "factory": "registry.veoveo-system.svc.cluster.local:5000/veoveo/factory@sha256:53af485e40992968bbff6be98f41292033ae7603a7f9d603121ddf15d65cdca8",
+    "factory": "registry.veoveo-system.svc.cluster.local:5000/veoveo/factory@sha256:ac05fb307a6cc3986668cae59ccb891020ae7aa01cde4787c75193037cd2721b",
     "hub": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub@sha256:5a5068f0dc1fd06579db04e38cc1ed5813a3d585b78a456949d971e47c0d1f4e",
     "hub-sdk-cli": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub-sdk-cli@sha256:8257166d0a890dd07b6410dc006a10a055dd9f744e0282789ce88443e520140d",
     "lore": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:2d522822d92df17959144d27a681465b82726f3dc8b874db0400b1f44510befe",

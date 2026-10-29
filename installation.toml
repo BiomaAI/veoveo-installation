@@ -152,8 +152,8 @@ image = "computer"
 driver_config = "kubernetes/computer-driver-config.json"
 environment = { SSL_CERT_DIR = "/etc/ssl/certs", VEOVEO_LORE_REMOTE = "grpcs://lore.veoveo-system.svc.cluster.local:41337", VEOVEO_CLI_HUB = "https://veoveo.bioma.ai", VEOVEO_CLI_PROFILE = "computer", VEOVEO_CLI_BEARER_ENV = "COMPUTER_HUB_REFERENCE" }
 release_note = """
-OpenCode offers only the models your Computer can reach.
-It no longer lists OpenCode's own free models, which your Computer cannot reach: picking one only retried "ECONNREFUSED". MiMo-V2.6-Pro and DeepInfra's other models are unchanged, and so are your home, Lore and the Hub CLI."""
+Your Computer reaches the internet, and OpenCode's search works.
+Cargo, git and other tools fetch packages and clone from the internet, and OpenCode fetches web pages. OpenCode's file search and its grep and glob tools work: they had failed, because OpenCode could not download the ripgrep they run, which your Computer now includes. Your home, OpenCode's models, Lore and the Hub CLI are unchanged."""
 [[step.template]]
 workspace = "installation"
 name = "factory-v1"
