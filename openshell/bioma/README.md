@@ -110,7 +110,7 @@ other repository, so these provenances are here:
 | `factory` | The template at `9f21d3e`, the base of the `computer` image; no workload runs it directly |
 | `media-provider` | Media `6a73e52932d166e368ba8673277cadf8be1742b9`, target `fake-provider`; the lock's Media revision is the server's, `6bd5843` |
 | `postgres` | The template at `ecdb5b5dcc621161c7e5905a243c1271b42daeff` |
-| `hub-sdk-cli` | The SDK at `a41c9cc`, target `cli` |
+| `hub-sdk-cli` | The SDK at `05273d1`, target `cli` |
 
 The lock's `veoveo-template-installation` revision, `9f21d3e`, is the one the
 `computer`, `factory` and `lore` images were built from; the files here follow the
@@ -119,8 +119,8 @@ each component's main:
 
 | Component | Template's lock | Bioma runs |
 |---|---|---|
-| `veoveo-hub` | `2739757` | `3de9654` |
-| `veoveo-hub-sdk` | `a41c9cc` | `a41c9cc` |
+| `veoveo-hub` | `2739757` | `fe59868` |
+| `veoveo-hub-sdk` | `a41c9cc` | `05273d1` |
 | `veoveo-mcp-console` | `e855cac` | `51dff0d` |
 | `veoveo-mcp-artifact` | `ae29dc3` | `91e62be` |
 | `veoveo-mcp-media` | `871e11d` | `6bd5843` |

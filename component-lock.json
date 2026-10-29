@@ -4,12 +4,12 @@
     {
       "name": "veoveo-hub",
       "repository": "https://github.com/VeoveoAI/veoveo-hub",
-      "revision": "3de965407c433d2ac975fb056ea943363a9554b2"
+      "revision": "fe5986845cd6322499e1e87b3d4aec1af33931c4"
     },
     {
       "name": "veoveo-hub-sdk",
       "repository": "https://github.com/VeoveoAI/veoveo-hub-sdk",
-      "revision": "a41c9cc6c81f6c0305dd41165defb142740ed6b1"
+      "revision": "05273d1f90b9a08e90e377187f4eddd084605fe5"
     },
     {
       "name": "veoveo-mcp-console",
@@ -48,8 +48,8 @@
     "console": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:03ed99ed8920209da7e54d478cc48c1055fdcb3a1683e4f0593a5f382433bdbe",
     "embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/embedding@sha256:7cc1de5d1b3a7a561266913cd835e3a2b8b04ed7790d8520787dfa1dbe8a98ff",
     "factory": "registry.veoveo-system.svc.cluster.local:5000/veoveo/factory@sha256:a7fcc730ed30644a541e99dafeecd49834f18a39abdb53d9a84635010a8c1b3e",
-    "hub": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub@sha256:485c9fec6ec00d095e762fb920a237b25ab7d52b0f873426d450e04e28eb48fd",
-    "hub-sdk-cli": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub-sdk-cli@sha256:8257166d0a890dd07b6410dc006a10a055dd9f744e0282789ce88443e520140d",
+    "hub": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub@sha256:0721f028da764e2595ba6682fffb4acdd85d4054b0a21061a5cc565e0830a9bc",
+    "hub-sdk-cli": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub-sdk-cli@sha256:a364ff854589e776c799a8f8c22485418e0c646a11d482a5fd24b6d5df30e52a",
     "lore": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:2d522822d92df17959144d27a681465b82726f3dc8b874db0400b1f44510befe",
     "media": "registry.veoveo-system.svc.cluster.local:5000/veoveo/media@sha256:77cf0c93eb169887d43e1ec754c83bcd7efc1c0a642c34f070d57d3f7f28f4a6",
     "media-provider": "registry.veoveo-system.svc.cluster.local:5000/veoveo/media-provider@sha256:08193f623a4b668e1fe68b5c8e040c77519f862304dc7678e865c001e095298b",
