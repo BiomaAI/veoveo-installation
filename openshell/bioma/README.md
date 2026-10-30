@@ -113,7 +113,7 @@ each component's main:
 
 | Component | Template's lock | Bioma runs |
 |---|---|---|
-| `veoveo-hub` | `2739757` | `549b0bb` |
+| `veoveo-hub` | `2739757` | `1fff39d` |
 | `veoveo-hub-sdk` | `a41c9cc` | `05273d1` |
 | `veoveo-mcp-console` | `e855cac` | `8f94e5a` |
 | `veoveo-mcp-artifact` | `ae29dc3` | `91e62be` |
