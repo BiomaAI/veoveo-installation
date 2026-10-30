@@ -85,7 +85,7 @@ ahead as well. Lore's repository listing asks Hub, which answers
 `UrcAuthApi.LookupUserPermissions` from Hub's `lore-catalog` branch at `2faa2d2`: apply
 Lore's files after Hub runs that revision; before it, `lore repository list` fails while
 every other Lore request works. The `openshell` step needs the chart's checkout at
-OpenShell `ebd6a1c` (identical to `ab37a698c` there), which reads `service.clusterIP`; the declared address is the
+OpenShell `ebd6a1c` (identical to `c80bda201` there), which reads `service.clusterIP`; the declared address is the
 Service's own, so the upgrade changes no live address.
 
 ## Deployed revisions
@@ -97,8 +97,8 @@ other repository, so these provenances are here:
 
 | Image | Built from |
 |---|---|
-| `openshell-gateway` | OpenShell `ebd6a1c3d5ae0bb440f680a10f4457a9317f2f65`, one commit on the supervisor and sandbox revision that refreshes a credential on the last sweep before its refresh time |
-| `openshell-supervisor`, `openshell-sandbox` | OpenShell `ab37a698cfd03cdfb2559af7fd4263075233a48a`, the template's pin. Hub, console, the factory sandboxes and the Computer run this supervisor and sandbox runtime; Artifact, Media, the Media provider, Embedding and its runtime still run those of OpenShell `d1d4da39941ecf809d9b0dee51032277cbc42ea4` (`supervisor@sha256:6ce6d7b2…`, `sandbox@sha256:d2a791ff…`) until they next start |
+| `openshell-gateway` | OpenShell `c80bda2013a5656bc2421a38013463709481671f`, whose `GetGatewayInfo` reports the supervisor and sandbox runtime images every new sandbox runs |
+| `openshell-supervisor`, `openshell-sandbox` | OpenShell `49761d1eb3dc45f6f8f2b69b762d8316a7f217a7` and `1ab0e2386cbd943ec84a8701cd5d54dfa68e55a7`. Every sandbox created since 19:07 UTC on 2026-10-30 runs them: Hub, the services and the Computers restarted since; a factory instance takes them at its next push |
 | `lore` | Lore `4ee9f3382ec5b3b214713ce21ee0d48263501d84`, which tells its `auth_service` catalog's endpoint of each repository it creates and deletes, with the template's Lore Dockerfile at `9f21d3e`, whose build and runtime stages the current template keeps unchanged, published as `veoveo/lore:4ee9f338`. The Lore server, Hub, the factory sandboxes and the Computer all run this digest |
 | `computer` | The template at `9f21d3e` over the `factory` image, with OpenCode `c5fb62662c9c6fcb5064ef191956ca0da14e1af9`; the current template's Computer build inputs are the same |
 | `factory` | The template at `9f21d3e`, the base of the `computer` image; no workload runs it directly |
@@ -113,9 +113,9 @@ each component's main:
 
 | Component | Template's lock | Bioma runs |
 |---|---|---|
-| `veoveo-hub` | `2739757` | `1fff39d` |
+| `veoveo-hub` | `2739757` | `2b14e65` |
 | `veoveo-hub-sdk` | `a41c9cc` | `05273d1` |
-| `veoveo-mcp-console` | `e855cac` | `8f94e5a` |
+| `veoveo-mcp-console` | `e855cac` | `8384a5b` |
 | `veoveo-mcp-artifact` | `ae29dc3` | `91e62be` |
 | `veoveo-mcp-media` | `871e11d` | `6bd5843` |
 | `veoveo-mcp-embedding` | `df07d1f` | `46fa002` |
