@@ -1,5 +1,6 @@
 # Base policy of every factory sandbox. The branch's checkout lives in /sandbox/src,
-# where its build puts the server it runs. The Lore and registration endpoints, with
+# where its build puts the server it runs, which reaches Hub's metadata, token and MCP
+# endpoints: the last for calls into other servers. The Lore and registration endpoints, with
 # their credentials, come from the attached providers of the vv-factory-lore and
 # vv-factory-registration profiles, and vv-factory-lore admits Lore's read methods only; Lore's command line is the read-only image volume
 # of factory-driver-config.json. Factory sandboxes have open internet access: every
@@ -45,6 +46,21 @@ network_policies:
         enforcement: enforce
         rules:
           - allow: {method: POST, path: /oauth/token}
+    binaries:
+      - path: /sandbox/src/**
+  # A server calls another through Hub's MCP endpoint with the token Hub's exchange
+  # issued for its Task, which names the caller's profile, so every profile's endpoint.
+  hub_mcp:
+    endpoints:
+      - host: veoveo.bioma.ai
+        port: 443
+        path: /mcp/*
+        protocol: mcp
+        enforcement: enforce
+        mcp:
+          versions:
+            - '2026-07-28'
+          allow_all_known_mcp_methods: true
     binaries:
       - path: /sandbox/src/**
   database:

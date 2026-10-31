@@ -225,7 +225,8 @@ installation data.
 
 Factory sandboxes run in `vv-factory`. Each gets the base policy
 [factory-base.yaml](kubernetes/policies/factory-base.yaml): its checkout in
-`/sandbox/src`, Hub's metadata and token endpoints, PostgreSQL, and open internet
+`/sandbox/src`, Hub's metadata, token and MCP endpoints, the last for a server's calls
+into other servers with the token Hub's exchange issues for its Task, PostgreSQL, and open internet
 access stated as one explicit rule, every name of three or more labels plus the
 two-label names in use on ports 80 and 443, so it can be tightened later. Inspected
 rules for exact hosts still apply and private addresses stay closed. A repository's
