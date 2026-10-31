@@ -110,7 +110,8 @@
       {
         "provider": "vv-factory-model",
         "repositories": [
-          "b2fd9e7fb1eb508979d7bdd70fa8e4c8"
+          "b2fd9e7fb1eb508979d7bdd70fa8e4c8",
+          "e5f7919c2d531818ec622c539a590e4c"
         ]
       },
       {
