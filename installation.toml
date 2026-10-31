@@ -156,8 +156,8 @@ image = "computer"
 driver_config = "kubernetes/computer-driver-config.json"
 environment = { SSL_CERT_DIR = "/etc/ssl/certs", VEOVEO_LORE_REMOTE = "grpcs://lore.veoveo-system.svc.cluster.local:41337", VEOVEO_CLI_HUB = "https://veoveo.bioma.ai", VEOVEO_CLI_PROFILE = "computer", VEOVEO_CLI_BEARER_ENV = "COMPUTER_HUB_REFERENCE" }
 release_note = """
-The Hub CLI reads the Hub's renamed metadata.
-`veoveo-hub-sdk-cli tools`, `resources` and `prompts` name a server the Hub could not reach or that is still starting, which the Hub now reports under `ai.veoveo/hub`. Your files, OpenCode, its models and Lore are unchanged."""
+Lore follows Epic's main; a repository can be shared read-only (reader), and pushing needs member or owner.
+A person with a reader grant can clone a repository but not push to it; a member or owner can push. Your files, OpenCode, its models and the Hub CLI are unchanged."""
 [[step.template]]
 workspace = "installation"
 name = "factory-v1"
