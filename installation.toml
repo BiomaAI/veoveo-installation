@@ -119,6 +119,8 @@ file = "computer/providers/model.yaml"
 [[step.profile]]
 file = "openshell/providers/factory-model.yaml"
 [[step.profile]]
+file = "openshell/providers/factory-strict-probe.yaml"
+[[step.profile]]
 file = "openshell/providers/entra-hub-native-control.example.yaml"
 workspace = "vv-control"
 [[step.profile]]

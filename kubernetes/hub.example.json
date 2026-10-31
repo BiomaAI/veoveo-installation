@@ -112,6 +112,12 @@
         "repositories": [
           "b2fd9e7fb1eb508979d7bdd70fa8e4c8"
         ]
+      },
+      {
+        "provider": "vv-factory-strict-probe",
+        "repositories": [
+          "b2fd9e7fb1eb508979d7bdd70fa8e4c8"
+        ]
       }
     ]
   },

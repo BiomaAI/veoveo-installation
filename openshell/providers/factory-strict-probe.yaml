@@ -1,0 +1,27 @@
+# A qualification probe of strict credential binding: a dummy credential, never a real
+# one, bound strictly to httpbin.org's echo route. A request there passes only with the
+# provider's placeholder, which the proxy replaces; the echo shows what the endpoint
+# received. A literal value in Authorization, or no credential, is refused by the proxy
+# with credential_placeholder_required. Granted only to the provider probe repository.
+id: vv-factory-strict-probe
+display_name: Strict binding probe (dummy credential, echo endpoint)
+credentials:
+  - name: token
+    env_vars: [STRICT_PROBE_TOKEN]
+    required: true
+    auth_style: bearer
+    header_name: authorization
+endpoints:
+  - host: httpbin.org
+    port: 443
+    path: /anything/**
+    protocol: rest
+    enforcement: enforce
+    credential_binding:
+      strict: true
+    rules:
+      - allow:
+          method: GET
+          path: /anything/**
+binaries:
+  - /**
