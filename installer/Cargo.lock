@@ -2368,7 +2368,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 [[package]]
 name = "openshell-core"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=ab37a698cfd03cdfb2559af7fd4263075233a48a#ab37a698cfd03cdfb2559af7fd4263075233a48a"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=8bd83351d776127fcd619fb9329ecc9e41873016#8bd83351d776127fcd619fb9329ecc9e41873016"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2405,7 +2405,7 @@ dependencies = [
 [[package]]
 name = "openshell-crypto"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=ab37a698cfd03cdfb2559af7fd4263075233a48a#ab37a698cfd03cdfb2559af7fd4263075233a48a"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=8bd83351d776127fcd619fb9329ecc9e41873016#8bd83351d776127fcd619fb9329ecc9e41873016"
 dependencies = [
  "aws-lc-rs",
  "jsonwebtoken 10.4.0",
@@ -2423,7 +2423,7 @@ dependencies = [
 [[package]]
 name = "openshell-extension-core"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=ab37a698cfd03cdfb2559af7fd4263075233a48a#ab37a698cfd03cdfb2559af7fd4263075233a48a"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=8bd83351d776127fcd619fb9329ecc9e41873016#8bd83351d776127fcd619fb9329ecc9e41873016"
 dependencies = [
  "hyper-util",
  "serde",
@@ -2436,7 +2436,7 @@ dependencies = [
 [[package]]
 name = "openshell-policy"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=ab37a698cfd03cdfb2559af7fd4263075233a48a#ab37a698cfd03cdfb2559af7fd4263075233a48a"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=8bd83351d776127fcd619fb9329ecc9e41873016#8bd83351d776127fcd619fb9329ecc9e41873016"
 dependencies = [
  "hickory-proto",
  "miette",
@@ -2450,7 +2450,7 @@ dependencies = [
 [[package]]
 name = "openshell-policy-schema"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=ab37a698cfd03cdfb2559af7fd4263075233a48a#ab37a698cfd03cdfb2559af7fd4263075233a48a"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=8bd83351d776127fcd619fb9329ecc9e41873016#8bd83351d776127fcd619fb9329ecc9e41873016"
 dependencies = [
  "miette",
  "noyalib",
@@ -2463,7 +2463,7 @@ dependencies = [
 [[package]]
 name = "openshell-providers"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=ab37a698cfd03cdfb2559af7fd4263075233a48a#ab37a698cfd03cdfb2559af7fd4263075233a48a"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=8bd83351d776127fcd619fb9329ecc9e41873016#8bd83351d776127fcd619fb9329ecc9e41873016"
 dependencies = [
  "glob",
  "noyalib",
@@ -2479,7 +2479,7 @@ dependencies = [
 [[package]]
 name = "openshell-sdk"
 version = "0.0.0"
-source = "git+https://github.com/VeoveoAI/OpenShell?rev=ab37a698cfd03cdfb2559af7fd4263075233a48a#ab37a698cfd03cdfb2559af7fd4263075233a48a"
+source = "git+https://github.com/VeoveoAI/OpenShell?rev=8bd83351d776127fcd619fb9329ecc9e41873016#8bd83351d776127fcd619fb9329ecc9e41873016"
 dependencies = [
  "async-stream",
  "async-trait",
