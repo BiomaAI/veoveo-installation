@@ -1,0 +1,30 @@
+# One provider in the factory workspace, `vv-factory-model`, that Hub attaches to an
+# instance whose branch requests it in openshell/providers.yaml and whose repository the
+# control plane's factory.providers grants it. Its endpoint is the model endpoint
+# Computers use, DeepInfra's OpenAI-compatible chat completions; attaching the provider
+# admits the instance's programs to that endpoint alone, and the proxy replaces the
+# placeholder in DEEPINFRA_API_KEY in the Authorization header there, so the key never
+# enters the sandbox. A prompt may quote a placeholder, as a Computer's chat may, so the
+# key stays bound to the header without body inspection.
+id: vv-factory-model
+display_name: Model API for factory instances
+inference_capable: true
+credentials:
+  - name: api_key
+    env_vars: [DEEPINFRA_API_KEY]
+    required: true
+    auth_style: bearer
+    header_name: authorization
+endpoints:
+  - host: api.deepinfra.com
+    port: 443
+    path: /v1/openai/chat/completions
+    protocol: rest
+    enforcement: enforce
+    allow_uninspected_credentials: true
+    rules:
+      - allow:
+          method: POST
+          path: /v1/openai/chat/completions
+binaries:
+  - /**
