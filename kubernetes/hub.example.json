@@ -105,7 +105,15 @@
     "caps": {
       "instancesPerUser": 4,
       "enforce": false
-    }
+    },
+    "providers": [
+      {
+        "provider": "vv-factory-model",
+        "repositories": [
+          "b2fd9e7fb1eb508979d7bdd70fa8e4c8"
+        ]
+      }
+    ]
   },
   "lore": {
     "deployments": [
