@@ -156,8 +156,8 @@ image = "computer"
 driver_config = "kubernetes/computer-driver-config.json"
 environment = { SSL_CERT_DIR = "/etc/ssl/certs", VEOVEO_LORE_REMOTE = "grpcs://lore.veoveo-system.svc.cluster.local:41337", VEOVEO_CLI_HUB = "https://veoveo.bioma.ai", VEOVEO_CLI_PROFILE = "computer", VEOVEO_CLI_BEARER_ENV = "COMPUTER_HUB_REFERENCE" }
 release_note = """
-npm installs scoped packages in your Computer, so n8n's Assistant can set up its workspace.
-npm now reaches the npm registry for packages whose names hold a scope, such as @n8n/workflow-sdk and @types/node, which it could not fetch before, for the Assistant's workspaces and for your own installs. The registry is read-only: npm's security audit is refused, so install with --no-audit. Your files, OpenCode, its models, Lore and the Hub CLI are unchanged."""
+n8n's Assistant uses your Hub tools, and the Veoveo Tool node lists them.
+In n8n, the Assistant can call the tools your Hub offers you, such as Time, and the Veoveo Tool node shows them in a list to pick from. Your files, OpenCode, its models, Lore and keeping your Computer on are unchanged."""
 [[step.template]]
 workspace = "installation"
 name = "factory-v1"
