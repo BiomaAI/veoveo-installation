@@ -353,6 +353,11 @@ on Hub's host: the Computer's own status, restart, previous version, keep-on and
 which its programs and the Hub CLI call with the owner's credential. Credentials stay with the proxy: it puts one in place of its placeholder
 only at the endpoint bound to it, for the programs that rule names, and refuses a
 request that carries a placeholder anywhere else (`credential_endpoint_mismatch`).
+`npm_registry` is one such exact-host rule: Node.js, which runs npm, reads the npm
+registry through an inspected, read-only endpoint that admits the encoded slash of a
+scoped package's name (`@scope%2Fname`), which OpenShell refuses by default, so npm
+installs scoped packages for n8n's Assistant and for the person. npm's audit is a `POST`
+the read-only endpoint refuses, so installs pass `--no-audit`, as the Assistant's do.
 OpenCode's file search and its `grep` and `glob` tools run ripgrep, which the factory
 base installs; without it OpenCode would download its own.
 
@@ -373,7 +378,7 @@ commands as the person in sandboxes that `veoveo-n8n-computer` keeps as director
 the person's home, `$HOME/n8n/.sandboxes/{id}`; its web search and browser use are off.
 The image checks as the Computer's user, uid 10001, that it reads n8n's trees and the
 nodes and runs Node.js, npm, n8n and `veoveo-n8n-computer`. The image copies npm from the fork's image too, which installs the Assistant's workspace
-packages from the npm registry through the `internet` rule. The [n8n server's design](https://github.com/VeoveoAI/veoveo-mcp-n8n/blob/main/crates/veoveo-mcp-n8n/DESIGN.md#n8n-in-a-persons-computer)
+packages from the npm registry through the `npm_registry` rule, which admits Node.js to `registry.npmjs.org`. The [n8n server's design](https://github.com/VeoveoAI/veoveo-mcp-n8n/blob/main/crates/veoveo-mcp-n8n/DESIGN.md#n8n-in-a-persons-computer)
 holds the rest. The Computer template's memory limit is 6 GiB, up from 4: n8n's node
 holds several hundred MiB and more while it runs workflows, beside OpenCode and the
 builds a Computer runs; with zero requests, no Computer reserves any of it.
