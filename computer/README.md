@@ -45,8 +45,8 @@ deployment acceptance.
 - n8n: the `computer` target of
   [veoveo-mcp-n8n's Dockerfile](https://github.com/VeoveoAI/veoveo-mcp-n8n/blob/main/Dockerfile)
   at the revision the lock names, built with that Dockerfile's `N8N_IMAGE`, the n8n
-  fork's image by digest in the installation's registry. The image holds Node.js and n8n
-  as the fork's image lays them out, `veoveo-n8n-computer` and the Veoveo nodes; the
+  fork's image by digest in the installation's registry. The image holds Node.js, npm and
+  n8n as the fork's image lays them out, `veoveo-n8n-computer` and the Veoveo nodes; the
   Computer image copies them, and the factory base installs `librdkafka1`, which n8n's
   native modules load. Both images are Debian trixie, so they share one C library.
 - Native OpenShell gateway/driver, supervisor and sandbox runtime:
