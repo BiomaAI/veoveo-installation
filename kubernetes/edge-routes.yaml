@@ -1,0 +1,14 @@
+# Static pages served at Cloudflare's edge, before the tunnel (DESIGN.md, Public
+# Ingress). Cloudflare holds these, never this file, and veoveo-installer does not apply
+# them; they are recorded in the shape of Cloudflare's API bodies.
+#
+# Workers route on the bioma.ai zone: POST /zones/{zone_id}/workers/routes. The
+# veoveo-docs Worker's own configuration (site/wrangler.jsonc) declares it, so each
+# deploy applies it.
+workersRoutes:
+  - pattern: veoveo.bioma.ai/docs
+    script: veoveo-docs
+  - pattern: veoveo.bioma.ai/docs/*
+    script: veoveo-docs
+# The docs are public by the owner's choice: no Access application.
+accessApplications: []

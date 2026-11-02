@@ -44,6 +44,9 @@ what Bioma selected and every other place where a file differs from the template
   in Cloudflare. [tunnel-routes.yaml](../../kubernetes/tunnel-routes.yaml) records
   them for the Bioma host. The routes held in Cloudflare were not read back for this
   revision, because that needs the operator's API credential.
+- `/docs/` on the same host is served at Cloudflare's edge by the veoveo-docs Worker,
+  public by the owner's choice; [edge-routes.yaml](../../kubernetes/edge-routes.yaml)
+  records its Workers route. It never reaches the tunnel or Hub.
 
 ## Identity
 
