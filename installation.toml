@@ -157,7 +157,7 @@ driver_config = "kubernetes/computer-driver-config.json"
 environment = { SSL_CERT_DIR = "/etc/ssl/certs", VEOVEO_LORE_REMOTE = "grpcs://lore.veoveo-system.svc.cluster.local:41337", VEOVEO_CLI_HUB = "https://veoveo.bioma.ai", VEOVEO_CLI_PROFILE = "computer", VEOVEO_CLI_BEARER_ENV = "COMPUTER_HUB_REFERENCE" }
 release_note = """
 Your agent learns how to use the platform from skills, and projects are groups.
-Guidance now comes as skills each service serves (Lore, Artifact transfers, served branches, this Computer, and each server's own), which your agent loads when a task needs them. Work Context is gone: what you share with a group is what its members reach, in Lore and in Artifact. Your files, OpenCode, its models and n8n are unchanged."""
+Guidance now comes as skills each service serves (Lore, Artifact transfers, served branches, this Computer, and each server's own), which your agent loads when a task needs them. OpenCode lists each skill with the service it came from, and asks before it uses one from a server someone pushed. Work Context is gone: what you share with a group is what its members reach, in Lore and in Artifact. Your files, models and n8n are unchanged."""
 [[step.template]]
 workspace = "installation"
 name = "factory-v1"
