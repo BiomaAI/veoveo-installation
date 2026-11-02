@@ -57,10 +57,10 @@ what Bioma selected and every other place where a file differs from the template
 | OpenShell gateway resource application (gateway OIDC audience) | `8a6d434f-8c4c-4e2c-9756-9b2d94118d17` |
 | Gateway app roles, in the `roles` claim | `openshell-admin`, `openshell-user` |
 | Hub access-token signing key ID | `nr-CyVKgU-7yqss1O9KW-8gr4WMw8a1JWOupDeCieFc` |
-| Hub installation names | the template's: tenant `reference`, Work Context `reference-work`, policy revision `reference-policy` |
+| Hub installation names | the template's: tenant `reference`, policy revision `reference-policy` |
 
-Principal object IDs, grants, Work Context memberships, repository registrations and
-assignments are per-person data. They are not in this repository.
+Principal object IDs, grants, groups, repository registrations and assignments are
+per-person data. They are not in this repository.
 [entra.example.json](../../identity/entra.example.json) keeps the template's
 example principals.
 
@@ -72,8 +72,8 @@ example principals.
   generation and checks run status, so no provider callback route is published.
 - Time is not an installed service.
 - Computers use the template's DeepInfra model provider.
-- Hub's `computers.handbook` is the text of
-  [computer/instructions.md](../../computer/instructions.md).
+- Hub's `computers.skills` are the template's
+  [computer/skills/](../../computer/skills/).
 - `computer-v1`'s `release_note` in `installation.toml` is the note the running template
   carried, as `plan` read it on 2026-10-25 (UTC); `factory-v1` carries none.
 
