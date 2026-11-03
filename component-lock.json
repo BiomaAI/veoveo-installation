@@ -4,7 +4,7 @@
     {
       "name": "veoveo-hub",
       "repository": "https://github.com/VeoveoAI/veoveo-hub",
-      "revision": "ddb901ca9fdc41bdd7b70f00e4c1631ac806d79c"
+      "revision": "349fffa507bb8919261cd08da47f3753abd5999d"
     },
     {
       "name": "veoveo-hub-sdk",
@@ -53,7 +53,7 @@
     "console": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:da7a8a2edee6009a7410db2361268ca08f13b048ca727e7582f93232af6e7bcf",
     "embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/embedding@sha256:e64bc0ca00b108e7c10a3ff282afada611a251460186f9ee6fef715a9197863e",
     "factory": "registry.veoveo-system.svc.cluster.local:5000/veoveo/factory@sha256:8fb21e6b581a44b33c926b1bc6068a1d298c004b15ec1699bf1f212698339972",
-    "hub": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub@sha256:5c1563f0f770b186e5c034b2e38f3bde63723f80b5b48a3d34c8b7405301d202",
+    "hub": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub@sha256:7107c52f127c2fdc5d0cbd814645920590e170f13ab0486d26a1cd62c57b77d1",
     "hub-sdk-cli": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub-sdk-cli@sha256:b17a1c9c416f71cc8375fde4226dff41a6541aa14f7edddbfb22c9f0d2b9a425",
     "lore": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:c06142c9f3c02dafbad9d26fd49407ea62f452bbeccd7806fedb030c8081cc65",
     "media": "registry.veoveo-system.svc.cluster.local:5000/veoveo/media@sha256:7482f7069dafda3864ba6dc5d6dc553c078158bbe702bb517d43b61c85e04b52",
