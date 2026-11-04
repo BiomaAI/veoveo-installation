@@ -117,6 +117,8 @@ file = "computer/providers/hub.yaml"
 [[step.profile]]
 file = "computer/providers/model.yaml"
 [[step.profile]]
+file = "computer/providers/anthropic.yaml"
+[[step.profile]]
 file = "openshell/providers/factory-model.yaml"
 [[step.profile]]
 file = "openshell/providers/factory-strict-probe.yaml"
@@ -156,8 +158,8 @@ image = "computer"
 driver_config = "kubernetes/computer-driver-config.json"
 environment = { SSL_CERT_DIR = "/etc/ssl/certs", VEOVEO_LORE_REMOTE = "grpcs://lore.veoveo-system.svc.cluster.local:41337", VEOVEO_CLI_HUB = "https://veoveo.bioma.ai", VEOVEO_CLI_PROFILE = "computer", VEOVEO_CLI_BEARER_ENV = "COMPUTER_HUB_REFERENCE" }
 release_note = """
-Your agent finds your files and events by what they mean, with words or a picture.
-The new knowledge skill shows your agent how to search what the platform's servers keep: Artifact finds your files, and Time your events, by their words as soon as you save them and by their meaning a moment later. A picture, a clip or a sound works as a query too, and a search shows only what you may read. The Hub CLI's `call` now shows the Task a save starts, which `tasks get` follows. Your files, models and n8n are unchanged."""
+You can pick Claude for a session in OpenCode.
+OpenCode's model list now has Claude Haiku 5.5, Sonnet 5.5, Opus 5.5 and Fable 5.1 beside DeepInfra's models, and MiMo stays the default. The Anthropic key stays with the platform, as the DeepInfra key does: your Computer holds only a placeholder, which works only for Anthropic's API and only from OpenCode. n8n's Assistant keeps its model. Your files and n8n are unchanged."""
 [[step.template]]
 workspace = "installation"
 name = "factory-v1"
