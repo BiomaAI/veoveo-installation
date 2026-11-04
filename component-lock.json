@@ -4,7 +4,7 @@
     {
       "name": "veoveo-hub",
       "repository": "https://github.com/VeoveoAI/veoveo-hub",
-      "revision": "e86466e6257d880e5bad9ae4545910e067cdf1a4"
+      "revision": "8d12755978ea0d3db6fa2f0a2cac68a2890275ac"
     },
     {
       "name": "veoveo-hub-sdk",
@@ -44,16 +44,16 @@
     {
       "name": "veoveo-template-installation",
       "repository": "https://github.com/VeoveoAI/veoveo-template-installation",
-      "revision": "6554a0addb5ba71687dc5c89f6536013a47ed5a6"
+      "revision": "a47033ad2fce7c1ae4220c580f8c1e5950a649d2"
     }
   ],
   "images": {
     "artifact": "registry.veoveo-system.svc.cluster.local:5000/veoveo/artifact@sha256:4d70f98972ebfe9c3d06daf70f6445472ca03eda9465cda782680d44dd322162",
-    "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:b501214342913ebcdd3df1798e3cdd5548cec3584a6a50ee437ba8903528accf",
+    "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:1ca8cad7dd8bb117ef7b51c16610d1d3cc2b7ccdd2de36c5769216ac717d4907",
     "console": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:da7a8a2edee6009a7410db2361268ca08f13b048ca727e7582f93232af6e7bcf",
     "embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/embedding@sha256:9b71267507e458b60fdc201beceea413aaa6cf491fac42559e1a551e13adc3c6",
     "factory": "registry.veoveo-system.svc.cluster.local:5000/veoveo/factory@sha256:8fb21e6b581a44b33c926b1bc6068a1d298c004b15ec1699bf1f212698339972",
-    "hub": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub@sha256:441db722d18620799f9fd0d1b1788bb8c5867d09166d9c313f536fa4202aabe1",
+    "hub": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub@sha256:d3767a8b4176782e2bb5d2c85789f093ba7b2fcc421076d74776303033b5f361",
     "hub-sdk-cli": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub-sdk-cli@sha256:6cdbd7edf3567d18afa7fca50de03a5d94dce3cb4a033b5a3757a825daef4559",
     "lore": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:c06142c9f3c02dafbad9d26fd49407ea62f452bbeccd7806fedb030c8081cc65",
     "media": "registry.veoveo-system.svc.cluster.local:5000/veoveo/media@sha256:a91bb1120f4ffee1ad5e97c7628f8d1b2c1f907b8ae35623e12c1705b10dd742",
