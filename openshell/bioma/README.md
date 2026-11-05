@@ -42,8 +42,13 @@ what Bioma selected and every other place where a file differs from the template
   `/artifacts/` on that host.
 - The tunnel is Bioma's existing remotely managed Cloudflare tunnel. Its routes live
   in Cloudflare. [tunnel-routes.yaml](../../kubernetes/tunnel-routes.yaml) records
-  them for the Bioma host. The routes held in Cloudflare were not read back for this
-  revision, because that needs the operator's API credential.
+  them for the Bioma host. The routes held in Cloudflare were read back for this
+  revision, at the tunnel's version 12.
+- The content domain is `veoveo-bioma.space`, another registrable domain from Hub's, so
+  a browser sends none of Hub's or an App's cookies there. Its wildcard route goes to
+  Hub's `apps` service, set through the API, and its zone bypasses the edge cache and
+  rewrites nothing. Hub does not serve this domain yet: until it does, these names
+  answer as the sandbox proxy.
 - `/docs/` on the same host is served at Cloudflare's edge by the veoveo-docs Worker,
   public by the owner's choice; [edge-routes.yaml](../../kubernetes/edge-routes.yaml)
   records its Workers route. It never reaches the tunnel or Hub.
@@ -134,6 +139,7 @@ Besides placeholder values, these files differ from the template:
 | `component-lock.json` | Names Bioma's deployed revisions and images, the template's own revision, and no Time | The lock is what Bioma runs. Time is not installed |
 | `installation.toml` | Cilium's values add `openshell/bioma/kubernetes/cilium-node.values.yaml` | Bioma keeps its node override in this repository |
 | `kubernetes/tunnel-routes.yaml` | Leaves out the Media callback route | Bioma's Media checks run status against the fake provider |
+| `kubernetes/tunnel-routes.yaml` | Adds the content domain's route | Set ahead of Hub's support for it; the template gains it with that support |
 | `kubernetes/hub-config-pvc.yaml`, `media-provider-config-pvc.yaml`, `postgres-client-ca.yaml`, `seed-service-configs.yaml` | The copy-image markers name the pinned `debian:trixie-slim` copy utility | These values are rendered here; the utility is third-party, pinned at its upstream registry, so the lock does not name it |
 | Comments and sentences that say to render the host, image or gateway ID (`kubernetes/README.md`, `WORKLOADS.md`, `lore.toml`, `openshell.values.yaml`, `embedding-storage.yaml`, `postgres.yaml`, `seed-service-configs.yaml`, `tunnel-routes.yaml`, `policies/console.yaml`, `policies/factory-base.yaml`, `openshell/providers/factory-lore.yaml`, `factory-registration.yaml`, `lore.yaml`) | Reworded | These values are already rendered here |
 | `README.md`, `AGENTS.md` | Describe this repository | Bioma's repository, not the template |

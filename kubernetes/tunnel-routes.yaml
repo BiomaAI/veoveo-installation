@@ -44,4 +44,14 @@ config:
         httpHostHeader: vv-control--hub--apps.openshell.localhost
         originServerName: vv-control--hub--apps.openshell.localhost
         caPool: /etc/cloudflared-ca/gateway.crt
+    # The content domain, another registrable domain so that the browser sends none of the
+    # Hub's or an App's cookies there. It reaches Hub's service apps the same way, and was
+    # set through the API with its proxied CNAME * -> <tunnel id>.cfargotunnel.com. Its zone
+    # bypasses the edge cache, since a cached file would skip the check on every request.
+    - hostname: "*.veoveo-bioma.space"
+      service: https://openshell.openshell.svc.cluster.local:8080
+      originRequest:
+        httpHostHeader: vv-control--hub--apps.openshell.localhost
+        originServerName: vv-control--hub--apps.openshell.localhost
+        caPool: /etc/cloudflared-ca/gateway.crt
     - service: http_status:404
