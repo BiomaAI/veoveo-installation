@@ -44,7 +44,7 @@
     {
       "name": "veoveo-template-installation",
       "repository": "https://github.com/VeoveoAI/veoveo-template-installation",
-      "revision": "81201f1f490f16aa06035d29e39292b70776bf3c"
+      "revision": "5d28c3e835b8ab90e0bc6961490092fccff4af91"
     }
   ],
   "images": {
