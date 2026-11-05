@@ -19,7 +19,7 @@
     {
       "name": "veoveo-mcp-artifact",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-artifact",
-      "revision": "ee4de67caaeece0fd40b855eb832816a8249fcd7"
+      "revision": "bbe5a9c64394dade4fad887dbe20e7a23b9cdb3b"
     },
     {
       "name": "veoveo-mcp-media",
@@ -48,7 +48,7 @@
     }
   ],
   "images": {
-    "artifact": "registry.veoveo-system.svc.cluster.local:5000/veoveo/artifact@sha256:1a7f1a8965844b450a5b6555316e6d7fe50f58d649a3328ec9de8d6b0de07eb7",
+    "artifact": "registry.veoveo-system.svc.cluster.local:5000/veoveo/artifact@sha256:8d25fca2f0a4f2374996f3fca90716e8e7d1ffc6b92ad8714d4799302d9849f3",
     "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:a823a94361f59a20e45ba10ce484906de7f66789d9ac2700efe04b3a3c89b594",
     "console": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:da7a8a2edee6009a7410db2361268ca08f13b048ca727e7582f93232af6e7bcf",
     "embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/embedding@sha256:9b71267507e458b60fdc201beceea413aaa6cf491fac42559e1a551e13adc3c6",
