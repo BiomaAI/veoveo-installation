@@ -4,12 +4,12 @@
     {
       "name": "veoveo-hub",
       "repository": "https://github.com/VeoveoAI/veoveo-hub",
-      "revision": "a75a1c6dae21ecfd39383d3ef03bc9fb4a835b16"
+      "revision": "90eb1790ec9a5fcceb2877b0f779cc2cc5b3020f"
     },
     {
       "name": "veoveo-hub-sdk",
       "repository": "https://github.com/VeoveoAI/veoveo-hub-sdk",
-      "revision": "b820f05258bd6d12dc7c02f9fb0955f7ccb0b17a"
+      "revision": "886cb6ab8e32ad412caaf537cf4ba6b92e8e8409"
     },
     {
       "name": "veoveo-mcp-console",
@@ -44,7 +44,7 @@
     {
       "name": "veoveo-template-installation",
       "repository": "https://github.com/VeoveoAI/veoveo-template-installation",
-      "revision": "56cfe488961e55fb44fc67b9f0afacee980d8ff8"
+      "revision": "61364b1ea2ce73c6223e4d0d2bda960ff79a4ac6"
     }
   ],
   "images": {
@@ -53,7 +53,8 @@
     "console": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:da7a8a2edee6009a7410db2361268ca08f13b048ca727e7582f93232af6e7bcf",
     "embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/embedding@sha256:9b71267507e458b60fdc201beceea413aaa6cf491fac42559e1a551e13adc3c6",
     "factory": "registry.veoveo-system.svc.cluster.local:5000/veoveo/factory@sha256:8fb21e6b581a44b33c926b1bc6068a1d298c004b15ec1699bf1f212698339972",
-    "hub": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub@sha256:dc0feb34aa8f26a16ca251c9843e8690f4e7b6d2fa92eec274e26c4dfdff7d41",
+    "file-viewer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/file-viewer@sha256:cacc2cf8e021aaa2ce1a88a0908832148a584ed0c80aa4ba9cfdc614e58401cf",
+    "hub": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub@sha256:1fc057710e13cf7b27308e64402c36ea98f197a3339d4eaa053130b42280efc8",
     "hub-sdk-cli": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub-sdk-cli@sha256:6cdbd7edf3567d18afa7fca50de03a5d94dce3cb4a033b5a3757a825daef4559",
     "lore": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:c06142c9f3c02dafbad9d26fd49407ea62f452bbeccd7806fedb030c8081cc65",
     "lore-server": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:b9c6ca1ef842587b201c644f0bffa2a5d7545259b9bcef9fe2d2c54915ae8aa7",

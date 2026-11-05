@@ -86,6 +86,10 @@ which approves every attachment a sandbox requests, admits an image volume only 
 it is pinned by digest and its repository is one the installation lists; upgrading a
 tool changes its digest, never that list.
 
+Hub mounts the `file-viewer` image read-only at `/opt/veoveo/file-viewer` the same way, and
+serves its files on the content domain. It holds files only, as published, built by
+[FileViewer.Dockerfile](factory/FileViewer.Dockerfile), and no other workload mounts it.
+
 The installation names each image once, in `component-lock.json`, and fills every
 manifest, template and driver configuration that uses it from there. Upgrading Lore
 builds one image and changes one value. The Computer image is the one that copies a
@@ -236,6 +240,14 @@ everything else goes to Hub through OpenShell's native service exposure. An
 installation whose Media checks run status instead publishes no Media route. The
 tunnel verifies TLS to every Service against its public CA. Public origins stay
 installation data.
+
+Previews of files and other untrusted content run on a content domain, such as
+`veoveo-content.example.net`, which the installation sets as Hub's `VEOVEO_CONTENT_ORIGIN`. It
+is another registrable domain from the public host's, so a browser sends it none of Hub's or
+an App's cookies, and Universal SSL's `*.{domain}` covers its one label. Its zone
+bypasses the edge cache and rewrites nothing, because a cached file would skip the check Hub
+makes on every request and a rewritten one would not be the file. Its wildcard reaches Hub's
+`apps` service through OpenShell's native service exposure.
 
 An installation may also serve static pages, such as its documentation, under one path of
 its public host from Cloudflare's edge. A Workers route, `{host}/{path}/*`, answers those
