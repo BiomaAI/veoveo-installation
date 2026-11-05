@@ -4,7 +4,7 @@
     {
       "name": "veoveo-hub",
       "repository": "https://github.com/VeoveoAI/veoveo-hub",
-      "revision": "61083f86677e7fe8330ec16af49636413918ebd3"
+      "revision": "518566f7db62e1225198b3415bb7f0ad75c1c00f"
     },
     {
       "name": "veoveo-hub-sdk",
@@ -19,7 +19,7 @@
     {
       "name": "veoveo-mcp-artifact",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-artifact",
-      "revision": "3e0b48fa0d1c736cde26514b83de081f68415306"
+      "revision": "0dabcb77cb9fbe7902c1e0d712742c3f3ff38a03"
     },
     {
       "name": "veoveo-mcp-media",
@@ -48,13 +48,13 @@
     }
   ],
   "images": {
-    "artifact": "registry.veoveo-system.svc.cluster.local:5000/veoveo/artifact@sha256:c80d76265770787cfc337489a319b59cf39e747f641905eb203ed59824754c9d",
+    "artifact": "registry.veoveo-system.svc.cluster.local:5000/veoveo/artifact@sha256:0c96099e9a708334a6a2a0c2964a2a2b05a2babffec8a1eafd1c73745f1ad115",
     "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:1ca8cad7dd8bb117ef7b51c16610d1d3cc2b7ccdd2de36c5769216ac717d4907",
     "console": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:da7a8a2edee6009a7410db2361268ca08f13b048ca727e7582f93232af6e7bcf",
     "embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/embedding@sha256:9b71267507e458b60fdc201beceea413aaa6cf491fac42559e1a551e13adc3c6",
     "factory": "registry.veoveo-system.svc.cluster.local:5000/veoveo/factory@sha256:8fb21e6b581a44b33c926b1bc6068a1d298c004b15ec1699bf1f212698339972",
     "file-viewer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/file-viewer@sha256:cacc2cf8e021aaa2ce1a88a0908832148a584ed0c80aa4ba9cfdc614e58401cf",
-    "hub": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub@sha256:339cb0cfaf05b4b7efd9dbef6a5ac07d71355f9f2dde2663b50f69e20288293c",
+    "hub": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub@sha256:50f746b8f7a6e5015ef6beffd966358d84cb7bf779c673cb3fd54dff5ffd7c87",
     "hub-sdk-cli": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub-sdk-cli@sha256:6cdbd7edf3567d18afa7fca50de03a5d94dce3cb4a033b5a3757a825daef4559",
     "lore": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:c06142c9f3c02dafbad9d26fd49407ea62f452bbeccd7806fedb030c8081cc65",
     "lore-server": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:b9c6ca1ef842587b201c644f0bffa2a5d7545259b9bcef9fe2d2c54915ae8aa7",
