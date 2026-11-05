@@ -107,7 +107,8 @@ other repository, so these provenances are here:
 |---|---|
 | `openshell-gateway`, `openshell-supervisor` | OpenShell `8bd83351d776127fcd619fb9329ecc9e41873016`: strict credential binding, delivered apart from credential values, and HTTP/2 upstream only when the upstream selects it. The gateway runs it since 07:15 UTC on 2026-10-31; a sandbox takes the supervisor when it is next created: a factory instance at a push that changes its image, policy or providers, a Computer at its restart |
 | `openshell-sandbox` | OpenShell `1ab0e2386cbd943ec84a8701cd5d54dfa68e55a7` |
-| `lore` | Lore `4ee9f3382ec5b3b214713ce21ee0d48263501d84`, which tells its `auth_service` catalog's endpoint of each repository it creates and deletes, with the template's Lore Dockerfile at `9f21d3e`, whose build and runtime stages the current template keeps unchanged, published as `veoveo/lore:4ee9f338`. The Lore server, Hub, the factory sandboxes and the Computer all run this digest |
+| `lore` | Lore `c33e017a`, with the template's Lore Dockerfile. Hub, the factory sandboxes and the Computer run this digest |
+| `lore-server` | Lore `2c0c689bbfc9239ddb4ad01f751f27ce9f518019`, which serves its HTTP port over TLS and answers a Range on a file's content, with the template's Lore Dockerfile, published as `veoveo/lore:2c0c689b`. Only the Lore server runs this digest |
 | `computer` | The template at `9f21d3e` over the `factory` image, with OpenCode `c5fb62662c9c6fcb5064ef191956ca0da14e1af9`; the current template's Computer build inputs are the same |
 | `factory` | The template at `9f21d3e`, the base of the `computer` image; no workload runs it directly |
 | `media-provider` | Media `6a73e52932d166e368ba8673277cadf8be1742b9`, target `fake-provider`; the lock's Media revision is the server's, `6bd5843` |
@@ -138,6 +139,7 @@ Besides placeholder values, these files differ from the template:
 |---|---|---|
 | `component-lock.json` | Names Bioma's deployed revisions and images, the template's own revision, and no Time | The lock is what Bioma runs. Time is not installed |
 | `installation.toml` | Cilium's values add `openshell/bioma/kubernetes/cilium-node.values.yaml` | Bioma keeps its node override in this repository |
+| `component-lock.json`, `kubernetes/lore.yaml`, `installer/tests/repository.rs` | The Lore server runs its own image, `@image:lore-server@`, which the installer's test lock names too | `lore` is mounted in Computers and factories, so a new digest there would change their templates. The server's change is to its HTTP files only, and gRPC is the same |
 | `kubernetes/tunnel-routes.yaml` | Leaves out the Media callback route | Bioma's Media checks run status against the fake provider |
 | `kubernetes/tunnel-routes.yaml` | Adds the content domain's route | Set ahead of Hub's support for it; the template gains it with that support |
 | `kubernetes/hub-config-pvc.yaml`, `media-provider-config-pvc.yaml`, `postgres-client-ca.yaml`, `seed-service-configs.yaml` | The copy-image markers name the pinned `debian:trixie-slim` copy utility | These values are rendered here; the utility is third-party, pinned at its upstream registry, so the lock does not name it |
