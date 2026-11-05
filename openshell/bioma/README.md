@@ -76,6 +76,8 @@ example principals.
   generation and checks run status; the tunnel holds its callback route all the same, as
   [tunnel-routes.yaml](../../kubernetes/tunnel-routes.yaml) records.
 - Time is not an installed service.
+- USD is not an installed service. It runs as a factory instance from its own Lore repository,
+  `veoveo-mcp-usd`, whose image opts in to the GPU, and the Lore repository `usd-demo` holds its scenes.
 - Computers use the template's DeepInfra model provider.
 - Hub's `computers.skills` are the template's
   [computer/skills/](../../computer/skills/).
@@ -99,8 +101,8 @@ Service's own, so the upgrade changes no live address.
 ## Deployed revisions
 
 [component-lock.json](../../component-lock.json) names each Veoveo component's revision
-and every image Bioma built, by the digest the cluster runs, as read on 2026-10-25
-(UTC). Core's component-lock format holds one revision per Veoveo repository and no
+and every image Bioma built, by the digest the cluster runs, updated at each
+deployment. Core's component-lock format holds one revision per Veoveo repository and no
 other repository, so these provenances are here:
 
 | Image | Built from |
@@ -116,21 +118,10 @@ other repository, so these provenances are here:
 | `postgres` | The template at `ecdb5b5dcc621161c7e5905a243c1271b42daeff` |
 | `hub-sdk-cli` | The SDK at `05273d1`, target `cli` |
 
-The lock's `veoveo-template-installation` revision, `9f21d3e`, is the one the
-`computer`, `factory` and `lore` images were built from; the files here follow the
-template at `51f2c7b`. Bioma runs these component revisions where the template locks
-each component's main:
-
-| Component | Template's lock | Bioma runs |
-|---|---|---|
-| `veoveo-hub` | `2739757` | `ce3cada` |
-| `veoveo-hub-sdk` | `a41c9cc` | `05273d1` |
-| `veoveo-mcp-console` | `e855cac` | `acc4ba2` |
-| `veoveo-mcp-artifact` | `ae29dc3` | `91e62be` |
-| `veoveo-mcp-media` | `871e11d` | `6bd5843` |
-| `veoveo-mcp-embedding` | `df07d1f` | `46fa002` |
-| `veoveo-runtime-embedding` | `9850c04` | `109304d` |
-| `veoveo-mcp-time` | `6f17481` | not installed |
+The lock's revisions are Bioma's own, not the template's. Its `veoveo-template-installation`
+revision is the template's main that these files last took, and the images above name
+their own template revision. Its `veoveo-hub-sdk` revision is the one the deployed Hub
+pins; other servers pin their own.
 
 ## Differences from the template
 
