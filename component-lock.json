@@ -34,7 +34,7 @@
     {
       "name": "veoveo-mcp-n8n",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-n8n",
-      "revision": "ff4c37f3a97023beae84dded6d590102eb863305"
+      "revision": "80b8897fa2afba6352d3df067ed079b7fa5506f9"
     },
     {
       "name": "veoveo-runtime-embedding",
@@ -44,12 +44,12 @@
     {
       "name": "veoveo-template-installation",
       "repository": "https://github.com/VeoveoAI/veoveo-template-installation",
-      "revision": "239126aeb8a4f42e293b41dcd251371a34efd483"
+      "revision": "2ea327b143124333d7128db2b438e7aa16b6cf19"
     }
   ],
   "images": {
     "artifact": "registry.veoveo-system.svc.cluster.local:5000/veoveo/artifact@sha256:5c1b2756c146b676fc5d4698ff901a9738d029f2188e45fbfba3c3001a620eb2",
-    "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:54434f68287f85b04a37dfdd5f7a810a2622e8438abe9662bff70cc9ed50bf46",
+    "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:a823a94361f59a20e45ba10ce484906de7f66789d9ac2700efe04b3a3c89b594",
     "console": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:da7a8a2edee6009a7410db2361268ca08f13b048ca727e7582f93232af6e7bcf",
     "embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/embedding@sha256:9b71267507e458b60fdc201beceea413aaa6cf491fac42559e1a551e13adc3c6",
     "factory": "registry.veoveo-system.svc.cluster.local:5000/veoveo/factory@sha256:8fb21e6b581a44b33c926b1bc6068a1d298c004b15ec1699bf1f212698339972",
@@ -65,6 +65,6 @@
     "openshell-supervisor": "registry.veoveo-system.svc.cluster.local:5000/veoveo/openshell/supervisor@sha256:450b7280ad804fcf7fc9934710c1e97eabb3b7b6501e5e7f075726d57314f2f1",
     "postgres": "registry.veoveo-system.svc.cluster.local:5000/veoveo/postgres@sha256:feacb84577fdca909cd0e3306784f9af84d083222dab00421244a1376520c28a",
     "runtime-embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/runtime-embedding@sha256:3a60c9823983ec7ca35b9e5227061ff2e08f5fb355240b64bff122a6dc17b3e5",
-    "n8n-computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/n8n-computer@sha256:73ca2fd23841d8d527b2001d7dcef86ca5c90fa0567a1e5b08e829ec52d4fb76"
+    "n8n-computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/n8n-computer@sha256:c88a6fb287fbdd5bf67a489352c241a6922947b8f08976dea16ea3f47c36dd3b"
   }
 }
