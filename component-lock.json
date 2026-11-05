@@ -44,12 +44,12 @@
     {
       "name": "veoveo-template-installation",
       "repository": "https://github.com/VeoveoAI/veoveo-template-installation",
-      "revision": "f165868369088a281aa1e0464482ec24bb2d2d74"
+      "revision": "875b807ce2742f6b90bff335c1078913681414da"
     }
   ],
   "images": {
     "artifact": "registry.veoveo-system.svc.cluster.local:5000/veoveo/artifact@sha256:5c1b2756c146b676fc5d4698ff901a9738d029f2188e45fbfba3c3001a620eb2",
-    "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:1ca8cad7dd8bb117ef7b51c16610d1d3cc2b7ccdd2de36c5769216ac717d4907",
+    "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:54434f68287f85b04a37dfdd5f7a810a2622e8438abe9662bff70cc9ed50bf46",
     "console": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:da7a8a2edee6009a7410db2361268ca08f13b048ca727e7582f93232af6e7bcf",
     "embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/embedding@sha256:9b71267507e458b60fdc201beceea413aaa6cf491fac42559e1a551e13adc3c6",
     "factory": "registry.veoveo-system.svc.cluster.local:5000/veoveo/factory@sha256:8fb21e6b581a44b33c926b1bc6068a1d298c004b15ec1699bf1f212698339972",
