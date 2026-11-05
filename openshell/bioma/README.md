@@ -78,15 +78,10 @@ example principals.
 - Time is not an installed service.
 - USD is not an installed service. It runs as a factory instance from its own Lore repository,
   `veoveo-mcp-usd`, whose image opts in to the GPU, and the Lore repository `usd-demo` holds its scenes.
-- `computer/opencode.json` differs from the template's in one entry: `skill://usd/` is approved, so OpenCode
-  does not ask a person when it loads USD's skills or runs a command while one is loaded. The owner chose this
-  because a question before each command is too costly, given the platform's other guardrails. It trusts what
-  anyone who can push to `veoveo-mcp-usd` writes in those skills. Other pushed servers' skills still ask.
 - Computers use the template's DeepInfra model provider.
 - Hub's `computers.skills` are the template's
   [computer/skills/](../../computer/skills/).
-- `computer-v1`'s `release_note` in `installation.toml` is Bioma's own, as it names USD's
-  approval above; `factory-v1` carries none.
+- `computer-v1`'s `release_note` in `installation.toml` is the template's; `factory-v1` carries none.
 
 ## Not yet deployed
 
