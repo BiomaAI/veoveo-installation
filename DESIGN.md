@@ -27,7 +27,7 @@ holds factory instances, and Hub creates one workspace for each Computer owner.
 These runtime names are the installation's. Foundation services run in the
 `veoveo-system` namespace and the gateway in `openshell`; OpenShell creates a
 namespace for each workspace. A platform sandbox is named after what it runs: `hub`,
-`console`, `artifact`, `media`, `media-provider`, `embedding` and `embedding-runtime`.
+`console`, `artifact`, `media`, `embedding` and `embedding-runtime`. Media reaches WaveSpeed, so there is no `media-provider` here.
 Hub names a factory instance's sandbox after its deployment ID and a Computer's after
 its Computer ID. The Computer template is `computer-v<n>`, and provider profiles are
 `vv-<role>`.

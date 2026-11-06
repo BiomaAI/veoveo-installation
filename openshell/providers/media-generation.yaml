@@ -1,5 +1,5 @@
 id: vv-media-generation
-display_name: Private fake generation provider
+display_name: WaveSpeed generation
 credentials:
   - name: api_key
     env_vars: [MEDIA_PROVIDER_API_KEY]

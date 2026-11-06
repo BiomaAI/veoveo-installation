@@ -71,10 +71,9 @@ example principals.
 ## Services
 
 - Hub, plus Artifact, Media, Embedding and console in `vv-services`.
-- Media runs against the synthetic fake provider (the `media-provider` image in
-  [component-lock.json](../../component-lock.json)). It does no real media
-  generation and checks run status; the tunnel holds its callback route all the same, as
-  [tunnel-routes.yaml](../../kubernetes/tunnel-routes.yaml) records.
+- Media runs against WaveSpeed: its API key is the `vv-media-generation` provider's credential, bound to `api.wavespeed.ai`, and its webhook
+  secret is in Media's `provider.env`. Runs complete by WaveSpeed's signed webhooks, through the tunnel's one Media route, and each one bills
+  the account. The template keeps its synthetic fixture.
 - Time is not an installed service.
 - USD is not an installed service. It runs as a factory instance from its own Lore repository,
   `veoveo-mcp-usd`, whose image opts in to the GPU, and the Lore repository `usd-demo` holds its scenes.
@@ -115,7 +114,6 @@ other repository, so these provenances are here:
 | `file-viewer` | `@file-viewer/web-full` 3.3.3 and its assets, unmodified, with [FileViewer.Dockerfile](../../factory/FileViewer.Dockerfile). Only Hub mounts it. Its own source is Apache-2.0, its DWG, DWF and DWFx engine AGPL-3.0-only and its LibreDWG bindings GPL-3.0-only; their notices and source link stay in the image |
 | `computer` | The template at `9f21d3e` over the `factory` image, with OpenCode `c5fb62662c9c6fcb5064ef191956ca0da14e1af9`; the current template's Computer build inputs are the same |
 | `factory` | The template at `9f21d3e`, the base of the `computer` image; no workload runs it directly |
-| `media-provider` | Media `6a73e52932d166e368ba8673277cadf8be1742b9`, target `fake-provider`; the lock's Media revision is the server's, `6bd5843` |
 | `postgres` | The template at `ecdb5b5dcc621161c7e5905a243c1271b42daeff` |
 | `hub-sdk-cli` | The SDK at `05273d1`, target `cli` |
 
@@ -130,10 +128,11 @@ Besides placeholder values, these files differ from the template:
 
 | File | Difference | Reason |
 |---|---|---|
+| `installation.toml`, `kubernetes/policies/media.yaml`, `openshell/providers/media-generation.yaml`, `component-lock.json` | Media runs against WaveSpeed, with no `media-provider` sandbox, policy, claim or image | Bioma generates real media |
 | `component-lock.json` | Names Bioma's deployed revisions and images, the template's own revision, and no Time | The lock is what Bioma runs. Time is not installed |
 | `installation.toml` | Cilium's values add `openshell/bioma/kubernetes/cilium-node.values.yaml` | Bioma keeps its node override in this repository |
 | `component-lock.json`, `kubernetes/lore.yaml`, `installer/tests/repository.rs` | The Lore server runs its own image, `@image:lore-server@`, which the installer's test lock names too | `lore` is mounted in Computers and factories, so a new digest there would change their templates. The server's change is to its HTTP files only, and gRPC is the same |
-| `kubernetes/hub-config-pvc.yaml`, `media-provider-config-pvc.yaml`, `postgres-client-ca.yaml`, `seed-service-configs.yaml` | The copy-image markers name the pinned `debian:trixie-slim` copy utility | These values are rendered here; the utility is third-party, pinned at its upstream registry, so the lock does not name it |
+| `kubernetes/hub-config-pvc.yaml`, `postgres-client-ca.yaml`, `seed-service-configs.yaml` | The copy-image markers name the pinned `debian:trixie-slim` copy utility | These values are rendered here; the utility is third-party, pinned at its upstream registry, so the lock does not name it |
 | Comments and sentences that say to render the host, image or gateway ID (`kubernetes/README.md`, `WORKLOADS.md`, `lore.toml`, `openshell.values.yaml`, `embedding-storage.yaml`, `postgres.yaml`, `seed-service-configs.yaml`, `tunnel-routes.yaml`, `policies/console.yaml`, `policies/factory-base.yaml`, `openshell/providers/factory-lore.yaml`, `factory-registration.yaml`, `lore.yaml`) | Reworded | These values are already rendered here |
 | `README.md`, `AGENTS.md` | Describe this repository | Bioma's repository, not the template |
 | Links to template files left out of this repository | Point to the template at `51f2c7b` | These files are the template's Mac and Docker fixtures and its Docker-era reference documents |

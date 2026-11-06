@@ -148,8 +148,9 @@ network_policies:
     - path: /usr/local/bin/veoveo-mcp-media
   generation:
     endpoints:
-    - host: vv-services--media-provider--http.openshell.localhost
-      port: 8080
+    # WaveSpeed's API, with the credential bound to this one host.
+    - host: api.wavespeed.ai
+      port: 443
       path: /api/v3/**
       protocol: rest
       enforcement: enforce
@@ -165,15 +166,16 @@ network_policies:
       - allow:
           method: POST
           path: /api/v3/**
-    - host: vv-services--media-provider--http.openshell.localhost
-      port: 8080
-      path: /outputs/**
+    # Where WaveSpeed serves outputs, with no credential.
+    - host: d2h7xmz5gqybh9.cloudfront.net
+      port: 443
+      path: /**
       protocol: rest
       enforcement: enforce
       rules:
       - allow:
           method: GET
-          path: /outputs/*/*
+          path: /**
     binaries:
     - path: /usr/local/bin/veoveo-mcp-media
   database:
