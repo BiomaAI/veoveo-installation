@@ -78,8 +78,8 @@ example principals.
 - Time is not an installed service.
 - USD is not an installed service. It runs as a factory instance from its own Lore repository,
   `veoveo-mcp-usd`, whose image opts in to the GPU, and the Lore repository `usd-demo` holds its scenes.
-- Thumb and Lore are not installed services either. Each runs as a factory instance from its own Lore repository: `veoveo-mcp-thumb`,
-  whose image opts in to the GPU, and `veoveo-mcp-lore`.
+- Thumb and Repo are not installed services either. Each runs as a factory instance from its own Lore repository: `veoveo-mcp-thumb`,
+  whose image opts in to the GPU, and `veoveo-mcp-repo`.
 - Computers use the template's DeepInfra model provider.
 - Hub's `computers.skills` are the template's
   [computer/skills/](../../computer/skills/).
