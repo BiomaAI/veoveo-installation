@@ -14,7 +14,7 @@
     {
       "name": "veoveo-mcp-console",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-console",
-      "revision": "49718cbbf7c84d580a327c1b17180698c1a03b39"
+      "revision": "1a1e0f8d05085dec62dd9c174b569c48f8b8a5ca"
     },
     {
       "name": "veoveo-mcp-artifact",
@@ -50,7 +50,7 @@
   "images": {
     "artifact": "registry.veoveo-system.svc.cluster.local:5000/veoveo/artifact@sha256:8d25fca2f0a4f2374996f3fca90716e8e7d1ffc6b92ad8714d4799302d9849f3",
     "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:a823a94361f59a20e45ba10ce484906de7f66789d9ac2700efe04b3a3c89b594",
-    "console": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:d4cf8d7946fbc224ee60283810833b61368255d34f0a0151e8b84dfa3d93335a",
+    "console": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:64afaddf461dde506392312788160c94cf698ea07f807941d40e6be9d292e15d",
     "embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/embedding@sha256:9b71267507e458b60fdc201beceea413aaa6cf491fac42559e1a551e13adc3c6",
     "factory": "registry.veoveo-system.svc.cluster.local:5000/veoveo/factory@sha256:8fb21e6b581a44b33c926b1bc6068a1d298c004b15ec1699bf1f212698339972",
     "file-viewer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/file-viewer@sha256:cacc2cf8e021aaa2ce1a88a0908832148a584ed0c80aa4ba9cfdc614e58401cf",
