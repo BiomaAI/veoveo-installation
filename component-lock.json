@@ -4,37 +4,37 @@
     {
       "name": "veoveo-hub",
       "repository": "https://github.com/VeoveoAI/veoveo-hub",
-      "revision": "cdc64feaf1a80e78dd06d3d7cf0a931768aa215c"
+      "revision": "49f766fd69d983fc2cb5a1a7e03628760d625b8f"
     },
     {
       "name": "veoveo-hub-sdk",
       "repository": "https://github.com/VeoveoAI/veoveo-hub-sdk",
-      "revision": "14a649f3e37dca39a4bb29fc39dd03c6565b0490"
+      "revision": "5ff33f1f669385099fdd405f6e6bbd6ee190a45c"
     },
     {
       "name": "veoveo-mcp-console",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-console",
-      "revision": "c5fb82a17f2cb813cc8b03bfa22313b9d3c04e3c"
+      "revision": "5cad884e5678334b3e91a61ebd26762432edd081"
     },
     {
       "name": "veoveo-mcp-artifact",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-artifact",
-      "revision": "831f8d73430f5d0258dc45ac157f2de19acdbafd"
+      "revision": "393e821fdfc093872b7b0e66ffeb17d7b30d79da"
     },
     {
       "name": "veoveo-mcp-media",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-media",
-      "revision": "6a85dce19cf9f6389b3e027aa1382a5a2cdfbd81"
+      "revision": "01ef23e37dce2d7c6d88a9e9b39a8b2c8bdef6f5"
     },
     {
       "name": "veoveo-mcp-embedding",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-embedding",
-      "revision": "e2d2b077df16e506992fa000ab4506ef51b03e8b"
+      "revision": "a06ca5005d95563f5324bd73557c8cffa0e6351f"
     },
     {
       "name": "veoveo-mcp-n8n",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-n8n",
-      "revision": "80b8897fa2afba6352d3df067ed079b7fa5506f9"
+      "revision": "93012dff55fb8af9c1372d10d2a4ad07de61c9d6"
     },
     {
       "name": "veoveo-runtime-embedding",
@@ -48,22 +48,22 @@
     }
   ],
   "images": {
-    "artifact": "registry.veoveo-system.svc.cluster.local:5000/veoveo/artifact@sha256:55df9dda9ac9c1486357cdd5d5a446e52f0b707484884a51356b6093babffd64",
-    "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:a823a94361f59a20e45ba10ce484906de7f66789d9ac2700efe04b3a3c89b594",
-    "console": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:7e1212866e4829ff7ea74a248709e013ef9da40f05c9a3e3503ef07bd9d84fd1",
-    "embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/embedding@sha256:9b71267507e458b60fdc201beceea413aaa6cf491fac42559e1a551e13adc3c6",
+    "artifact": "registry.veoveo-system.svc.cluster.local:5000/veoveo/artifact@sha256:8cf1cbe4e05c43894a1f69f8bc501900e38d6497b6f5101aa5dccd8b67f6c242",
+    "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:8b4e3a0498592838212526b5ff0452e2aefd0131b866d78d29af46e5816b11f3",
+    "console": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:fd67d108dddb9f2c3abd1fcd59cd8013c3a0559d8c94cb24dea457fe066b267b",
+    "embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/embedding@sha256:e466c8177a64f355619880c649c71c0add1b762bf09037a2d9d734859151ef67",
     "factory": "registry.veoveo-system.svc.cluster.local:5000/veoveo/factory@sha256:8fb21e6b581a44b33c926b1bc6068a1d298c004b15ec1699bf1f212698339972",
     "file-viewer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/file-viewer@sha256:cacc2cf8e021aaa2ce1a88a0908832148a584ed0c80aa4ba9cfdc614e58401cf",
-    "hub": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub@sha256:a62184bcd798c261176caebe70609156961a2ecf273f1251f6ba32d683cf1167",
-    "hub-sdk-cli": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub-sdk-cli@sha256:6cdbd7edf3567d18afa7fca50de03a5d94dce3cb4a033b5a3757a825daef4559",
+    "hub": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub@sha256:ccbd869784554597d4ad157aa0133f6ef7d5b408268fb001ae9721bd8d310a7d",
+    "hub-sdk-cli": "registry.veoveo-system.svc.cluster.local:5000/veoveo/hub-sdk-cli@sha256:7a954222af3c0f19ba46e024b63d56d7bbcb162ce710051764a40862b7d97fd7",
     "lore": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:c06142c9f3c02dafbad9d26fd49407ea62f452bbeccd7806fedb030c8081cc65",
     "lore-server": "registry.veoveo-system.svc.cluster.local:5000/veoveo/lore@sha256:b9c6ca1ef842587b201c644f0bffa2a5d7545259b9bcef9fe2d2c54915ae8aa7",
-    "media": "registry.veoveo-system.svc.cluster.local:5000/veoveo/media@sha256:a91bb1120f4ffee1ad5e97c7628f8d1b2c1f907b8ae35623e12c1705b10dd742",
+    "media": "registry.veoveo-system.svc.cluster.local:5000/veoveo/media@sha256:27e123c73e2e4ae24bb76aeb301ab5be7f547323210a6ead8e8f55b622b98746",
     "openshell-gateway": "registry.veoveo-system.svc.cluster.local:5000/veoveo/openshell/gateway@sha256:5aefb663b3bdf0c1dd6ec981eac66f88600f9f45a9865a165a57132daa0f20c0",
     "openshell-sandbox": "registry.veoveo-system.svc.cluster.local:5000/veoveo/openshell/sandbox@sha256:6308651a6173e4f016101a819e18f2b46ed773185e0c8035085aab4664907106",
     "openshell-supervisor": "registry.veoveo-system.svc.cluster.local:5000/veoveo/openshell/supervisor@sha256:450b7280ad804fcf7fc9934710c1e97eabb3b7b6501e5e7f075726d57314f2f1",
     "postgres": "registry.veoveo-system.svc.cluster.local:5000/veoveo/postgres@sha256:feacb84577fdca909cd0e3306784f9af84d083222dab00421244a1376520c28a",
     "runtime-embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/runtime-embedding@sha256:3a60c9823983ec7ca35b9e5227061ff2e08f5fb355240b64bff122a6dc17b3e5",
-    "n8n-computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/n8n-computer@sha256:c88a6fb287fbdd5bf67a489352c241a6922947b8f08976dea16ea3f47c36dd3b"
+    "n8n-computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/n8n-computer@sha256:b377ce759f65a3120abaa5a2b1d16218937ed1fad551d8eaf08eb3794157a7bb"
   }
 }
