@@ -34,7 +34,7 @@
     {
       "name": "veoveo-mcp-n8n",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-n8n",
-      "revision": "b3fc0b99d9c7f9f005c6fb9d13c711b0e5dafb6a"
+      "revision": "9c93992cf64f2eccd10f9cd34fd1114a6c36a828"
     },
     {
       "name": "veoveo-runtime-embedding",
@@ -64,6 +64,6 @@
     "openshell-supervisor": "registry.veoveo-system.svc.cluster.local:5000/veoveo/openshell/supervisor@sha256:278f062b9cd8f9c03658da3f6705b13548ee595a16b64ee043c929372bb3b62d",
     "postgres": "registry.veoveo-system.svc.cluster.local:5000/veoveo/postgres@sha256:feacb84577fdca909cd0e3306784f9af84d083222dab00421244a1376520c28a",
     "runtime-embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/runtime-embedding@sha256:3a60c9823983ec7ca35b9e5227061ff2e08f5fb355240b64bff122a6dc17b3e5",
-    "n8n-computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/n8n-computer@sha256:63f31b33702c757b9a78c182181f00b5e2b91b171fcc53eb98234e1ee93a3690"
+    "n8n-computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/n8n-computer@sha256:9b73a16d6c23372876a8d513bb933d7d89f8c419c3bed2e16c913418b9cdba95"
   }
 }
