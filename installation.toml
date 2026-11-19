@@ -157,8 +157,8 @@ image = "computer"
 driver_config = "kubernetes/computer-driver-config.json"
 environment = { SSL_CERT_DIR = "/etc/ssl/certs", VEOVEO_LORE_REMOTE = "grpcs://lore.veoveo-system.svc.cluster.local:41337", VEOVEO_CLI_HUB = "https://veoveo.bioma.ai", VEOVEO_CLI_PROFILE = "computer", VEOVEO_CLI_BEARER_ENV = "COMPUTER_HUB_REFERENCE" }
 release_note = """
-The Hub command line and n8n's connection to the Hub run on the newer MCP library, rmcp 3.9.
-veoveo-hub-sdk-cli and n8n's Veoveo nodes are rebuilt on rmcp 3.9.0, which limits how large a server's reply may grow and fixes several connection details. Nothing you use changes, and your files and n8n are unchanged."""
+Your Computer runs OpenCode 2.3.2, with Lore 0.14 and the Hub command line on rmcp 3.11.
+OpenCode moves from 2.0 to 2.3.2 with upstream's fixes and our Veoveo changes kept, the Lore command line moves to v0.14.0, and veoveo-hub-sdk-cli and n8n's Veoveo nodes run on rmcp 3.11.0. Your files, sessions and n8n data are unchanged."""
 [[step.template]]
 workspace = "installation"
 name = "factory-v1"

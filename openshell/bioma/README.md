@@ -107,15 +107,15 @@ other repository, so these provenances are here:
 
 | Image | Built from |
 |---|---|
-| `openshell-gateway`, `openshell-supervisor` | OpenShell `8bd83351d776127fcd619fb9329ecc9e41873016`: strict credential binding, delivered apart from credential values, and HTTP/2 upstream only when the upstream selects it. The gateway runs it since 07:15 UTC on 2026-10-31; a sandbox takes the supervisor when it is next created: a factory instance at a push that changes its image, policy or providers, a Computer at its restart |
-| `openshell-sandbox` | OpenShell `1ab0e2386cbd943ec84a8701cd5d54dfa68e55a7` |
-| `lore` | Lore `c33e017a`, with the template's Lore Dockerfile. Hub, the factory sandboxes and the Computer run this digest |
-| `lore-server` | Lore `2c0c689bbfc9239ddb4ad01f751f27ce9f518019`, which serves its HTTP port over TLS and answers a Range on a file's content, with the template's Lore Dockerfile, published as `veoveo/lore:2c0c689b`. Only the Lore server runs this digest |
+| `openshell-gateway`, `openshell-supervisor` | OpenShell `5f630f42ccf26336419a90ce01cccba40dfbf6c1`: upstream v0.1.9 with the fork's changes, among them strict credential binding and HTTP/2 upstream only when the upstream selects it. A sandbox takes the supervisor when it is next created: a factory instance at a push that changes its image, policy or providers, a Computer at its restart |
+| `openshell-sandbox` | OpenShell `5f630f42ccf26336419a90ce01cccba40dfbf6c1` |
+| `lore` | Lore `782e00ffa60468ef779cb818a87f56cdc75cb16a`, upstream v0.14.0 with the fork's changes, with the template's Lore Dockerfile, published as `veoveo/lore:782e00ff`. Hub, the factory sandboxes and the Computer run this digest |
+| `lore-server` | The same image as `lore`, Lore `782e00ffa60468ef779cb818a87f56cdc75cb16a`, which serves its HTTP port over TLS and answers a Range on a file's content. Only the Lore server runs it under this name |
 | `file-viewer` | `@file-viewer/web-full` 3.3.3 and its assets, unmodified, with [FileViewer.Dockerfile](../../factory/FileViewer.Dockerfile). Only Hub mounts it. Its own source is Apache-2.0, its DWG, DWF and DWFx engine AGPL-3.0-only and its LibreDWG bindings GPL-3.0-only; their notices and source link stay in the image |
 | `computer` | The template at `9f21d3e` over the `factory` image, with OpenCode `c5fb62662c9c6fcb5064ef191956ca0da14e1af9`; the current template's Computer build inputs are the same |
 | `factory` | The template at `9f21d3e`, the base of the `computer` image; no workload runs it directly |
 | `postgres` | The template at `ecdb5b5dcc621161c7e5905a243c1271b42daeff` |
-| `hub-sdk-cli` | The SDK at `05273d1`, target `cli` |
+| `hub-sdk-cli` | The SDK at `fb79f3f`, on rmcp 3.11.0, target `cli` |
 
 The lock's revisions are Bioma's own, not the template's. Its `veoveo-template-installation`
 revision is the template's main that these files last took, and the images above name
