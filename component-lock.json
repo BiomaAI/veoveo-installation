@@ -34,7 +34,7 @@
     {
       "name": "veoveo-mcp-n8n",
       "repository": "https://github.com/VeoveoAI/veoveo-mcp-n8n",
-      "revision": "9c93992cf64f2eccd10f9cd34fd1114a6c36a828"
+      "revision": "a0d8e4cd8ea13762e2fd42150048a85ab60902b6"
     },
     {
       "name": "veoveo-runtime-embedding",
@@ -49,7 +49,7 @@
   ],
   "images": {
     "artifact": "registry.veoveo-system.svc.cluster.local:5000/veoveo/artifact@sha256:b3fb16e5f7189ec8cae29d98894eba2022e69e829744da6681e7847f6704271f",
-    "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:0614dc1e48db87815ca840c06f4af362688685991e3fad98c7ecde63d7809a49",
+    "computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/computer@sha256:24d7a99fb5b5cd0567ab738187acb5cba9ec0143a2aafd6e1082061e185e4cb4",
     "console": "registry.veoveo-system.svc.cluster.local:5000/veoveo/console@sha256:0b87b51430e4d1457d65671ca74a341c7f5a84ed759841bc3ecd573a424df9e1",
     "embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/embedding@sha256:307eeae63319ce7cd2b861b23f4757e43619c2e802a8c9c3940eb7fac854e653",
     "factory": "registry.veoveo-system.svc.cluster.local:5000/veoveo/factory@sha256:8fb21e6b581a44b33c926b1bc6068a1d298c004b15ec1699bf1f212698339972",
@@ -64,6 +64,6 @@
     "openshell-supervisor": "registry.veoveo-system.svc.cluster.local:5000/veoveo/openshell/supervisor@sha256:278f062b9cd8f9c03658da3f6705b13548ee595a16b64ee043c929372bb3b62d",
     "postgres": "registry.veoveo-system.svc.cluster.local:5000/veoveo/postgres@sha256:feacb84577fdca909cd0e3306784f9af84d083222dab00421244a1376520c28a",
     "runtime-embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/runtime-embedding@sha256:3a60c9823983ec7ca35b9e5227061ff2e08f5fb355240b64bff122a6dc17b3e5",
-    "n8n-computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/n8n-computer@sha256:9b73a16d6c23372876a8d513bb933d7d89f8c419c3bed2e16c913418b9cdba95"
+    "n8n-computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/n8n-computer@sha256:313354aa3f90670c98948c0370d686f3496a0225c9cc001dabb46b3790105ad2"
   }
 }
