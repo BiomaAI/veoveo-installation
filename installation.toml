@@ -157,8 +157,8 @@ image = "computer"
 driver_config = "kubernetes/computer-driver-config.json"
 environment = { SSL_CERT_DIR = "/etc/ssl/certs", VEOVEO_LORE_REMOTE = "grpcs://lore.veoveo-system.svc.cluster.local:41337", VEOVEO_CLI_HUB = "https://veoveo.bioma.ai", VEOVEO_CLI_PROFILE = "computer", VEOVEO_CLI_BEARER_ENV = "COMPUTER_HUB_REFERENCE" }
 release_note = """
-Your Computer runs n8n 2.48.7 on Node.js 26.13.1, with OpenCode 2.3.2, Lore 0.14 and the Hub command line on rmcp 3.11.
-n8n moves from 2.48.5 to 2.48.7 with upstream's fixes and our Veoveo changes kept, and Node.js moves to 26.13.1, its security release for TLS and HTTP/2. Your files, sessions and n8n data are unchanged."""
+Your Computer has Rust 1.100.0, and the platform's database runs PostgreSQL 19.0; n8n 2.48.7, OpenCode 2.3.2, Lore 0.14 and the Hub command line on rmcp 3.11 stay.
+Rust moves from 1.99.0 to 1.100.0, and the Lore and Hub command lines and n8n's Veoveo nodes are built with it. The database moved from PostgreSQL 18 with its data. Your files, sessions and n8n data are unchanged."""
 [[step.template]]
 workspace = "installation"
 name = "factory-v1"

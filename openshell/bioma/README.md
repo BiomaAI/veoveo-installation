@@ -112,10 +112,10 @@ other repository, so these provenances are here:
 | `lore` | Lore `344647cd44356a47ebb3409061796a1116951c54`, upstream v0.14.0 with the fork's changes, built on Rust 1.100.0 with the template's Lore Dockerfile, published as `veoveo/lore:344647cd`. Hub, the factory sandboxes and the Computer run this digest |
 | `lore-server` | The same image as `lore`, Lore `344647cd44356a47ebb3409061796a1116951c54`, which serves its HTTP port over TLS and answers a Range on a file's content. Only the Lore server runs it under this name |
 | `file-viewer` | `@file-viewer/web-full` 3.3.3 and its assets, unmodified, with [FileViewer.Dockerfile](../../factory/FileViewer.Dockerfile). Only Hub mounts it. Its own source is Apache-2.0, its DWG, DWF and DWFx engine AGPL-3.0-only and its LibreDWG bindings GPL-3.0-only; their notices and source link stay in the image |
-| `computer` | The installation at `e0c02a8` (`computer/Dockerfile`) over the `factory` image, with OpenCode `7d839dc296d287c42291674867076600a02b695f` (upstream v2.3.2 with the fork's changes) and the `n8n-computer` image (n8n 2.48.7 on Node.js 26.13.1, from the fork at `c5b795ef`, and veoveo-mcp-n8n `a0d8e4c`) |
+| `computer` | The installation at `2776b7c` (`computer/Dockerfile`) over the `factory` image (Rust 1.100.0), with OpenCode `7d839dc296d287c42291674867076600a02b695f` (upstream v2.3.2 with the fork's changes) and the `n8n-computer` image (n8n 2.48.7 on Node.js 26.13.1, from the fork at `c5b795ef`, and veoveo-mcp-n8n `ce6b7cf`) |
 | `factory` | The template at `d5f5a26`, on Rust 1.100.0, the base of the `computer` image; no workload runs it directly |
 | `postgres` | The template at `d5f5a26e78c602037fab9eaf792f06d061bd8c75`: PostgreSQL 19.0 with pgvector 0.8.7 and PostGIS 3.7.0 |
-| `hub-sdk-cli` | The SDK at `fb79f3f`, on rmcp 3.11.0, target `cli` |
+| `hub-sdk-cli` | The SDK at `82e0de1`, on rmcp 3.11.0 and Rust 1.100.0, target `cli` |
 
 The lock's revisions are Bioma's own, not the template's. Its `veoveo-template-installation`
 revision is the template's main that these files last took, and the images above name
