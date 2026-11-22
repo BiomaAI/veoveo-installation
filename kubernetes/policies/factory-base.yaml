@@ -78,6 +78,7 @@ network_policies:
         rules:
           - allow: {method: GET, path: /lore/*/repositories}
           - allow: {method: GET, path: /lore/*/repositories/*/files/**}
+          - allow: {method: GET, path: /lore/*/repositories/*/links/*/**}
           - allow: {method: GET, path: /lore/*/repositories/*/tree/*}
           - allow: {method: GET, path: /lore/*/repositories/*/branches}
           - allow: {method: GET, path: /lore/*/repositories/*/history/*}

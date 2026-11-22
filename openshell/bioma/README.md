@@ -13,6 +13,12 @@ the chart paragraph of `kubernetes/README.md` follow its `lore-catalog` branch a
 `ce9e4bc9eda890a9b872d6a5ea5b1e93decfcdd6`, which includes that revision. This page lists
 what Bioma selected and every other place where a file differs from the template.
 
+The factory base policy and its design also carry the template's focused native
+mount-read addition: `GET /lore/*/repositories/*/links/*/**`. It is the same rule
+in both repositories, with Bioma's existing public host; it adds no write access
+or transitive repository grant. The deployed component lock is updated only after
+the installer applies the reviewed change.
+
 ## Placement
 
 - One Linux amd64 node (Ubuntu 24.04.5) running K3s `v1.36.5+k3s1`.

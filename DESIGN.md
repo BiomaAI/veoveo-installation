@@ -278,6 +278,12 @@ factory template's
 [driver configuration](kubernetes/factory-driver-config.json), which holds its size and
 mounts the Lore image read-only, with the branch's own image.
 
+The factory's caller-bound Lore HTTP read rules also admit `GET
+/lore/*/repositories/*/links/*/**` for exact native mount resolution. This adds
+only that read path: Hub independently authorizes the parent and target as the
+current caller, and Lore enforces their separate repository-scoped tokens.
+A parent grant does not grant the target, and the policy admits no repository write.
+
 Three installation services serve every repository and branch: Vector on every node
 ships all container output to single-node VictoriaLogs, where it outlives its pod; one
 BuildKit daemon in its user-namespace variant, which only Hub reaches, builds
