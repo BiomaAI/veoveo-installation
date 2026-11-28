@@ -61,7 +61,7 @@
     "media": "registry.veoveo-system.svc.cluster.local:5000/veoveo/media@sha256:fa43b70b0b42b26323603fb4f283fd3f316d5c4c10891b9abd1df912232bb331",
     "openshell-gateway": "registry.veoveo-system.svc.cluster.local:5000/veoveo/openshell/gateway@sha256:0cce71a56f54fb70ca8703df6b9e0f03bd4219b1e1380d28f1d086e5b42ddc66",
     "openshell-sandbox": "registry.veoveo-system.svc.cluster.local:5000/veoveo/openshell/sandbox@sha256:e7d1cbfc1d0ffb4af0d5f3525620c8270bb5ad8faf63bde1930679f71b66b85f",
-    "openshell-supervisor": "registry.veoveo-system.svc.cluster.local:5000/veoveo/openshell/supervisor@sha256:278f062b9cd8f9c03658da3f6705b13548ee595a16b64ee043c929372bb3b62d",
+    "openshell-supervisor": "registry.veoveo-system.svc.cluster.local:5000/veoveo/openshell/supervisor@sha256:53dcf9f8d4541c718e57c8d54524d76b252c333cb239699c5b0575ded5942d50",
     "postgres": "registry.veoveo-system.svc.cluster.local:5000/veoveo/postgres@sha256:f2aa7604fd0102195da0a9bc31c9b3f2fd5f6db8bc5b2591d4630fd4f079b935",
     "runtime-embedding": "registry.veoveo-system.svc.cluster.local:5000/veoveo/runtime-embedding@sha256:3a60c9823983ec7ca35b9e5227061ff2e08f5fb355240b64bff122a6dc17b3e5",
     "n8n-computer": "registry.veoveo-system.svc.cluster.local:5000/veoveo/n8n-computer@sha256:c8d1a6f47b3a50e05fe6a1aabe5cdf6a48b97254170a032e8b0cb2e502b025eb"

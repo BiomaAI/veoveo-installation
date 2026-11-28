@@ -113,7 +113,8 @@ other repository, so these provenances are here:
 
 | Image | Built from |
 |---|---|
-| `openshell-gateway`, `openshell-supervisor` | OpenShell `5f630f42ccf26336419a90ce01cccba40dfbf6c1`: upstream v0.1.9 with the fork's changes, among them strict credential binding and HTTP/2 upstream only when the upstream selects it. A sandbox takes the supervisor when it is next created: a factory instance at a push that changes its image, policy or providers, a Computer at its restart |
+| `openshell-gateway` | OpenShell `5f630f42ccf26336419a90ce01cccba40dfbf6c1`: upstream v0.1.9 with the fork's changes, among them strict credential binding and HTTP/2 upstream only when the upstream selects it |
+| `openshell-supervisor` | OpenShell `38628d8a83022c3f8382b0875ce8aa0bae44d3dd`: `5f630f42` with upstream's `4b433e6e3` backported, which refreshes an expired policy DNS mapping through the trusted resolver when a new connection uses it, instead of refusing the connection. A sandbox takes the supervisor when it is next created: a factory instance at a push that changes its image, policy or providers, a Computer at its restart |
 | `openshell-sandbox` | OpenShell `5f630f42ccf26336419a90ce01cccba40dfbf6c1` |
 | `lore` | Lore `344647cd44356a47ebb3409061796a1116951c54`, upstream v0.14.0 with the fork's changes, built on Rust 1.100.0 with the template's Lore Dockerfile, published as `veoveo/lore:344647cd`. Hub, the factory sandboxes and the Computer run this digest |
 | `lore-server` | The same image as `lore`, Lore `344647cd44356a47ebb3409061796a1116951c54`, which serves its HTTP port over TLS and answers a Range on a file's content. Only the Lore server runs it under this name |
@@ -136,6 +137,7 @@ Besides placeholder values, these files differ from the template:
 |---|---|---|
 | `installation.toml`, `kubernetes/policies/media.yaml`, `openshell/providers/media-generation.yaml`, `component-lock.json` | Media runs against WaveSpeed, with no `media-provider` sandbox, policy, claim or image | Bioma generates real media |
 | `component-lock.json` | Names Bioma's deployed revisions and images, the template's own revision, and no Time | The lock is what Bioma runs. Time is not installed |
+| `component-lock.json` | `openshell-supervisor` is built from OpenShell `38628d8a8`, the template's `5f630f42` with upstream's refresh of expired policy DNS mappings on connect (`4b433e6e3`); the gateway, the sandbox runtime and the chart stay at `5f630f42` | A Computer's OpenCode reuses an address for 30 seconds, and a connection opened just after its mapping expired failed with `EACCES` (record `veoveo-docs/records/2026-11-28-media-inline-outputs-and-policy-dns-refresh.md`) |
 | `installation.toml` | Cilium's values add `openshell/bioma/kubernetes/cilium-node.values.yaml` | Bioma keeps its node override in this repository |
 | `component-lock.json`, `kubernetes/lore.yaml`, `installer/tests/repository.rs` | The Lore server runs its own image, `@image:lore-server@`, which the installer's test lock names too | `lore` is mounted in Computers and factories, so a new digest there would change their templates. The server's change is to its HTTP files only, and gRPC is the same |
 | `kubernetes/hub-config-pvc.yaml`, `postgres-client-ca.yaml`, `seed-service-configs.yaml` | The copy-image markers name the pinned `debian:trixie-slim` copy utility | These values are rendered here; the utility is third-party, pinned at its upstream registry, so the lock does not name it |
