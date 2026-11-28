@@ -1,13 +1,13 @@
 # One provider in the factory workspace, `vv-factory-map-tiles`, that Hub attaches to an
 # instance whose branch requests it in openshell/providers.yaml and whose repository the
 # control plane's factory.providers grants it, such as veoveo-mcp-earth's. It holds a
-# Google Maps Platform key restricted to the Map Tiles API. The instance sees only the
-# placeholder in GOOGLE_MAPS_API_KEY, which its Map Tiles forwarder sends as the `key`
-# query parameter; the proxy replaces it there, at Photorealistic 3D Tiles' GET routes
-# alone, and strict binding refuses any other value in that position, so the key never
-# enters the sandbox and cannot be sent anywhere else.
+# Google Maps Platform key restricted to the Map Tiles and Geocoding APIs. The instance
+# sees only the placeholder in GOOGLE_MAPS_API_KEY, which it sends as the `key` query
+# parameter; the proxy replaces it there, at Photorealistic 3D Tiles' GET routes and the
+# Geocoding API's GET route alone, and strict binding refuses any other value in that
+# position, so the key never enters the sandbox and cannot be sent anywhere else.
 id: vv-factory-map-tiles
-display_name: Google Map Tiles (Photorealistic 3D Tiles) for factory instances
+display_name: Google Map Tiles (Photorealistic 3D Tiles) and Geocoding for factory instances
 credentials:
   - name: api_key
     env_vars: [GOOGLE_MAPS_API_KEY]
@@ -26,5 +26,16 @@ endpoints:
       - allow:
           method: GET
           path: /v1/3dtiles/**
+  - host: maps.googleapis.com
+    port: 443
+    path: /maps/api/geocode/json
+    protocol: rest
+    enforcement: enforce
+    credential_binding:
+      strict: true
+    rules:
+      - allow:
+          method: GET
+          path: /maps/api/geocode/json
 binaries:
   - /**
