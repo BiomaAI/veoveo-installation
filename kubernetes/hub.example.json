@@ -138,6 +138,12 @@
         "repositories": [
           "b2fd9e7fb1eb508979d7bdd70fa8e4c8"
         ]
+      },
+      {
+        "provider": "vv-factory-map-tiles",
+        "repositories": [
+          "a7b11f8dbd4f07e0d3685e30a447acca"
+        ]
       }
     ]
   },
